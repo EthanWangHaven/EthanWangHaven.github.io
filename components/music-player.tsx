@@ -279,11 +279,11 @@ export function MusicPlayer() {
   }
 
   const cardStyle = {
-    background: "rgba(255, 255, 255, 0.82)",
+    background: "var(--glass-bg)",
     backdropFilter: "blur(24px)",
     WebkitBackdropFilter: "blur(24px)",
-    border: "1px solid rgba(255, 255, 255, 0.50)",
-    boxShadow: "0 8px 32px rgba(90, 80, 160, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6)",
+    border: "1px solid var(--glass-border)",
+    boxShadow: "var(--glass-shadow)",
   }
 
   // ── Shared sub-components with warm color scheme ──

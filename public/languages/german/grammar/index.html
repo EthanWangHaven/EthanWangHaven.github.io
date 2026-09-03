@@ -4,30 +4,19 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Deutsche Grammatik · 德语语法学习</title>
+<link rel="stylesheet" href="../../shared-theme.css" />
 <style>
   :root {
-    --bg: #FFFFFF;
-    --text: #1C1C1C;
-    --text-soft: #6b6b6b;
-    --border: #DDD;
-    --border-light: #EEE;
     --ger-red: #C8102E;
     --ger-gold: #E8B400;
-    --gray: #999;
-    --gray-bg: #F5F5F5;
     --warn: #B04040;
     --warn-bg: #FFF5F5;
     --warn-border: #E5D0D0;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
-  body {
-    font-family: "Segoe UI", "Inter", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    -webkit-font-smoothing: antialiased;
-    line-height: 1.6;
+  .dark {
+    --ger-gold-light: rgba(232, 180, 0, 0.15);
+    --warn-bg: rgba(176, 64, 64, 0.12);
+    --warn-border: rgba(176, 64, 64, 0.25);
   }
 
   .flag-stripe { display: flex; height: 3px; width: 100%; }
@@ -35,12 +24,12 @@
   .stripe-red { flex: 1; background: var(--ger-red); }
   .stripe-gold { flex: 1; background: var(--ger-gold); }
 
-  .header { text-align: center; padding: 28px 20px 10px; }
+  .header { text-align: center; padding: 28px 20px 10px; position: relative; z-index: 1; }
   .header h1 { font-size: 26px; font-weight: 700; color: var(--text); }
   .header h1 .de-accent { color: var(--ger-red); }
-  .header p { margin-top: 6px; font-size: 13px; color: var(--text-soft); }
+  .header p { margin-top: 6px; font-size: 13px; color: var(--text-light); }
 
-  .view { display: none; animation: fade .25s ease; }
+  .view { display: none; animation: fade .25s ease; position: relative; z-index: 1; }
   .view.active { display: block; }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 
@@ -53,7 +42,8 @@
     margin-top: 14px;
   }
   .level-card {
-    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--glass-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
     padding: 24px 16px 20px; text-align: center;
     transition: border-color .2s ease, box-shadow .2s ease;
     position: relative; overflow: hidden;
@@ -66,35 +56,35 @@
   .level-card.preview::before { background: var(--ger-gold); }
   .level-card.available:hover, .level-card.preview:hover {
     border-color: var(--ger-red);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    box-shadow: var(--shadow-hover);
   }
   .level-card.available:hover::before, .level-card.preview:hover::before { background: var(--ger-red); }
   .level-card.locked { opacity: .5; cursor: not-allowed; }
   .level-card .lv-badge {
     display: inline-block; font-size: 12px; font-weight: 700; color: var(--text);
-    border: 1.5px solid var(--ger-gold); padding: 3px 14px; border-radius: 6px; margin-bottom: 12px;
+    border: 1.5px solid var(--ger-gold); padding: 3px 14px; border-radius: var(--radius-xs); margin-bottom: 12px;
   }
   .level-card.locked .lv-badge { border-color: var(--gray); color: var(--gray); }
   .level-card.available .lv-badge { color: var(--ger-red); border-color: var(--ger-red); }
   .level-card .lv-name { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
-  .level-card .lv-desc { font-size: 12px; color: var(--text-soft); }
-  .level-card .lv-count { margin-top: 8px; font-size: 12px; color: var(--text-soft); }
+  .level-card .lv-desc { font-size: 12px; color: var(--text-light); }
+  .level-card .lv-count { margin-top: 8px; font-size: 12px; color: var(--text-light); }
   .level-card .lv-soon {
-    margin-top: 6px; font-size: 11px; color: var(--text-soft);
-    background: var(--gray-bg); padding: 2px 8px; border-radius: 4px; display: inline-block;
+    margin-top: 6px; font-size: 11px; color: var(--text-light);
+    background: var(--gray-bg); padding: 2px 8px; border-radius: var(--radius-xs); display: inline-block;
   }
 
   /* 目录页 */
   .catalog-wrap { max-width: 960px; margin: 0 auto; padding: 10px 20px 60px; }
-  .breadcrumb { font-size: 13px; color: var(--text-soft); margin-bottom: 14px; }
+  .breadcrumb { font-size: 13px; color: var(--text-light); margin-bottom: 14px; }
   .breadcrumb a { color: var(--ger-red); text-decoration: none; cursor: pointer; }
   .breadcrumb a:hover { text-decoration: underline; }
   .breadcrumb .sep { color: var(--gray); margin: 0 6px; }
 
   .filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .filter-tag {
-    border: 1px solid var(--border); background: #fff; color: var(--text-soft);
-    font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 6px;
+    border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-light);
+    font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: var(--radius-xs);
     cursor: pointer; transition: all .15s ease; font-family: inherit;
   }
   .filter-tag:hover { border-color: var(--ger-red); color: var(--ger-red); }
@@ -102,23 +92,24 @@
 
   .grammar-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
   .grammar-item {
-    background: #fff; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--glass-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
     padding: 12px 14px; cursor: pointer;
     transition: border-color .15s ease;
     display: flex; align-items: center; gap: 10px;
   }
   .grammar-item:hover { border-color: var(--ger-red); }
   .grammar-item .gi-num {
-    flex-shrink: 0; font-size: 13px; color: var(--text-soft); font-weight: 600; min-width: 24px;
+    flex-shrink: 0; font-size: 13px; color: var(--text-light); font-weight: 600; min-width: 24px;
   }
   .grammar-item .gi-body { flex: 1; min-width: 0; }
   .grammar-item .gi-name { font-size: 15px; font-weight: 600; color: var(--text); }
   .grammar-item .gi-name .cat-pill {
-    font-size: 11px; font-weight: 500; color: var(--text-soft);
-    border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+    font-size: 11px; font-weight: 500; color: var(--text-light);
+    border: 1px solid var(--border); padding: 1px 6px; border-radius: var(--radius-xs); margin-left: 6px;
   }
   .grammar-item .gi-meaning {
-    font-size: 12px; color: var(--text-soft); margin-top: 2px;
+    font-size: 12px; color: var(--text-light); margin-top: 2px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 
@@ -127,7 +118,7 @@
 
   .detail-title { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--ger-red); }
   .detail-title .dt-name { font-size: 22px; font-weight: 700; color: var(--text); }
-  .detail-title .dt-level { font-size: 13px; color: var(--text-soft); margin-top: 4px; }
+  .detail-title .dt-level { font-size: 13px; color: var(--text-light); margin-top: 4px; }
 
   .detail-desc { font-size: 14px; line-height: 1.7; color: var(--text); margin-bottom: 20px; }
 
@@ -140,7 +131,7 @@
 
   /* 核心表格样式 */
   .table-wrap { overflow-x: auto; margin-bottom: 16px; }
-  .table-caption { font-size: 13px; font-weight: 600; color: var(--text-soft); margin-bottom: 6px; }
+  .table-caption { font-size: 13px; font-weight: 600; color: var(--text-light); margin-bottom: 6px; }
   .grammar-table {
     border-collapse: collapse; width: 100%; font-size: 14px;
   }
@@ -152,14 +143,14 @@
     border-bottom: 2px solid var(--ger-gold);
   }
   .grammar-table th.row-header {
-    background: #FDF8EC; font-weight: 600; color: var(--text); white-space: nowrap;
+    background: var(--ger-gold-light, #FDF8EC); font-weight: 600; color: var(--text); white-space: nowrap;
     border-left: 2px solid var(--ger-gold);
   }
   .grammar-table td { color: var(--text); }
-  .grammar-table tr:hover td { background: #FDF8EC; }
+  .grammar-table tr:hover td { background: var(--ger-gold-light, #FDF8EC); }
 
   .pitfall-box {
-    background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 6px;
+    background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: var(--radius-xs);
     padding: 10px 14px; font-size: 13px; line-height: 1.7; color: var(--warn);
   }
   .pitfall-box::before { content: "\26A0  "; font-weight: 700; }
@@ -167,20 +158,20 @@
   .similar-list { display: flex; flex-direction: column; gap: 6px; }
   .similar-row {
     display: flex; gap: 10px; align-items: flex-start;
-    padding: 8px 12px; border: 1px solid var(--border-light); border-radius: 6px;
+    padding: 8px 12px; border: 1px solid var(--border-light); border-radius: var(--radius-xs);
   }
   .similar-row .sr-name { flex-shrink: 0; font-size: 14px; font-weight: 600; color: var(--text); min-width: 80px; }
-  .similar-row .sr-desc { font-size: 13px; color: var(--text-soft); line-height: 1.5; }
+  .similar-row .sr-desc { font-size: 13px; color: var(--text-light); line-height: 1.5; }
 
   .example-list { display: flex; flex-direction: column; gap: 8px; }
-  .example-item { padding: 8px 12px; border-left: 2px solid var(--ger-red); background: #FAFAFA; }
+  .example-item { padding: 8px 12px; border-left: 2px solid var(--ger-red); background: var(--gray-bg); }
   .example-de { font-size: 15px; line-height: 1.7; color: var(--text); margin-bottom: 2px; }
-  .example-cn { font-size: 13px; color: var(--text-soft); }
+  .example-cn { font-size: 13px; color: var(--text-light); }
 
   .detail-nav { display: flex; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-light); }
   .detail-nav button {
-    flex: 1; border: 1px solid var(--border); background: #fff; color: var(--text-soft);
-    font-size: 13px; padding: 8px 12px; border-radius: 6px;
+    flex: 1; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-light);
+    font-size: 13px; padding: 8px 12px; border-radius: var(--radius-xs);
     cursor: pointer; transition: all .15s ease; font-family: inherit;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
   }
@@ -191,8 +182,8 @@
 
   .back-btn {
     display: inline-flex; align-items: center; gap: 5px;
-    border: 1px solid var(--border); background: #fff; color: var(--text-soft);
-    font-size: 13px; padding: 6px 14px; border-radius: 6px;
+    border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-light);
+    font-size: 13px; padding: 6px 14px; border-radius: var(--radius-xs);
     cursor: pointer; transition: all .15s ease; font-family: inherit; margin-bottom: 16px;
   }
   .back-btn:hover { border-color: var(--ger-red); color: var(--ger-red); }
@@ -202,8 +193,9 @@
   /* 主题大纲列表 */
   .topics-wrap { max-width: 880px; margin: 0 auto; padding: 10px 20px 60px; }
   .topics-intro {
-    border: 1px solid var(--border); border-radius: 6px;
-    padding: 12px 16px; margin-bottom: 20px; font-size: 13px; color: var(--text-soft); line-height: 1.7;
+    border: 1px solid var(--border); border-radius: var(--radius-xs);
+    padding: 12px 16px; margin-bottom: 20px; font-size: 13px; color: var(--text-light); line-height: 1.7;
+    background: var(--glass-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   }
   .topics-group { margin-bottom: 24px; }
   .topics-group-title {
@@ -213,10 +205,11 @@
   }
   .topics-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px; }
   .topic-item {
-    border: 1px solid var(--border-light); border-radius: 6px;
+    border: 1px solid var(--border-light); border-radius: var(--radius-xs);
     padding: 10px 14px; font-size: 13px; color: var(--text);
+    background: var(--glass-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   }
-  .topic-item .ti-dot { color: var(--text-soft); margin-right: 6px; }
+  .topic-item .ti-dot { color: var(--text-light); margin-right: 6px; }
 
   @media (max-width: 760px) {
     .header h1 { font-size: 22px; }
@@ -232,28 +225,16 @@
     top: 16px;
     left: 16px;
     z-index: 9999;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: #fff;
-    border: 1px solid var(--ger-red, #C8102E);
-    border-radius: 20px;
-    color: var(--ger-red, #C8102E);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-    transition: background .2s ease, color .2s ease;
-  }
-  .back-fixed:hover {
-    background: var(--ger-red, #C8102E);
-    color: #fff;
+    margin-bottom: 0;
   }
 </style>
 </head>
 <body>
-  <button class="back-fixed" onclick="smartBack()">&larr; Zurück</button>
+  <button class="theme-toggle-lang" onclick="document.documentElement.classList.toggle('dark')" aria-label="Toggle theme">
+    <span class="icon-sun">☀️</span>
+    <span class="icon-moon">🌙</span>
+  </button>
+  <a href="/languages/" class="back-link back-fixed" onclick="event.preventDefault(); smartBack()">&larr; Zurück</a>
   <div class="flag-stripe">
     <div class="stripe-black"></div>
     <div class="stripe-red"></div>
@@ -2017,7 +1998,7 @@ function renderDetail() {
     "</div>" +
     '<div class="detail-desc">' + g.meaning + "</div>" +
     tablesHTML +
-    '<div class="detail-section"><div class="section-label">使用场景</div><div class="detail-desc" style="color:var(--text-soft);">' + g.scene + "</div></div>" +
+    '<div class="detail-section"><div class="section-label">使用场景</div><div class="detail-desc" style="color:var(--text-light);">' + g.scene + "</div></div>" +
     '<div class="detail-section"><div class="section-label">易错点</div><div class="pitfall-box">' + g.pitfalls + "</div></div>" +
     (similarHTML ? '<div class="detail-section"><div class="section-label">易混语法对比</div>' + similarHTML + "</div>" : "") +
     '<div class="detail-section"><div class="section-label">例句</div>' + exHTML + "</div>" +
@@ -2081,6 +2062,9 @@ el("bcHome2").addEventListener("click", function() { showView("overview"); });
    初始化
 ================================================================ */
 renderOverview();
+</script>
+<script>
+(function(){var t=localStorage.getItem('lang-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}var btn=document.querySelector('.theme-toggle-lang');if(btn){btn.addEventListener('click',function(){var isDark=document.documentElement.classList.toggle('dark');localStorage.setItem('lang-theme',isDark?'dark':'light')})}})();
 </script>
 </body>
 </html>

@@ -4,41 +4,26 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>日本語の発音を楽しもう！</title>
+<link rel="stylesheet" href="../../shared-theme.css" />
 <style>
   :root {
-    /* 浅薄荷绿主色调 */
-    --bg: #eef7f2;
-    --bg-soft: #f5fbf8;
-    --card: #ffffff;
-    --card-border: #d8ece4;
-    --card-shadow: 0 4px 14px rgba(120, 180, 150, 0.12);
-    --card-shadow-hover: 0 8px 24px rgba(120, 180, 150, 0.22);
     --mint: #6fc6a4;
     --mint-light: #e3f3ec;
-    --mint-deep: #3f9b78;   /* 选中Tab深绿 */
+    --mint-deep: #3f9b78;
     --mint-dark: #2f7d60;
-    --text: #2c3e35;
-    --text-soft: #6b8378;
-    --gray: #9bb0a7;        /* 未选中标签灰 */
-    --gray-bg: #eef3f0;
     --highlight: #d6f0e4;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html, body { height: 100%; }
-
-  body {
-    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Heiti SC", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    -webkit-font-smoothing: antialiased;
+  .dark {
+    --mint-light: rgba(63, 155, 120, 0.15);
+    --highlight: rgba(63, 155, 120, 0.12);
   }
 
   /* 页头 */
   .header {
     text-align: center;
     padding: 36px 20px 18px;
+    position: relative;
+    z-index: 1;
   }
   .header h1 {
     font-size: 28px;
@@ -49,7 +34,7 @@
   .header p {
     margin-top: 8px;
     font-size: 14px;
-    color: var(--text-soft);
+    color: var(--text-light);
   }
 
   /* 控制条 */
@@ -68,18 +53,18 @@
   .tabs {
     display: flex;
     gap: 8px;
-    background: var(--gray-bg);
+    background: var(--glass-bg);
     padding: 6px;
-    border-radius: 14px;
+    border-radius: var(--radius-sm);
   }
   .tab {
     border: none;
     background: transparent;
-    color: var(--gray);
+    color: var(--text-muted);
     font-size: 15px;
     font-weight: 600;
     padding: 9px 22px;
-    border-radius: 10px;
+    border-radius: var(--radius-xs);
     cursor: pointer;
     transition: all .2s ease;
     font-family: inherit;
@@ -97,7 +82,7 @@
     align-items: center;
     gap: 10px;
     font-size: 14px;
-    color: var(--text-soft);
+    color: var(--text-muted);
     user-select: none;
   }
   .switch {
@@ -110,7 +95,7 @@
   .slider {
     position: absolute;
     inset: 0;
-    background: var(--gray);
+    background: var(--text-muted);
     border-radius: 999px;
     transition: .25s;
     cursor: pointer;
@@ -153,10 +138,10 @@
     flex-shrink: 0;
     position: sticky;
     top: 20px;
-    background: var(--card);
-    border: 1px solid var(--card-border);
-    border-radius: 18px;
-    box-shadow: var(--card-shadow);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    box-shadow: var(--glass-shadow);
     padding: 24px 20px;
     min-height: 380px;
     transition: opacity .25s ease, transform .25s ease;
@@ -166,7 +151,7 @@
   }
   .info-panel .ip-placeholder {
     text-align: center;
-    color: var(--gray);
+    color: var(--text-muted);
     font-size: 14px;
     padding-top: 120px;
     line-height: 2;
@@ -177,7 +162,7 @@
     gap: 10px;
     margin-bottom: 18px;
     padding-bottom: 14px;
-    border-bottom: 1px solid var(--card-border);
+    border-bottom: 1px solid var(--glass-border);
   }
   .info-panel .ip-hira {
     font-size: 52px;
@@ -188,11 +173,11 @@
   .info-panel .ip-kata {
     font-size: 28px;
     font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
-    color: var(--text-soft);
+    color: var(--text-light);
   }
   .info-panel .ip-roma {
     font-size: 16px;
-    color: var(--gray);
+    color: var(--text-muted);
     margin-left: auto;
     letter-spacing: 1px;
   }
@@ -235,11 +220,11 @@
     min-width: 70px;
   }
   .info-panel .ip-word .w-romaji {
-    color: var(--gray);
+    color: var(--text-muted);
     font-size: 11px;
   }
   .info-panel .ip-word .w-cn {
-    color: var(--text-soft);
+    color: var(--text-light);
     margin-left: auto;
   }
 
@@ -251,7 +236,7 @@
     font-size: 14px;
     font-weight: 600;
     padding: 8px 20px;
-    border-radius: 10px;
+    border-radius: var(--radius-xs);
     cursor: pointer;
     transition: all .2s ease;
     font-family: inherit;
@@ -261,7 +246,7 @@
   }
   .btn-readall:hover { background: var(--mint-dark); }
   .btn-readall.reading {
-    background: var(--gray);
+    background: var(--text-muted);
     cursor: not-allowed;
     opacity: 0.6;
   }
@@ -275,18 +260,18 @@
   /* 卡片悬停高亮 */
   .card.hovered {
     border-color: var(--mint);
-    box-shadow: 0 0 0 2px rgba(111, 198, 164, 0.3), var(--card-shadow-hover);
+    box-shadow: 0 0 0 2px rgba(111, 198, 164, 0.3), var(--shadow-hover);
   }
 
   /* 卡片 */
   .card {
-    background: var(--card);
-    border: 1px solid var(--card-border);
-    border-radius: 18px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
     padding: 18px 10px 14px;
     text-align: center;
     cursor: pointer;
-    box-shadow: var(--card-shadow);
+    box-shadow: var(--glass-shadow);
     transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
     display: flex;
     flex-direction: column;
@@ -294,13 +279,13 @@
     gap: 8px;
   }
   .card:hover {
-    box-shadow: var(--card-shadow-hover);
+    box-shadow: var(--shadow-hover);
     transform: translateY(-2px);
   }
   .card.active {
     transform: scale(0.94);
     background: var(--highlight);
-    box-shadow: var(--card-shadow-hover);
+    box-shadow: var(--shadow-hover);
   }
   .kana-ja {
     font-size: 38px;
@@ -311,13 +296,13 @@
   .kana-kata {
     font-size: 22px;
     font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif;
-    color: var(--text-soft);
+    color: var(--text-light);
     transition: opacity .2s ease, height .2s ease, margin .2s ease;
   }
   .kana-romaji {
     font-size: 13px;
     letter-spacing: 1px;
-    color: var(--gray);
+    color: var(--text-muted);
     text-transform: lowercase;
   }
   body.hide-kata .kana-kata {
@@ -331,7 +316,7 @@
   .row-label {
     grid-column: 1 / -1;
     font-size: 13px;
-    color: var(--text-soft);
+    color: var(--text-light);
     margin: 14px 0 -4px 2px;
     font-weight: 600;
     display: flex;
@@ -347,7 +332,7 @@
 
   .empty {
     text-align: center;
-    color: var(--gray);
+    color: var(--text-muted);
     padding: 40px;
   }
 
@@ -365,7 +350,7 @@
     color: #8a6d3b;
     background: #fdf6e3;
     border: 1px solid #f0e3c2;
-    border-radius: 10px;
+    border-radius: var(--radius-xs);
   }
 
   /* 默写模式：隐藏卡片内容 */
@@ -387,6 +372,10 @@
 </style>
 </head>
 <body>
+  <button class="theme-toggle-lang" onclick="document.documentElement.classList.toggle('dark')" aria-label="Toggle theme">
+    <span class="icon-sun">☀️</span>
+    <span class="icon-moon">🌙</span>
+  </button>
   <header class="header">
     <h1>日本語の発音を楽しもう！</h1>
     <p>自然な日本語の発音を学び、正確に表現しよう</p>
@@ -438,12 +427,19 @@
   </div>
 
 <script>
+/* ============ 主题持久化 ============ */
+(function(){var t=localStorage.getItem('lang-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}var btn=document.querySelector('.theme-toggle-lang');if(btn){btn.addEventListener('click',function(){var isDark=document.documentElement.classList.toggle('dark');localStorage.setItem('lang-theme',isDark?'dark':'light')})}})();
+
 /* ============ 返回按钮 ============ */
 (function() {
   var btn = document.createElement('a');
   btn.href = '/languages/';
+  btn.className = 'back-link';
   btn.innerHTML = '&larr; 戻る';
-  btn.style.cssText = 'position:fixed;top:1rem;left:1rem;z-index:9999;display:inline-flex;align-items:center;gap:0.35rem;padding:0.5rem 1rem;background:#fff;border:1.5px solid #3f9b78;border-radius:8px;color:#3f9b78;text-decoration:none;font-size:0.9rem;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:all 0.2s ease;cursor:pointer;font-family:sans-serif;';
+  btn.style.position = 'fixed';
+  btn.style.top = '1rem';
+  btn.style.left = '1rem';
+  btn.style.zIndex = '9999';
   document.body.appendChild(btn);
 })();
 

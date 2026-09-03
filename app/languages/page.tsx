@@ -117,7 +117,6 @@ export default function LanguagesPage() {
                     border: "1px solid var(--glass-border)",
                     boxShadow: "var(--shadow)",
                   }}
-                  target="_blank"
                 >
                   <div className="mb-3 flex items-center justify-between">
                     <div

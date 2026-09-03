@@ -4,18 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Deutscher Wortschatz · 德语单词库</title>
+<link rel="stylesheet" href="../../shared-theme.css" />
 <style>
   :root {
-    --bg: #FFFFFF;
-    --text: #1C1C1C;
-    --text-soft: #6b6b6b;
-    --border: #DDD;
-    --border-light: #EEE;
     --ger-red: #C8102E;
     --ger-gold: #E8B400;
     --ger-gold-light: #FDF8EC;
-    --gray: #999;
-    --gray-bg: #F5F5F5;
     --m: #C8102E;
     --m-bg: #FBF0F0;
     --f: #4A6FA5;
@@ -26,15 +20,14 @@
     --pl-bg: #F5F0F5;
     --none: #999;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
-  body {
-    font-family: "Segoe UI", "Inter", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    -webkit-font-smoothing: antialiased;
-    line-height: 1.6;
+  .dark {
+    --ger-gold-light: rgba(232, 180, 0, 0.15);
+    --warn-bg: rgba(176, 64, 64, 0.12);
+    --warn-border: rgba(176, 64, 64, 0.25);
+    --m-bg: rgba(200, 16, 46, 0.12);
+    --f-bg: rgba(74, 111, 165, 0.12);
+    --n-bg: rgba(136, 136, 136, 0.12);
+    --pl-bg: rgba(139, 107, 139, 0.12);
   }
 
   .flag-stripe { display: flex; height: 3px; width: 100%; }
@@ -42,12 +35,12 @@
   .stripe-red { flex: 1; background: var(--ger-red); }
   .stripe-gold { flex: 1; background: var(--ger-gold); }
 
-  .header { text-align: center; padding: 28px 20px 10px; }
+  .header { text-align: center; padding: 28px 20px 10px; position: relative; z-index: 1; }
   .header h1 { font-size: 26px; font-weight: 700; color: var(--text); }
   .header h1 .de-accent { color: var(--ger-red); }
-  .header p { margin-top: 6px; font-size: 13px; color: var(--text-soft); }
+  .header p { margin-top: 6px; font-size: 13px; color: var(--text-light); }
 
-  .view { display: none; animation: fade .25s ease; }
+  .view { display: none; animation: fade .25s ease; position: relative; z-index: 1; }
   .view.active { display: block; }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 
@@ -60,7 +53,8 @@
     margin-top: 14px;
   }
   .level-card {
-    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--glass-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
     padding: 24px 16px 20px; text-align: center;
     transition: border-color .2s ease, box-shadow .2s ease;
     position: relative; overflow: hidden;
@@ -74,35 +68,35 @@
   .level-card.available, .level-card.preview { cursor: pointer; }
   .level-card.available:hover, .level-card.preview:hover {
     border-color: var(--ger-red);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    box-shadow: var(--shadow-hover);
   }
   .level-card.available:hover::before, .level-card.preview:hover::before { background: var(--ger-red); }
   .level-card.locked { opacity: .5; cursor: not-allowed; }
   .level-card .lv-badge {
     display: inline-block; font-size: 12px; font-weight: 700;
-    border: 1.5px solid var(--ger-gold); padding: 3px 14px; border-radius: 6px; margin-bottom: 12px;
+    border: 1.5px solid var(--ger-gold); padding: 3px 14px; border-radius: var(--radius-xs); margin-bottom: 12px;
   }
   .level-card.available .lv-badge { color: var(--ger-red); border-color: var(--ger-red); }
   .level-card.locked .lv-badge { border-color: var(--gray); color: var(--gray); }
   .level-card .lv-name { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
-  .level-card .lv-desc { font-size: 12px; color: var(--text-soft); }
-  .level-card .lv-count { margin-top: 8px; font-size: 12px; color: var(--text-soft); }
+  .level-card .lv-desc { font-size: 12px; color: var(--text-light); }
+  .level-card .lv-count { margin-top: 8px; font-size: 12px; color: var(--text-light); }
   .level-card .lv-soon {
-    margin-top: 6px; font-size: 11px; color: var(--text-soft);
-    background: var(--gray-bg); padding: 2px 8px; border-radius: 4px; display: inline-block;
+    margin-top: 6px; font-size: 11px; color: var(--text-light);
+    background: var(--gray-bg); padding: 2px 8px; border-radius: var(--radius-xs); display: inline-block;
   }
 
   /* 目录页 */
   .catalog-wrap { max-width: 1000px; margin: 0 auto; padding: 10px 20px 60px; }
-  .breadcrumb { font-size: 13px; color: var(--text-soft); margin-bottom: 14px; }
+  .breadcrumb { font-size: 13px; color: var(--text-light); margin-bottom: 14px; }
   .breadcrumb a { color: var(--ger-red); text-decoration: none; cursor: pointer; }
   .breadcrumb a:hover { text-decoration: underline; }
   .breadcrumb .sep { color: var(--gray); margin: 0 6px; }
 
   .filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .filter-tag {
-    border: 1px solid var(--border); background: #fff; color: var(--text-soft);
-    font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 6px;
+    border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-light);
+    font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: var(--radius-xs);
     cursor: pointer; transition: all .15s ease; font-family: inherit;
   }
   .filter-tag:hover { border-color: var(--ger-red); color: var(--ger-red); }
@@ -110,9 +104,7 @@
 
   .search-box { margin-bottom: 16px; }
   .search-box input {
-    width: 100%; max-width: 400px; padding: 8px 14px; font-size: 14px;
-    border: 1px solid var(--border); border-radius: 6px; font-family: inherit; outline: none;
-    transition: border-color .15s ease;
+    width: 100%; max-width: 400px;
   }
   .search-box input:focus { border-color: var(--ger-red); }
 
@@ -123,7 +115,7 @@
     padding-bottom: 4px; border-bottom: 1px solid var(--border-light);
     padding-left: 10px; border-left: 3px solid var(--ger-gold);
   }
-  .topic-group-count { font-size: 12px; color: var(--text-soft); font-weight: 400; margin-left: 8px; }
+  .topic-group-count { font-size: 12px; color: var(--text-light); font-weight: 400; margin-left: 8px; }
 
   .table-wrap { overflow-x: auto; margin-bottom: 16px; }
   .vocab-table {
@@ -141,7 +133,7 @@
 
   .art-badge {
     display: inline-block; font-size: 12px; font-weight: 700;
-    padding: 1px 8px; border-radius: 4px; min-width: 36px; text-align: center;
+    padding: 1px 8px; border-radius: var(--radius-xs); min-width: 36px; text-align: center;
   }
   .art-der { background: var(--m); color: #fff; }
   .art-die { background: var(--f); color: #fff; }
@@ -150,15 +142,15 @@
   .art-none { color: var(--none); }
 
   .word-de { font-weight: 600; color: var(--text); }
-  .word-plural { font-size: 12px; color: var(--text-soft); font-weight: 400; }
+  .word-plural { font-size: 12px; color: var(--text-light); font-weight: 400; }
   .word-cn { color: var(--text); }
   .ex-de { color: var(--text); }
-  .ex-cn { font-size: 12px; color: var(--text-soft); margin-top: 2px; }
+  .ex-cn { font-size: 12px; color: var(--text-light); margin-top: 2px; }
 
   .back-btn {
     display: inline-flex; align-items: center; gap: 5px;
-    border: 1px solid var(--border); background: #fff; color: var(--text-soft);
-    font-size: 13px; padding: 6px 14px; border-radius: 6px;
+    border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-light);
+    font-size: 13px; padding: 6px 14px; border-radius: var(--radius-xs);
     cursor: pointer; transition: all .15s ease; font-family: inherit; margin-bottom: 16px;
   }
   .back-btn:hover { border-color: var(--ger-red); color: var(--ger-red); }
@@ -177,28 +169,16 @@
     top: 16px;
     left: 16px;
     z-index: 9999;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: #fff;
-    border: 1px solid var(--ger-red, #C8102E);
-    border-radius: 20px;
-    color: var(--ger-red, #C8102E);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-    transition: background .2s ease, color .2s ease;
-  }
-  .back-fixed:hover {
-    background: var(--ger-red, #C8102E);
-    color: #fff;
+    margin-bottom: 0;
   }
 </style>
 </head>
 <body>
-  <button class="back-fixed" onclick="smartBack()">&larr; Zurück</button>
+  <button class="theme-toggle-lang" onclick="document.documentElement.classList.toggle('dark')" aria-label="Toggle theme">
+    <span class="icon-sun">☀️</span>
+    <span class="icon-moon">🌙</span>
+  </button>
+  <a href="/languages/" class="back-link back-fixed" onclick="event.preventDefault(); smartBack()">&larr; Zurück</a>
   <div class="flag-stripe">
     <div class="stripe-black"></div>
     <div class="stripe-red"></div>
@@ -448,6 +428,9 @@ el("searchInput").addEventListener("input", function() {
    初始化
 ================================================================ */
 renderOverview();
+</script>
+<script>
+(function(){var t=localStorage.getItem('lang-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}var btn=document.querySelector('.theme-toggle-lang');if(btn){btn.addEventListener('click',function(){var isDark=document.documentElement.classList.toggle('dark');localStorage.setItem('lang-theme',isDark?'dark':'light')})}})();
 </script>
 </body>
 </html>

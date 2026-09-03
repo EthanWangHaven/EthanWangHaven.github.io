@@ -1,0 +1,245 @@
+/* ============================================================
+ * Language Tools Shared Theme
+ * 统一毛玻璃风格 · 适配主站 CSS 变量 · 支持深色模式
+ * 各语言保留各自 accent 色 (en-blue / ger-red / jp-mint)
+ * ============================================================ */
+
+:root {
+  /* 主站配色 */
+  --bg: #f0f4f8;
+  --bg-card: rgba(255, 255, 255, 0.72);
+  --bg-card-solid: #fffdf8;
+  --text: #333333;
+  --text-light: #7a8a9a;
+  --text-muted: #a0aab8;
+  --accent: #7b9ac8;
+  --accent-light: #e8f0fa;
+  --accent-dark: #5a7aaa;
+  --radius: 20px;
+  --radius-sm: 14px;
+  --radius-xs: 10px;
+  --shadow: 0 4px 16px rgba(90, 122, 170, 0.06);
+  --shadow-hover: 0 12px 36px rgba(90, 122, 170, 0.12);
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.45);
+  --glass-shadow: 0 4px 24px rgba(90, 122, 170, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+  /* 通用工具变量 */
+  --border: rgba(90, 122, 170, 0.12);
+  --border-light: rgba(90, 122, 170, 0.08);
+  --gray: var(--text-muted);
+  --gray-bg: rgba(90, 122, 170, 0.04);
+  --warn: #b04040;
+  --warn-bg: rgba(176, 64, 64, 0.06);
+  --warn-border: rgba(176, 64, 64, 0.15);
+}
+
+.dark {
+  --bg: #141820;
+  --bg-card: rgba(36, 38, 48, 0.72);
+  --bg-card-solid: #242428;
+  --text: #d0d4de;
+  --text-light: #8890a0;
+  --text-muted: #666878;
+  --accent: #8eaace;
+  --accent-light: rgba(50, 56, 72, 0.8);
+  --accent-dark: #b0c4e0;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-hover: 0 12px 36px rgba(0, 0, 0, 0.45);
+  --glass-bg: rgba(40, 44, 56, 0.55);
+  --glass-border: rgba(80, 90, 110, 0.25);
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  --border: rgba(80, 90, 110, 0.2);
+  --border-light: rgba(80, 90, 110, 0.12);
+  --gray-bg: rgba(80, 90, 110, 0.08);
+  --warn-bg: rgba(176, 64, 64, 0.12);
+  --warn-border: rgba(176, 64, 64, 0.25);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  font-family: "Segoe UI", "Inter", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 背景柔和光斑 */
+body::before {
+  content: "";
+  position: fixed;
+  top: -10%;
+  left: -5%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(ellipse, rgba(180, 200, 240, 0.3), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dark body::before {
+  background: radial-gradient(ellipse, rgba(60, 80, 120, 0.15), transparent 70%);
+}
+
+/* 统一卡片 */
+.card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--glass-shadow);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+/* 统一输入框 */
+.input, input[type="text"], input[type="search"], select {
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--bg-card);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input:focus, input[type="text"]:focus, input[type="search"]:focus, select:focus {
+  border-color: var(--accent);
+}
+
+/* 统一按钮 */
+.btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--bg-card);
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.btn-primary {
+  padding: 9px 28px;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: var(--accent-dark);
+}
+
+/* 统一返回链接 */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-xs);
+  background: var(--accent-light);
+  transition: all 0.2s;
+}
+
+.back-link:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* 统一页面头部 */
+.page-header {
+  text-align: center;
+  padding: 28px 20px 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.page-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.page-header p {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+/* 统一容器 */
+.wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 20px 60px;
+  position: relative;
+  z-index: 1;
+}
+
+/* 统一空状态 */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* 主题切换按钮 */
+.theme-toggle-lang {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.3s;
+}
+
+.theme-toggle-lang:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+/* 暗色模式隐藏太阳，浅色模式隐藏月亮 */
+.dark .theme-toggle-lang .icon-sun { display: none; }
+:not(.dark) .theme-toggle-lang .icon-moon { display: none; }
