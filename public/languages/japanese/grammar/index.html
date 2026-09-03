@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>日本語文法ラーニング</title>
+<style>
+  :root {
+    --bg: #ECF7EF;
+    --bg-soft: #f5fbf8;
+    --card: #FFFFFF;
+    --card-border: #d8ece4;
+    --card-shadow: 0 4px 14px rgba(120,180,150,0.12);
+    --card-shadow-hover: 0 8px 24px rgba(120,180,150,0.22);
+    --mint: #6fc6a4;
+    --mint-light: #e3f3ec;
+    --mint-deep: #408C60;
+    --mint-dark: #357a52;
+    --text: #2c3333;
+    --text-soft: #647474;
+    --gray: #9bb0a7;
+    --gray-bg: #eef3f0;
+    --highlight: #2A8C78;
+    --highlight-bg: #eaf6f1;
+    --warn: #d16060;
+    --warn-bg: #fdeeee;
+    --warn-border: #f0d0d0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Heiti SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+  .jp-font {
+    font-family: "Hiragino Sans", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif;
+  }
+
+  .header { text-align: center; padding: 40px 20px 20px; }
+  .header h1 { font-size: 30px; font-weight: 700; color: var(--mint-deep); letter-spacing: 1px; }
+  .header p { margin-top: 8px; font-size: 14px; color: var(--text-soft); }
+
+  .view { display: none; animation: fade .3s ease; }
+  .view.active { display: block; }
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .overview-wrap { max-width: 980px; margin: 0 auto; padding: 20px 20px 60px; }
+  .level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 18px;
+    margin-top: 18px;
+  }
+  .level-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    padding: 28px 18px 24px;
+    text-align: center;
+    box-shadow: var(--card-shadow);
+    transition: transform .18s ease, box-shadow .2s ease;
+    position: relative;
+  }
+  .level-card.available { cursor: pointer; }
+  .level-card.available:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--card-shadow-hover);
+    border-color: var(--mint);
+  }
+  .level-card.locked { opacity: .62; cursor: not-allowed; }
+  .level-card .lv-badge {
+    display: inline-block; font-size: 13px; font-weight: 700;
+    color: #fff; background: var(--mint-deep);
+    padding: 4px 16px; border-radius: 999px; margin-bottom: 14px; letter-spacing: 1px;
+  }
+  .level-card.locked .lv-badge { background: var(--gray); }
+  .level-card .lv-name { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .level-card .lv-desc { font-size: 12px; color: var(--text-soft); }
+  .level-card .lv-count { margin-top: 10px; font-size: 12px; color: var(--mint-deep); font-weight: 600; }
+  .level-card.locked .lv-count { color: var(--gray); }
+  .level-card .lv-soon {
+    margin-top: 8px; font-size: 12px; color: var(--gray);
+    background: var(--gray-bg); padding: 3px 10px; border-radius: 8px; display: inline-block;
+  }
+
+  .catalog-wrap { max-width: 980px; margin: 0 auto; padding: 10px 20px 60px; }
+  .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-soft); margin-bottom: 16px; }
+  .breadcrumb a { color: var(--mint-deep); text-decoration: none; cursor: pointer; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb .sep { color: var(--gray); }
+
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .filter-tag {
+    border: none; background: var(--gray-bg); color: var(--text-soft);
+    font-size: 14px; font-weight: 600; padding: 8px 18px; border-radius: 10px;
+    cursor: pointer; transition: all .2s ease; font-family: inherit;
+  }
+  .filter-tag:hover { color: var(--mint-deep); }
+  .filter-tag.active { background: var(--mint-deep); color: #fff; box-shadow: 0 4px 12px rgba(64,140,96,0.3); }
+
+  .grammar-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .grammar-item {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 16px;
+    padding: 16px 18px; cursor: pointer; box-shadow: var(--card-shadow);
+    transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .grammar-item:hover { transform: translateY(-3px); box-shadow: var(--card-shadow-hover); border-color: var(--mint); }
+  .grammar-item .gi-num {
+    flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px;
+    background: var(--mint-light); color: var(--mint-deep);
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  .grammar-item .gi-body { flex: 1; min-width: 0; }
+  .grammar-item .gi-name { font-size: 18px; font-weight: 600; color: var(--mint-deep); }
+  .grammar-item .gi-name .cat-pill {
+    font-size: 11px; font-weight: 600; color: var(--text-soft);
+    background: var(--gray-bg); padding: 2px 8px; border-radius: 6px; margin-left: 8px; vertical-align: middle;
+  }
+  .grammar-item .gi-meaning {
+    font-size: 13px; color: var(--text-soft); margin-top: 3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .detail-wrap { max-width: 1080px; margin: 0 auto; padding: 10px 20px 60px; display: flex; gap: 24px; align-items: flex-start; }
+  .detail-main { flex: 1; min-width: 0; }
+  .detail-side { width: 300px; flex-shrink: 0; position: sticky; top: 20px; }
+
+  .detail-card {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 18px;
+    box-shadow: var(--card-shadow); padding: 26px 28px; margin-bottom: 18px;
+  }
+  .detail-title {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 18px;
+    padding-bottom: 16px; border-bottom: 1px solid var(--card-border);
+  }
+  .detail-title .dt-name { font-size: 30px; font-weight: 700; color: var(--mint-deep); line-height: 1.1; }
+  .detail-title .dt-tags { display: flex; flex-direction: column; gap: 6px; margin-left: auto; align-items: flex-end; }
+  .tag-pill { font-size: 11px; font-weight: 600; padding: 3px 12px; border-radius: 999px; }
+  .tag-level { background: var(--mint-deep); color: #fff; }
+  .tag-cat { background: var(--mint-light); color: var(--mint-deep); }
+
+  .section-label {
+    font-size: 13px; font-weight: 600; color: var(--mint-deep); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .section-label::before { content: ""; width: 4px; height: 14px; background: var(--mint); border-radius: 2px; }
+  .detail-section { margin-bottom: 22px; }
+  .detail-section:last-child { margin-bottom: 0; }
+  .section-text { font-size: 14px; line-height: 1.75; color: var(--text); }
+  .section-text-soft { font-size: 14px; line-height: 1.75; color: var(--text-soft); }
+
+  .conn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .conn-cell { background: var(--highlight-bg); border: 1px solid #c8e8df; border-radius: 12px; padding: 10px 14px; }
+  .conn-cell .cc-label { font-size: 12px; font-weight: 600; color: var(--highlight); margin-bottom: 3px; }
+  .conn-cell .cc-value { font-size: 14px; color: var(--text); }
+  .conn-cell .cc-value.dash { color: var(--gray); }
+
+  .pitfall-box {
+    background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 12px;
+    padding: 12px 16px; font-size: 14px; line-height: 1.7; color: #a14a4a;
+  }
+  .pitfall-box::before { content: "\26A0  "; color: var(--warn); font-weight: 700; }
+
+  .similar-list { display: flex; flex-direction: column; gap: 10px; }
+  .similar-row {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px 14px; background: var(--bg-soft); border: 1px solid var(--card-border); border-radius: 12px;
+  }
+  .similar-row .sr-name { flex-shrink: 0; font-size: 16px; font-weight: 700; color: var(--highlight); min-width: 56px; }
+  .similar-row .sr-desc { font-size: 13px; color: var(--text-soft); line-height: 1.6; }
+
+  .example-list { display: flex; flex-direction: column; gap: 12px; }
+  .example-item { padding: 12px 16px; background: var(--bg-soft); border-radius: 12px; border-left: 3px solid var(--mint); }
+  .example-jp { font-size: 17px; line-height: 2; color: var(--text); margin-bottom: 4px; }
+  .example-jp ruby { ruby-position: over; }
+  .example-jp rt { font-size: 11px; color: var(--text-soft); font-family: "Hiragino Sans", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif; }
+  .example-cn { font-size: 13px; color: var(--text-soft); }
+
+  .side-card {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 18px;
+    box-shadow: var(--card-shadow); padding: 22px 20px; margin-bottom: 16px;
+  }
+  .side-quick { font-size: 13px; line-height: 1.9; color: var(--text); }
+  .side-quick .sq-row { display: flex; gap: 6px; padding: 4px 0; border-bottom: 1px dashed var(--card-border); }
+  .side-quick .sq-row:last-child { border-bottom: none; }
+  .side-quick .sq-label { flex-shrink: 0; color: var(--highlight); font-weight: 600; min-width: 48px; }
+  .side-quick .sq-val.dash { color: var(--gray); }
+
+  .side-nav { display: flex; gap: 10px; }
+  .side-nav button {
+    flex: 1; border: 1px solid var(--card-border); background: var(--card); color: var(--text);
+    font-size: 13px; font-weight: 600; padding: 10px 8px; border-radius: 12px;
+    cursor: pointer; transition: all .2s ease; font-family: inherit;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .side-nav button:hover:not(:disabled) { background: var(--mint-light); border-color: var(--mint); color: var(--mint-deep); }
+  .side-nav button:disabled { opacity: .4; cursor: not-allowed; }
+  .side-nav button .nav-label { font-size: 11px; color: var(--text-soft); }
+  .side-nav button .nav-name { font-size: 15px; }
+
+  .side-similar-link {
+    display: block; padding: 8px 12px; background: var(--bg-soft);
+    border: 1px solid var(--card-border); border-radius: 10px; margin-bottom: 8px;
+    cursor: pointer; transition: all .2s ease;
+  }
+  .side-similar-link:hover { background: var(--mint-light); border-color: var(--mint); }
+  .side-similar-link .ssl-name { font-size: 15px; font-weight: 600; color: var(--highlight); }
+  .side-similar-link .ssl-desc { font-size: 12px; color: var(--text-soft); margin-top: 2px; }
+
+  .back-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--card-border); background: var(--card); color: var(--text-soft);
+    font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 10px;
+    cursor: pointer; transition: all .2s ease; font-family: inherit; margin-bottom: 16px;
+  }
+  .back-btn:hover { background: var(--mint-light); border-color: var(--mint); color: var(--mint-deep); }
+
+  .empty { text-align: center; color: var(--gray); padding: 60px 20px; font-size: 14px; }
+
+  @media (max-width: 760px) {
+    .header h1 { font-size: 24px; }
+    .detail-wrap { flex-direction: column; }
+    .detail-side { width: 100%; position: static; }
+    .conn-grid { grid-template-columns: 1fr; }
+    .level-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  }
+  @media (max-width: 480px) {
+    .detail-card { padding: 20px 18px; }
+    .detail-title .dt-name { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+  <a href="/languages/" id="fixedBackBtn" class="back-btn" style="position:fixed;top:1rem;left:1rem;z-index:9999;display:inline-flex;align-items:center;gap:0.35rem;padding:0.5rem 1rem;background:#fff;border:1.5px solid var(--mint-deep);border-radius:8px;color:var(--mint-deep);text-decoration:none;font-size:0.9rem;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:all 0.2s ease;cursor:pointer;">&larr; 戻る</a>
+  <header class="header">
+    <h1>日本語文法ラーニング</h1>
+  </header>
+
+  <section class="view active" id="viewOverview">
+    <div class="overview-wrap">
+      <div class="level-grid" id="levelGrid"></div>
+    </div>
+  </section>
+
+  <section class="view" id="viewCatalog">
+    <div class="catalog-wrap">
+      <div class="breadcrumb">
+        <a id="bcHome1">首页</a>
+        <span class="sep">/</span>
+        <span id="bcLevel1">N5 语法</span>
+      </div>
+      <div class="filter-bar" id="filterBar"></div>
+      <div class="grammar-list" id="grammarList"></div>
+    </div>
+  </section>
+
+  <section class="view" id="viewDetail">
+    <div class="detail-wrap">
+      <div class="detail-main" id="detailMain"></div>
+      <aside class="detail-side" id="detailSide"></aside>
+    </div>
+  </section>
+
+<script>
+var GRAMMAR_DATA = [
+  {
+    id: "n5-01",
+    level: "N5",
+    category: "助词",
+    name: "は",
+    meaning: "提示句子的主题，强调主题后面的内容（'～的话，是…'）",
+    connection: { noun: "名词 + は", verb: "—", i_adj: "—", na_adj: "な形容词词干 + は" },
+    scene: "口语、书面均可，最基础的主题提示助词",
+    pitfalls: "は强调的是后面的内容（谓语），而が强调的是前面的主语，二者不要混淆。は还可用于对比。",
+    similar: [{ name: "が", desc: "提示主语，强调前面的对象" }],
+    examples: [
+      { jp: "私は学生です", ruby: [{base:"私",text:"わたし"},{base:"学生",text:"がくせい"}], cn: "我是学生" },
+      { jp: "これは本ではありません", ruby: [{base:"本",text:"ほん"}], cn: "这个不是书" }
+    ]
+  },
+  {
+    id: "n5-02",
+    level: "N5",
+    category: "助词",
+    name: "が",
+    meaning: "提示主语，强调前面的对象；也用于表示能力、好恶的对象",
+    connection: { noun: "名词 + が", verb: "—", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，强调'是谁/什么'在做",
+    pitfalls: "が强调的是它前面的主语，は强调的是它后面的内容。疑问词后必须用が，不能用は。",
+    similar: [{ name: "は", desc: "提示主题，强调后面的内容" }],
+    examples: [
+      { jp: "猫がいます", ruby: [{base:"猫",text:"ねこ"}], cn: "有猫" },
+      { jp: "誰が来ましたか", ruby: [{base:"誰",text:"だれ"},{base:"来",text:"き"}], cn: "谁来了？" }
+    ]
+  },
+  {
+    id: "n5-03",
+    level: "N5",
+    category: "助词",
+    name: "を",
+    meaning: "提示他动词的宾语，表示动作的直接对象",
+    connection: { noun: "名词 + を + 他动词", verb: "—", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，用于动作对象",
+    pitfalls: "を只能接在他动词前，不能用于自动词。移动动词经过的场所也可用を（如：道を歩く）。",
+    similar: [{ name: "が", desc: "提示主语，自动词前用が" }],
+    examples: [
+      { jp: "ご飯を食べます", ruby: [{base:"ご飯",text:"ごはん"},{base:"食",text:"た"}], cn: "吃饭" },
+      { jp: "本を読みます", ruby: [{base:"本",text:"ほん"},{base:"読",text:"よ"}], cn: "读书" }
+    ]
+  },
+  {
+    id: "n5-04",
+    level: "N5",
+    category: "助词",
+    name: "に",
+    meaning: "表示时间、场所、目的地、对象、目的等多种含义",
+    connection: { noun: "名词 + に", verb: "动词辞书形 + に", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，N5最高频多功能助词",
+    pitfalls: "具体时间点用に，相对时间（今日、明日等）不用に。に还可表示目的（〜に行く）。",
+    similar: [{ name: "へ", desc: "仅表示方向/目的地" }],
+    examples: [
+      { jp: "七時に起きます", ruby: [{base:"七時",text:"しちじ"},{base:"起",text:"お"}], cn: "七点起床" },
+      { jp: "学校に行きます", ruby: [{base:"学校",text:"がっこう"},{base:"行",text:"い"}], cn: "去学校" }
+    ]
+  },
+  {
+    id: "n5-05",
+    level: "N5",
+    category: "助词",
+    name: "で",
+    meaning: "表示动作进行的场所、手段、方法、范围等",
+    connection: { noun: "名词 + で", verb: "—", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，表示'在某地做某事'或'用…做'",
+    pitfalls: "で表示动作场所（在那里做什么），に表示存在场所（在那里有什么）。注意区分。",
+    similar: [{ name: "に", desc: "表示存在/到达地点" }],
+    examples: [
+      { jp: "図書館で勉強します", ruby: [{base:"図書館",text:"としょかん"},{base:"勉強",text:"べんきょう"}], cn: "在图书馆学习" },
+      { jp: "箸で食べます", ruby: [{base:"箸",text:"はし"},{base:"食",text:"た"}], cn: "用筷子吃" }
+    ]
+  },
+  {
+    id: "n5-06",
+    level: "N5",
+    category: "助词",
+    name: "と",
+    meaning: "表示并列（和）、共同动作的对象、引用内容",
+    connection: { noun: "名词 + と + 名词", verb: "—", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可",
+    pitfalls: "と表示完全列举（只有这些），や表示不完全列举（还有别的）。と还用于'和某人一起做'。",
+    similar: [{ name: "や", desc: "不完全列举，暗示还有其他" }],
+    examples: [
+      { jp: "りんごとみかんを買います", ruby: [{base:"買",text:"か"}], cn: "买苹果和橘子" },
+      { jp: "友達と映画を見ます", ruby: [{base:"友達",text:"ともだち"},{base:"映画",text:"えいが"},{base:"見",text:"み"}], cn: "和朋友一起看电影" }
+    ]
+  },
+  {
+    id: "n5-07",
+    level: "N5",
+    category: "助词",
+    name: "も",
+    meaning: "表示'也'，追加同类事物",
+    connection: { noun: "名词 + も", verb: "—", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可",
+    pitfalls: "用も时前面的助词（は/が/を）要去掉。も还可以接否定表示'也不'（〜も〜ない）。",
+    similar: [{ name: "は", desc: "提示主题，不表示追加" }],
+    examples: [
+      { jp: "私も学生です", ruby: [{base:"私",text:"わたし"},{base:"学生",text:"がくせい"}], cn: "我也是学生" },
+      { jp: "何もありません", ruby: [{base:"何",text:"なに"}], cn: "什么也没有" }
+    ]
+  },
+  {
+    id: "n5-08",
+    level: "N5",
+    category: "助词",
+    name: "の",
+    meaning: "名词修饰名词（所属/属性），或做形式名词指代",
+    connection: { noun: "名词 + の + 名词", verb: "—", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，最常用修饰助词",
+    pitfalls: "'AのB'中A修饰B，方向是A到B。'この/その/あの'后面必须有名词，不能单独使用。",
+    similar: [{ name: "が", desc: "が也可做主语修饰名词（私が買った本）" }],
+    examples: [
+      { jp: "私の本です", ruby: [{base:"私",text:"わたし"},{base:"本",text:"ほん"}], cn: "这是我的书" },
+      { jp: "日本語の先生", ruby: [{base:"日本語",text:"にほんご"},{base:"先生",text:"せんせい"}], cn: "日语老师" }
+    ]
+  },
+  {
+    id: "n5-09",
+    level: "N5",
+    category: "助词",
+    name: "へ",
+    meaning: "表示移动的方向或目的地",
+    connection: { noun: "名词 + へ", verb: "—", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，用于移动动词前",
+    pitfalls: "へ只用于移动方向（行く/来る/帰る等），在表示目的地时へ和に基本可互换，但へ更强调方向。",
+    similar: [{ name: "に", desc: "に用途更广，可表时间/目的/存在" }],
+    examples: [
+      { jp: "右へ曲がってください", ruby: [{base:"右",text:"みぎ"},{base:"曲",text:"ま"}], cn: "请往右转" },
+      { jp: "家へ帰ります", ruby: [{base:"家",text:"いえ"},{base:"帰",text:"かえ"}], cn: "回家" }
+    ]
+  },
+  {
+    id: "n5-10",
+    level: "N5",
+    category: "助词",
+    name: "や",
+    meaning: "表示不完全列举（'～和～等'），暗示还有其他",
+    connection: { noun: "名词 + や + 名词", verb: "—", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可",
+    pitfalls: "や表示不完全列举（还有别的没列出），と表示完全列举（只有这些）。常与など搭配。",
+    similar: [{ name: "と", desc: "完全列举，'和'" }],
+    examples: [
+      { jp: "机の上に本やペンがあります", ruby: [{base:"机",text:"つくえ"},{base:"上",text:"うえ"},{base:"本",text:"ほん"}], cn: "桌子上有书和笔等" },
+      { jp: "肉や魚を食べます", ruby: [{base:"肉",text:"にく"},{base:"魚",text:"さかな"},{base:"食",text:"た"}], cn: "吃肉和鱼等" }
+    ]
+  },
+  {
+    id: "n5-11",
+    level: "N5",
+    category: "助词",
+    name: "より",
+    meaning: "表示比较的基准（'比…'），常与ほうが搭配",
+    connection: { noun: "名词 + より", verb: "—", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，比较句专用",
+    pitfalls: "比较句结构：AはBより～（A比B更…）。也可说BよりAのほうが～，强调A更好。",
+    similar: [{ name: "ほど", desc: "ほど用于否定比较（〜ほど〜ない）" }],
+    examples: [
+      { jp: "電車よりバスが速いです", ruby: [{base:"電車",text:"でんしゃ"},{base:"速",text:"はや"}], cn: "公交比电车快" },
+      { jp: "夏より冬のほうが好きです", ruby: [{base:"夏",text:"なつ"},{base:"冬",text:"ふゆ"}], cn: "比起夏天更喜欢冬天" }
+    ]
+  },
+  {
+    id: "n5-12",
+    level: "N5",
+    category: "助词",
+    name: "か",
+    meaning: "句末疑问助词，使句子变成疑问句；也表示选择（'或者'）",
+    connection: { noun: "名词 + か", verb: "—", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，最基本疑问标记",
+    pitfalls: "か做疑问句末只要加在句末即可。疑问词作主语时用が不用は（誰が来ましたか）。",
+    similar: [{ name: "〜ですか", desc: "です+か构成礼貌疑问句" }],
+    examples: [
+      { jp: "これは何ですか", ruby: [{base:"何",text:"なに"}], cn: "这是什么？" },
+      { jp: "コーヒーかお茶か、どちらがいいですか", ruby: [{base:"茶",text:"ちゃ"}], cn: "咖啡或茶，哪个好？" }
+    ]
+  },
+  {
+    id: "n5-13",
+    level: "N5",
+    category: "句型",
+    name: "〜です",
+    meaning: "礼貌体判断句（'是～'），用于名词谓语句",
+    connection: { noun: "名词 + です", verb: "—", i_adj: "—", na_adj: "な形容词词干 + です" },
+    scene: "口语、书面均可，敬体（丁寧体）",
+    pitfalls: "い形容词直接加です（高いです），な形容词去な加です（静かです）。名词句用名词+です。",
+    similar: [{ name: "〜だ", desc: "简体判断，'是～'（非礼貌）" }],
+    examples: [
+      { jp: "私は日本人です", ruby: [{base:"私",text:"わたし"},{base:"日本人",text:"にほんじん"}], cn: "我是日本人" },
+      { jp: "ここは静かです", ruby: [{base:"静",text:"しず"}], cn: "这里很安静" }
+    ]
+  },
+  {
+    id: "n5-14",
+    level: "N5",
+    category: "句型",
+    name: "〜ます",
+    meaning: "动词礼貌体现（敬体），表示现在/将来时或习惯",
+    connection: { noun: "—", verb: "动词ます形 + ます", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，敬体动词",
+    pitfalls: "ます形是动词连用形+ます。一类动词去う段换い段（書く→書きます），二类去る（食べる→食べます）。",
+    similar: [{ name: "〜ました", desc: "ます的过去式，表示做了某事" }],
+    examples: [
+      { jp: "毎日日本語を勉強します", ruby: [{base:"毎日",text:"まいにち"},{base:"日本語",text:"にほんご"},{base:"勉強",text:"べんきょう"}], cn: "每天学习日语" },
+      { jp: "朝ご飯を食べます", ruby: [{base:"朝",text:"あさ"},{base:"食",text:"た"}], cn: "吃早饭" }
+    ]
+  },
+  {
+    id: "n5-15",
+    level: "N5",
+    category: "句型",
+    name: "〜ません",
+    meaning: "动词礼貌体否定（'不～'），ます的否定形式",
+    connection: { noun: "—", verb: "动词ます形 + ません", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，敬体否定",
+    pitfalls: "ません是ます的否定。ません的过去式是ませんでした（没做）。注意不要和ない混淆。",
+    similar: [{ name: "〜ない", desc: "简体否定，'不～'（非礼貌）" }],
+    examples: [
+      { jp: "肉を食べません", ruby: [{base:"肉",text:"にく"},{base:"食",text:"た"}], cn: "不吃肉" },
+      { jp: "今日は行きません", ruby: [{base:"今日",text:"きょう"},{base:"行",text:"い"}], cn: "今天不去" }
+    ]
+  },
+  {
+    id: "n5-16",
+    level: "N5",
+    category: "句型",
+    name: "〜ました",
+    meaning: "动词礼貌体过去式（'做了～'），ます的过去形式",
+    connection: { noun: "—", verb: "动词ます形 + ました", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，敬体过去",
+    pitfalls: "ました是ます的过去式。否定过去是ませんでした（没做）。简体过去是た形。",
+    similar: [{ name: "〜た", desc: "简体过去，'做了～'（非礼貌）" }],
+    examples: [
+      { jp: "昨日映画を見ました", ruby: [{base:"昨日",text:"きのう"},{base:"映画",text:"えいが"},{base:"見",text:"み"}], cn: "昨天看了电影" },
+      { jp: "朝ご飯を食べました", ruby: [{base:"朝",text:"あさ"},{base:"食",text:"た"}], cn: "吃了早饭" }
+    ]
+  },
+  {
+    id: "n5-17",
+    level: "N5",
+    category: "句型",
+    name: "〜たい",
+    meaning: "表示想做某事（第一人称的愿望）",
+    connection: { noun: "—", verb: "动词ます形 + たい", i_adj: "—", na_adj: "—" },
+    scene: "口语为主，表示自己的愿望",
+    pitfalls: "たい通常只表示说话人自己的愿望，问别人愿望时用たいですか。たい本身按い形容词变形。",
+    similar: [{ name: "〜たがる", desc: "表示第三人称的愿望（N4）" }],
+    examples: [
+      { jp: "日本へ行きたいです", ruby: [{base:"日本",text:"にほん"},{base:"行",text:"い"}], cn: "想去日本" },
+      { jp: "水が飲みたいです", ruby: [{base:"水",text:"みず"},{base:"飲",text:"の"}], cn: "想喝水" }
+    ]
+  },
+  {
+    id: "n5-18",
+    level: "N5",
+    category: "句型",
+    name: "〜ている",
+    meaning: "表示动作正在进行（正在做）或状态的持续（保持着…状态）",
+    connection: { noun: "—", verb: "动词て形 + いる", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可",
+    pitfalls: "持续动词+ている表示正在进行（食べている＝正在吃）；瞬间动词+ている表示状态留存（結婚している＝已婚）。",
+    similar: [{ name: "〜てある", desc: "表示某动作的结果状态留存（他动词）" }],
+    examples: [
+      { jp: "今本を読んでいます", ruby: [{base:"今",text:"いま"},{base:"本",text:"ほん"},{base:"読",text:"よ"}], cn: "现在正在读书" },
+      { jp: "東京に住んでいます", ruby: [{base:"東京",text:"とうきょう"},{base:"住",text:"す"}], cn: "住在东京" }
+    ]
+  },
+  {
+    id: "n5-19",
+    level: "N5",
+    category: "动词变形",
+    name: "て形",
+    meaning: "动词的连接形式，用于连接句子、请求（〜てください）、进行时（〜ている）等",
+    connection: { noun: "—", verb: "动词て形", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，最核心变形之一",
+    pitfalls: "一类动词て形规则：い→って、ぎ→いで、き→いて、び/に/み→んで、ち/り/い→って、し→して。二类动词去る+て，三类して/来て。",
+    similar: [{ name: "た形", desc: "过去形式，变形规则与て形相同" }],
+    examples: [
+      { jp: "立ってください", ruby: [{base:"立",text:"た"}], cn: "请站起来" },
+      { jp: "朝起きて、顔を洗います", ruby: [{base:"朝",text:"あさ"},{base:"起",text:"お"},{base:"顔",text:"かお"},{base:"洗",text:"あら"}], cn: "早上起床后洗脸" }
+    ]
+  },
+  {
+    id: "n5-20",
+    level: "N5",
+    category: "动词变形",
+    name: "た形",
+    meaning: "动词过去简体形式（'做了～'），用于表示过去或回忆",
+    connection: { noun: "—", verb: "动词た形", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，简体过去",
+    pitfalls: "た形变形规则与て形完全相同，只需把て换成た、で换成だ。修饰名词时用た形（読んだ本）。",
+    similar: [{ name: "て形", desc: "连接形式，变形规则相同" }],
+    examples: [
+      { jp: "昨日友達に会った", ruby: [{base:"昨日",text:"きのう"},{base:"友達",text:"ともだち"},{base:"会",text:"あ"}], cn: "昨天见到了朋友" },
+      { jp: "食べた魚", ruby: [{base:"食",text:"た"},{base:"魚",text:"さかな"}], cn: "吃过的鱼" }
+    ]
+  },
+  {
+    id: "n5-21",
+    level: "N5",
+    category: "动词变形",
+    name: "ない形",
+    meaning: "动词否定形式（'不～'），用于简体否定",
+    connection: { noun: "—", verb: "动词ない形 + ない", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，简体否定",
+    pitfalls: "一类动词う段→あ段+ない（書く→書かない），但ある→ない（特殊）。二类去る+ない（食べる→食べない），三类しない/こない。",
+    similar: [{ name: "ません", desc: "礼貌否定，ない的敬体版" }],
+    examples: [
+      { jp: "肉を食べない", ruby: [{base:"肉",text:"にく"},{base:"食",text:"た"}], cn: "不吃肉" },
+      { jp: "何も知らない", ruby: [{base:"何",text:"なに"},{base:"知",text:"し"}], cn: "什么都不知道" }
+    ]
+  },
+  {
+    id: "n5-22",
+    level: "N5",
+    category: "动词变形",
+    name: "可能形",
+    meaning: "表示能够做某事（'会～、能～'）",
+    connection: { noun: "—", verb: "动词可能形", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，表示能力",
+    pitfalls: "一类动词う段→え段+る（書く→書ける）。可能形后的を通常变成が（日本語が話ける）。二类去る+られる，三类できる/来られる。",
+    similar: [{ name: "〜ことができる", desc: "也能表能力，接续更广" }],
+    examples: [
+      { jp: "日本語が話けます", ruby: [{base:"日本語",text:"にほんご"},{base:"話",text:"はな"}], cn: "会说日语" },
+      { jp: "泳げますか", ruby: [{base:"泳",text:"およ"}], cn: "会游泳吗？" }
+    ]
+  },
+  {
+    id: "n5-23",
+    level: "N5",
+    category: "形容词",
+    name: "い形容词",
+    meaning: "以い结尾的形容词，直接修饰名词，做谓语时加です",
+    connection: { noun: "い形容词 + 名词", verb: "—", i_adj: "い形容词 + です", na_adj: "—" },
+    scene: "口语、书面均可",
+    pitfalls: "い形容词做谓语时直接加です（高いです），否定去い变く+ない（高くない）。'いい'特殊变'よくない'。",
+    similar: [{ name: "な形容词", desc: "词干+な+名词，谓语用词干+です" }],
+    examples: [
+      { jp: "この本は面白いです", ruby: [{base:"本",text:"ほん"},{base:"面白",text:"おもしろ"}], cn: "这本书很有趣" },
+      { jp: "高い山", ruby: [{base:"高",text:"たか"},{base:"山",text:"やま"}], cn: "高的山" }
+    ]
+  },
+  {
+    id: "n5-24",
+    level: "N5",
+    category: "形容词",
+    name: "な形容词",
+    meaning: "以な连接名词的形容词，做谓语时词干+です",
+    connection: { noun: "な形容词词干 + な + 名词", verb: "—", i_adj: "—", na_adj: "な形容词词干 + です" },
+    scene: "口语、书面均可",
+    pitfalls: "修饰名词时必须加な（静かな人），做谓语时去な加です（静かです）。否定用〜ではありません。",
+    similar: [{ name: "い形容词", desc: "直接修饰名词，以い结尾" }],
+    examples: [
+      { jp: "静かな部屋", ruby: [{base:"静",text:"しず"},{base:"部屋",text:"へや"}], cn: "安静的房间" },
+      { jp: "この町はきれいです", ruby: [{base:"町",text:"まち"}], cn: "这个城镇很漂亮" }
+    ]
+  },
+  {
+    id: "n5-25",
+    level: "N5",
+    category: "形容词",
+    name: "形容词て形",
+    meaning: "连接两个以上的形容词，表示并列或先后",
+    connection: { noun: "—", verb: "—", i_adj: "い形容词去い+くて", na_adj: "な形容词词干 + で" },
+    scene: "口语、书面均可",
+    pitfalls: "い形容词去い+くて（高くて），な形容词词干+で（静かで）。否定て形：い→なくて，な→じゃなくて。",
+    similar: [{ name: "动词て形", desc: "动词连接形式，用于并列" }],
+    examples: [
+      { jp: "このりんごは大きくて甘いです", ruby: [{base:"大",text:"おお"},{base:"甘",text:"あま"}], cn: "这个苹果又大又甜" },
+      { jp: "この部屋は静かで広いです", ruby: [{base:"部屋",text:"へや"},{base:"静",text:"しず"},{base:"広",text:"ひろ"}], cn: "这个房间安静又宽敞" }
+    ]
+  },
+  {
+    id: "n5-26",
+    level: "N5",
+    category: "形容词",
+    name: "くない",
+    meaning: "い形容词的否定形式（'不～'），去い变く+ない",
+    connection: { noun: "—", verb: "—", i_adj: "い形容词去い + くない", na_adj: "—" },
+    scene: "口语、书面均可，简体否定",
+    pitfalls: "い形容词否定去い+くない/ありません（高くない/高くありません）。'いい'的否定是'よくない'，不规则。",
+    similar: [{ name: "〜ではありません", desc: "な形容词/名词的礼貌否定" }],
+    examples: [
+      { jp: "この問題は難しくないです", ruby: [{base:"問題",text:"もんだい"},{base:"難",text:"むずか"}], cn: "这个问题不难" },
+      { jp: "安くない", ruby: [{base:"安",text:"やす"}], cn: "不便宜" }
+    ]
+  },
+  {
+    id: "n5-27",
+    level: "N5",
+    category: "条件",
+    name: "〜たら",
+    meaning: "假定条件（'如果～的话'），表示假设某事发生后做某事",
+    connection: { noun: "名词 + だったら", verb: "动词た形 + ら", i_adj: "い形容词 + かったら", na_adj: "な形容词词干 + だったら" },
+    scene: "口语、书面均可，最常用的条件表达",
+    pitfalls: "たら可表假定（雨だったら行かない）也可表发现（窓を開けたら鳥がいた）。た形+ら的发现用法是たら特有。",
+    similar: [{ name: "〜と", desc: "表示必然/习惯条件" }],
+    examples: [
+      { jp: "雨が降ったら行きません", ruby: [{base:"雨",text:"あめ"},{base:"降",text:"ふ"},{base:"行",text:"い"}], cn: "如果下雨就不去" },
+      { jp: "安かったら買います", ruby: [{base:"安",text:"やす"},{base:"買",text:"か"}], cn: "便宜的话就买" }
+    ]
+  },
+  {
+    id: "n5-28",
+    level: "N5",
+    category: "条件",
+    name: "〜と",
+    meaning: "表示必然条件、习惯或发现（'一～就～'）",
+    connection: { noun: "名词 + だ + と", verb: "动词辞书形/た形 + と", i_adj: "い形容词 + と", na_adj: "な形容词词干 + だ + と" },
+    scene: "口语、书面均可，表示恒常或发现",
+    pitfalls: "と不能表示说话人的意志/请求（×春になると、花を植えよう）。と多表自然规律或习惯。",
+    similar: [{ name: "〜たら", desc: "可表意志/请求，用法更灵活" }],
+    examples: [
+      { jp: "春になると花が咲きます", ruby: [{base:"春",text:"はる"},{base:"花",text:"はな"},{base:"咲",text:"さ"}], cn: "一到春天花就开" },
+      { jp: "右に曲がると駅があります", ruby: [{base:"右",text:"みぎ"},{base:"曲",text:"ま"},{base:"駅",text:"えき"}], cn: "右转就有车站" }
+    ]
+  },
+  {
+    id: "n5-29",
+    level: "N5",
+    category: "条件",
+    name: "〜ば",
+    meaning: "假定条件（'如果～'），用于假设和建议",
+    connection: { noun: "名词 + なら(ば)", verb: "动词ば形（仮定形）", i_adj: "い形容词 + ければ", na_adj: "な形容词词干 + なら(ば)" },
+    scene: "书面较多，表示假定",
+    pitfalls: "ば形多用于假定。动词ば形：一类う段→え段+ば（書く→書けば），二类去る+れば，三类すれば/来れば。",
+    similar: [{ name: "〜たら", desc: "口语更常用，表假定和发现" }],
+    examples: [
+      { jp: "天気がよければ出かけましょう", ruby: [{base:"天気",text:"てんき"},{base:"出",text:"で"}], cn: "天气好的话就出门吧" },
+      { jp: "安ければ買います", ruby: [{base:"安",text:"やす"},{base:"買",text:"か"}], cn: "便宜的话就买" }
+    ]
+  },
+  {
+    id: "n5-30",
+    level: "N5",
+    category: "其他",
+    name: "〜から",
+    meaning: "表示原因、理由（'因为～'）",
+    connection: { noun: "名词/な形容词 + だから", verb: "动词简体 + から", i_adj: "い形容词 + から", na_adj: "な形容词 + だから" },
+    scene: "口语、书面均可，主观原因",
+    pitfalls: "から表示主观原因理由，可以接意志/请求/劝诱（寒いから窓を閉めて）。ので更客观委婉。",
+    similar: [{ name: "〜ので", desc: "表示客观原因，更委婉正式" }],
+    examples: [
+      { jp: "寒いから窓を閉めてください", ruby: [{base:"寒",text:"さむ"},{base:"窓",text:"まど"},{base:"閉",text:"し"}], cn: "因为冷请关窗" },
+      { jp: "病気だから休みます", ruby: [{base:"病気",text:"びょうき"},{base:"休",text:"やす"}], cn: "因为生病所以休息" }
+    ]
+  },
+  {
+    id: "n5-31",
+    level: "N5",
+    category: "其他",
+    name: "〜ので",
+    meaning: "表示原因、理由（'因为～'），比から更客观委婉",
+    connection: { noun: "名词 + な + ので", verb: "动词简体 + ので", i_adj: "い形容词 + ので", na_adj: "な形容词 + な + ので" },
+    scene: "书面、正式场合较多",
+    pitfalls: "ので比から更委婉正式，一般不接强意志表达。名词/な形容词后要加な再接ので。",
+    similar: [{ name: "〜から", desc: "表主观原因，可接意志/请求" }],
+    examples: [
+      { jp: "雨が降っているので出かけません", ruby: [{base:"雨",text:"あめ"},{base:"降",text:"ふ"},{base:"出",text:"で"}], cn: "因为下雨所以不出门" },
+      { jp: "静かなのでここで勉強します", ruby: [{base:"静",text:"しず"},{base:"勉強",text:"べんきょう"}], cn: "因为安静所以在这里学习" }
+    ]
+  },
+  {
+    id: "n5-32",
+    level: "N5",
+    category: "其他",
+    name: "〜でも",
+    meaning: "表示逆接（'但是～'）或举例（'～之类的'）",
+    connection: { noun: "名词 + でも", verb: "—", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可",
+    pitfalls: "でも有两个用法：句首表'但是'（でも、私は…）；名词+でも表举例邀请（お茶でもどうですか）。",
+    similar: [{ name: "〜が", desc: "句首/句中表逆接，'但是'" }],
+    examples: [
+      { jp: "お茶でも飲みませんか", ruby: [{base:"茶",text:"ちゃ"},{base:"飲",text:"の"}], cn: "喝点茶什么的吗？" },
+      { jp: "でも、それは本当ですか", ruby: [{base:"本当",text:"ほんとう"}], cn: "但是，那是真的吗？" }
+    ]
+  },
+  {
+    id: "n5-33",
+    level: "N5",
+    category: "其他",
+    name: "〜しか〜ない",
+    meaning: "表示限定（'只有～'），しか后接否定",
+    connection: { noun: "名词 + しか + 否定", verb: "动词辞书形 + しか + 否定", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，限定表达",
+    pitfalls: "しか一定要搭配否定形式（只有…不…），但实际表示肯定含义'只有'。与だけ（只）意思相近但接否定。",
+    similar: [{ name: "〜だけ", desc: "表示'只'，不接否定" }],
+    examples: [
+      { jp: "日本語しか話せません", ruby: [{base:"日本語",text:"にほんご"},{base:"話",text:"はな"}], cn: "只会说日语" },
+      { jp: "五百円しかありません", ruby: [{base:"五百円",text:"ごひゃくえん"}], cn: "只有五百日元" }
+    ]
+  },
+  {
+    id: "n5-34",
+    level: "N5",
+    category: "其他",
+    name: "〜のに",
+    meaning: "表示逆接，带有不满、意外（'明明…却…'）",
+    connection: { noun: "名词 + な + のに", verb: "动词简体 + のに", i_adj: "い形容词 + のに", na_adj: "な形容词 + な + のに" },
+    scene: "口语较多，表达不满或意外",
+    pitfalls: "のに带有说话人不满/遗憾/意外的感情。名词和な形容词后要加な再接のに。",
+    similar: [{ name: "〜が", desc: "中性逆接，不带感情" }],
+    examples: [
+      { jp: "約束したのに来ませんでした", ruby: [{base:"約束",text:"やくそく"},{base:"来",text:"き"}], cn: "明明约好了却没来" },
+      { jp: "高いのに買いました", ruby: [{base:"高",text:"たか"},{base:"買",text:"か"}], cn: "明明很贵却买了" }
+    ]
+  },
+  {
+    id: "n5-35",
+    level: "N5",
+    category: "其他",
+    name: "〜てから",
+    meaning: "表示一个动作完成后再做下一个（'做了～之后'）",
+    connection: { noun: "—", verb: "动词て形 + から", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，表示先后顺序",
+    pitfalls: "てから强调先后顺序（做完A再做B）。注意与ただのて（并列）不同，てから明确'之后'。",
+    similar: [{ name: "〜た後で", desc: "也表示'之后'，接た形" }],
+    examples: [
+      { jp: "手を洗ってから食べてください", ruby: [{base:"手",text:"て"},{base:"洗",text:"あら"},{base:"食",text:"た"}], cn: "洗完手后再吃" },
+      { jp: "勉強してから寝ます", ruby: [{base:"勉強",text:"べんきょう"},{base:"寝",text:"ね"}], cn: "学习之后再睡" }
+    ]
+  },
+  {
+    id: "n5-36",
+    level: "N5",
+    category: "其他",
+    name: "〜たり〜たり",
+    meaning: "列举若干代表性动作（'做做这个，做做那个'）",
+    connection: { noun: "—", verb: "动词た形 + り", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，列举动作",
+    pitfalls: "たり接在た形后（食べたり飲んだり）。句末要用する收尾（食べたり飲んだりします）。",
+    similar: [{ name: "〜て〜て", desc: "简单并列，不暗示还有别的" }],
+    examples: [
+      { jp: "週末は本を読んだり映画を見たりします", ruby: [{base:"週末",text:"しゅうまつ"},{base:"本",text:"ほん"},{base:"読",text:"よ"},{base:"映画",text:"えいが"},{base:"見",text:"み"}], cn: "周末看看书、看看电影等" },
+      { jp: "部屋を掃除したり洗濯したりしました", ruby: [{base:"部屋",text:"へや"},{base:"掃除",text:"そうじ"},{base:"洗濯",text:"せんたく"}], cn: "打扫了房间、洗了衣服等" }
+    ]
+  },
+  {
+    id: "n5-37",
+    level: "N5",
+    category: "其他",
+    name: "〜ましょう",
+    meaning: "礼貌体的劝诱/提议（'让我们～吧'），也可表示主动帮忙",
+    connection: { noun: "—", verb: "动词ます形 + ましょう", i_adj: "—", na_adj: "—" },
+    scene: "口语，表示劝诱或提议帮忙",
+    pitfalls: "ましょう表劝诱（一緒に行きましょう=一起去吧）。也可表主动帮忙（荷物を持ちましょう=我帮你拿）。",
+    similar: [{ name: "〜ましょうか", desc: "提议询问'要不要我帮你…'" }],
+    examples: [
+      { jp: "一緒に帰りましょう", ruby: [{base:"一緒",text:"いっしょ"},{base:"帰",text:"かえ"}], cn: "一起回家吧" },
+      { jp: "私がやりましょう", ruby: [{base:"私",text:"わたし"}], cn: "我来做吧" }
+    ]
+  },
+  {
+    id: "n5-38",
+    level: "N5",
+    category: "其他",
+    name: "〜ましょうか",
+    meaning: "主动提议帮忙（'要不要我帮你～'），是一种邀请表达",
+    connection: { noun: "—", verb: "动词ます形 + ましょうか", i_adj: "—", na_adj: "—" },
+    scene: "口语，表示主动提供帮助",
+    pitfalls: "ましょうか是主动提议帮忙，对方可回'いいえ、大丈夫です'拒绝。与ましょう（劝诱一起做）不同。",
+    similar: [{ name: "〜ましょう", desc: "劝诱一起做，'让我们～吧'" }],
+    examples: [
+      { jp: "荷物を持ちましょうか", ruby: [{base:"荷物",text:"にもつ"},{base:"持",text:"も"}], cn: "要我帮你拿行李吗？" },
+      { jp: "窓を開けましょうか", ruby: [{base:"窓",text:"まど"},{base:"開",text:"あ"}], cn: "要我开窗吗？" }
+    ]
+  },
+  {
+    id: "n5-39",
+    level: "N5",
+    category: "其他",
+    name: "〜がほしい",
+    meaning: "表示想要某物（'想要～'），用于第一人称",
+    connection: { noun: "名词 + が + ほしい", verb: "—", i_adj: "—", na_adj: "—" },
+    scene: "口语为主，表示自己的愿望",
+    pitfalls: "がほしい通常只表第一人称愿望，问别人用ほしいですか。不能用于第三人称（需用ほしがる）。",
+    similar: [{ name: "〜たい", desc: "想做某事（动词愿望）" }],
+    examples: [
+      { jp: "新しい車がほしいです", ruby: [{base:"新",text:"あたら"},{base:"車",text:"くるま"}], cn: "想要新车" },
+      { jp: "何がほしいですか", ruby: [{base:"何",text:"なに"}], cn: "想要什么？" }
+    ]
+  },
+  {
+    id: "n5-40",
+    level: "N5",
+    category: "其他",
+    name: "〜一番",
+    meaning: "表示最高程度（'最～'），用于三者以上比较",
+    connection: { noun: "—", verb: "—", i_adj: "い形容词 + 一番", na_adj: "な形容词词干 + 一番" },
+    scene: "口语、书面均可，最高级表达",
+    pitfalls: "一番+形容词表示'最…'（一番高い=最高的）。比较范围可用〜の中で一番。",
+    similar: [{ name: "〜より", desc: "表示二者比较'比～'" }],
+    examples: [
+      { jp: "一番高い山は富士山です", ruby: [{base:"高",text:"たか"},{base:"山",text:"やま"},{base:"富士山",text:"ふじさん"}], cn: "最高的山是富士山" },
+      { jp: "スポーツの中で一番好きです", ruby: [{base:"好き",text:"す"}], cn: "在运动中最喜欢" }
+    ]
+  },
+  {
+    id: "n5-41",
+    level: "N5",
+    category: "其他",
+    name: "〜ほうがいい",
+    meaning: "表示建议（'最好～'），用于给出劝告",
+    connection: { noun: "—", verb: "动词た形/ない形 + ほうがいい", i_adj: "—", na_adj: "—" },
+    scene: "口语，表示建议/劝告",
+    pitfalls: "肯定建议用た形+ほうがいい（薬を飲んだほうがいい），否定建议用ない形+ほうがいい（無理しないほうがいい）。",
+    similar: [{ name: "〜べき", desc: "表示'应该'，语气更强（N4）" }],
+    examples: [
+      { jp: "薬を飲んだほうがいいです", ruby: [{base:"薬",text:"くすり"},{base:"飲",text:"の"}], cn: "最好吃药" },
+      { jp: "無理をしないほうがいいです", ruby: [{base:"無理",text:"むり"}], cn: "最好不要勉强" }
+    ]
+  },
+  {
+    id: "n5-42",
+    level: "N5",
+    category: "其他",
+    name: "〜なる",
+    meaning: "表示变化（'变得～'），表示状态转变的结果",
+    connection: { noun: "名词 + に + なる", verb: "—", i_adj: "い形容词去い + くなる", na_adj: "な形容词词干 + に + なる" },
+    scene: "口语、书面均可，表示变化",
+    pitfalls: "い形容词变くなる（大きくなる=变大），な形容词/名词变になる（静かになる/医者になる）。注意に/く的区别。",
+    similar: [{ name: "〜する", desc: "表示人为使变化（〜にする）" }],
+    examples: [
+      { jp: "天気が暖かくなりました", ruby: [{base:"天気",text:"てんき"},{base:"暖",text:"あたた"}], cn: "天气变暖了" },
+      { jp: "医者になりたい", ruby: [{base:"医者",text:"いしゃ"}], cn: "想成为医生" }
+    ]
+  },
+  {
+    id: "n5-43",
+    level: "N5",
+    category: "助词",
+    name: "〜ね",
+    meaning: "句末语气助词，表示寻求赞同或轻微感叹（'…啊/呢'）",
+    connection: { noun: "名词 + ね", verb: "动词简体/敬体 + ね", i_adj: "い形容词 + ね", na_adj: "な形容词词干 + ね" },
+    scene: "口语，表示认同或感叹",
+    pitfalls: "ね用于寻求对方认同或轻轻感叹（いい天気ですね=好天气啊）。注意与よ（断定）的区别。",
+    similar: [{ name: "〜よ", desc: "表示断定/告知，'…哟'" }],
+    examples: [
+      { jp: "いい天気ですね", ruby: [{base:"天気",text:"てんき"}], cn: "天气真好啊" },
+      { jp: "そうですね", ruby: [], cn: "是啊" }
+    ]
+  },
+  {
+    id: "n5-44",
+    level: "N5",
+    category: "助词",
+    name: "〜よ",
+    meaning: "句末语气助词，表示断定、告知或提醒（'…哟'）",
+    connection: { noun: "名词 + よ", verb: "动词简体/敬体 + よ", i_adj: "い形容词 + よ", na_adj: "な形容词词干 + よ" },
+    scene: "口语，表示告知或强调",
+    pitfalls: "よ用于向对方提供信息或强调自己的主张（これ、美味しいよ=这个很好吃哦）。语气比ね更强。",
+    similar: [{ name: "〜ね", desc: "寻求认同，'…啊/呢'" }],
+    examples: [
+      { jp: "これは美味しいですよ", ruby: [{base:"美味",text:"おい"}], cn: "这个很好吃哦" },
+      { jp: "明日は休みですよ", ruby: [{base:"明日",text:"あした"},{base:"休",text:"やす"}], cn: "明天休息哦" }
+    ]
+  },
+  {
+    id: "n5-45",
+    level: "N5",
+    category: "其他",
+    name: "〜ない",
+    meaning: "动词简体否定形式（'不～'），是ません的简体版",
+    connection: { noun: "—", verb: "动词ない形 + ない", i_adj: "—", na_adj: "—" },
+    scene: "口语、书面均可，简体否定",
+    pitfalls: "ない是动词简体否定，ます的简体版。ない本身可按い形容词变形（なくて/なかった）。",
+    similar: [{ name: "〜ません", desc: "礼貌否定，ない的敬体版" }],
+    examples: [
+      { jp: "今日は買い物に行かない", ruby: [{base:"今日",text:"きょう"},{base:"買",text:"か"},{base:"物",text:"もの"},{base:"行",text:"い"}], cn: "今天不去购物" },
+      { jp: "何も食べない", ruby: [{base:"何",text:"なに"},{base:"食",text:"た"}], cn: "什么都不吃" }
+    ]
+  }
+];
+
+/* ================================================================
+   等级数据
+================================================================ */
+var LEVELS = [
+  { level: "N5", name: "N5 基础语法", desc: "入门必备语法点", available: true },
+  { level: "N4", name: "N4 进阶语法", desc: "初级实用语法", available: false },
+  { level: "N3", name: "N3 中级语法", desc: "中级表达提升", available: false },
+  { level: "N2", name: "N2 中高级语法", desc: "中高级辨析", available: false },
+  { level: "N1", name: "N1 高级语法", desc: "高级 nuanced 表达", available: false }
+];
+
+var CATEGORIES = ["全部", "助词", "句型", "动词变形", "形容词", "条件", "其他"];
+
+/* ================================================================
+   状态管理
+================================================================ */
+var currentView = "overview";
+var currentFilter = "全部";
+var currentGrammarId = null;
+
+/* ================================================================
+   工具函数
+================================================================ */
+function el(id) {
+  return document.getElementById(id);
+}
+
+function showView(name) {
+  currentView = name;
+  document.querySelectorAll(".view").forEach(function(v) {
+    v.classList.remove("active");
+  });
+  var target = el("view" + name.charAt(0).toUpperCase() + name.slice(1));
+  if (target) target.classList.add("active");
+  updateBackBtn();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* 返回按钮：根据当前视图逐级返回 */
+function updateBackBtn() {
+  var btn = el("fixedBackBtn");
+  if (currentView === "overview") {
+    btn.href = "/languages/";
+  } else if (currentView === "catalog") {
+    btn.removeAttribute("href");
+  } else if (currentView === "detail") {
+    btn.removeAttribute("href");
+  }
+}
+
+el("fixedBackBtn").addEventListener("click", function(e) {
+  if (currentView === "catalog") {
+    e.preventDefault();
+    showView("overview");
+  } else if (currentView === "detail") {
+    e.preventDefault();
+    showView("catalog");
+    renderCatalog();
+  }
+});
+
+function getGrammarById(id) {
+  for (var i = 0; i < GRAMMAR_DATA.length; i++) {
+    if (GRAMMAR_DATA[i].id === id) return GRAMMAR_DATA[i];
+  }
+  return null;
+}
+
+function getGrammarIndex(id) {
+  for (var i = 0; i < GRAMMAR_DATA.length; i++) {
+    if (GRAMMAR_DATA[i].id === id) return i;
+  }
+  return -1;
+}
+
+/* 构建 ruby 注音 HTML */
+function buildRuby(jp, rubyArr) {
+  if (!rubyArr || rubyArr.length === 0) return jp;
+  var result = "";
+  var remaining = jp;
+  var used = {};
+  var i;
+  for (i = 0; i < rubyArr.length; i++) {
+    var r = rubyArr[i];
+    var base = r.base;
+    var text = r.text;
+    var pos = remaining.indexOf(base);
+    if (pos === -1) continue;
+    result += remaining.substring(0, pos);
+    result += "<ruby>" + base + "<rt>" + text + "</rt></ruby>";
+    remaining = remaining.substring(pos + base.length);
+  }
+  result += remaining;
+  return result;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/* ================================================================
+   总览页渲染
+================================================================ */
+function renderOverview() {
+  var grid = el("levelGrid");
+  grid.innerHTML = "";
+  LEVELS.forEach(function(lv) {
+    var card = document.createElement("div");
+    card.className = lv.available ? "level-card available" : "level-card locked";
+    var count = lv.available ? GRAMMAR_DATA.length + " 条语法" : "";
+    var soon = lv.available ? "" : '<span class="lv-soon">即将上线</span>';
+    card.innerHTML =
+      '<span class="lv-badge">' + lv.level + "</span>" +
+      '<div class="lv-name">' + lv.name + "</div>" +
+      '<div class="lv-desc">' + lv.desc + "</div>" +
+      (count ? '<div class="lv-count">' + count + "</div>" : "") +
+      soon;
+    if (lv.available) {
+      card.addEventListener("click", function() {
+        showView("catalog");
+        renderCatalog();
+      });
+    }
+    grid.appendChild(card);
+  });
+}
+
+/* ================================================================
+   目录页渲染
+================================================================ */
+function renderCatalog() {
+  renderFilters();
+  renderGrammarList();
+}
+
+function renderFilters() {
+  var bar = el("filterBar");
+  bar.innerHTML = "";
+  CATEGORIES.forEach(function(cat) {
+    var tag = document.createElement("button");
+    tag.className = "filter-tag" + (cat === currentFilter ? " active" : "");
+    tag.textContent = cat;
+    tag.addEventListener("click", function() {
+      currentFilter = cat;
+      renderFilters();
+      renderGrammarList();
+    });
+    bar.appendChild(tag);
+  });
+}
+
+function renderGrammarList() {
+  var list = el("grammarList");
+  list.innerHTML = "";
+  var filtered = GRAMMAR_DATA.filter(function(g) {
+    return currentFilter === "全部" || g.category === currentFilter;
+  });
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty">该分类下暂无语法</div>';
+    return;
+  }
+  filtered.forEach(function(g, idx) {
+    var item = document.createElement("div");
+    item.className = "grammar-item";
+    var num = g.id.replace("n5-", "");
+    item.innerHTML =
+      '<div class="gi-num">' + num + "</div>" +
+      '<div class="gi-body">' +
+        '<div class="gi-name jp-font">' + g.name + '<span class="cat-pill">' + g.category + "</span></div>" +
+        '<div class="gi-meaning">' + g.meaning + "</div>" +
+      "</div>";
+    item.addEventListener("click", function() {
+      currentGrammarId = g.id;
+      showView("detail");
+      renderDetail();
+    });
+    list.appendChild(item);
+  });
+}
+
+/* ================================================================
+   详情页渲染
+================================================================ */
+function renderDetail() {
+  var g = getGrammarById(currentGrammarId);
+  if (!g) return;
+  var idx = getGrammarIndex(currentGrammarId);
+  var prev = idx > 0 ? GRAMMAR_DATA[idx - 1] : null;
+  var next = idx < GRAMMAR_DATA.length - 1 ? GRAMMAR_DATA[idx + 1] : null;
+
+  renderDetailMain(g);
+  renderDetailSide(g, prev, next);
+}
+
+function renderDetailMain(g) {
+  var main = el("detailMain");
+
+  /* 接续规则 */
+  var connHTML = '<div class="conn-grid">';
+  var connLabels = { noun: "名词", verb: "动词", i_adj: "い形容词", na_adj: "な形容词" };
+  var connKeys = ["noun", "verb", "i_adj", "na_adj"];
+  connKeys.forEach(function(k) {
+    var val = g.connection[k];
+    var isDash = val === "—";
+    connHTML +=
+      '<div class="conn-cell">' +
+        '<div class="cc-label">' + connLabels[k] + "</div>" +
+        '<div class="cc-value' + (isDash ? " dash" : "") + '">' + (isDash ? "—" : val) + "</div>" +
+      "</div>";
+  });
+  connHTML += "</div>";
+
+  /* 易混对比 */
+  var similarHTML = "";
+  if (g.similar && g.similar.length > 0) {
+    similarHTML = '<div class="similar-list">';
+    g.similar.forEach(function(s) {
+      similarHTML +=
+        '<div class="similar-row">' +
+          '<div class="sr-name jp-font">' + s.name + "</div>" +
+          '<div class="sr-desc">' + s.desc + "</div>" +
+        "</div>";
+    });
+    similarHTML += "</div>";
+  }
+
+  /* 例句 */
+  var exHTML = '<div class="example-list">';
+  g.examples.forEach(function(ex) {
+    exHTML +=
+      '<div class="example-item">' +
+        '<div class="example-jp jp-font">' + buildRuby(ex.jp, ex.ruby) + "</div>" +
+        '<div class="example-cn">' + ex.cn + "</div>" +
+      "</div>";
+  });
+  exHTML += "</div>";
+
+  main.innerHTML =
+    '<button class="back-btn" id="backToCatalog">← 返回目录</button>' +
+    '<div class="detail-card">' +
+      '<div class="detail-title">' +
+        '<span class="dt-name jp-font">' + g.name + "</span>" +
+        '<div class="dt-tags">' +
+          '<span class="tag-pill tag-level">' + g.level + "</span>" +
+          '<span class="tag-pill tag-cat">' + g.category + "</span>" +
+        "</div>" +
+      "</div>" +
+      '<div class="detail-section">' +
+        '<div class="section-label">核心含义</div>' +
+        '<div class="section-text">' + g.meaning + "</div>" +
+      "</div>" +
+      '<div class="detail-section">' +
+        '<div class="section-label">接续规则</div>' +
+        connHTML +
+      "</div>" +
+      '<div class="detail-section">' +
+        '<div class="section-label">使用场景</div>' +
+        '<div class="section-text-soft">' + g.scene + "</div>" +
+      "</div>" +
+      '<div class="detail-section">' +
+        '<div class="section-label">易错点</div>' +
+        '<div class="pitfall-box">' + g.pitfalls + "</div>" +
+      "</div>" +
+      (similarHTML ?
+        '<div class="detail-section">' +
+          '<div class="section-label">易混语法对比</div>' +
+          similarHTML +
+        "</div>" : "") +
+      '<div class="detail-section">' +
+        '<div class="section-label">例句</div>' +
+        exHTML +
+      "</div>" +
+    "</div>";
+
+  el("backToCatalog").addEventListener("click", function() {
+    showView("catalog");
+    renderCatalog();
+  });
+}
+
+function renderDetailSide(g, prev, next) {
+  var side = el("detailSide");
+
+  /* 接续速查 */
+  var quickHTML = '<div class="side-quick">';
+  var qlabels = { noun: "名词", verb: "动词", i_adj: "い形", na_adj: "な形" };
+  var qkeys = ["noun", "verb", "i_adj", "na_adj"];
+  qkeys.forEach(function(k) {
+    var val = g.connection[k];
+    var isDash = val === "—";
+    quickHTML +=
+      '<div class="sq-row">' +
+        '<span class="sq-label">' + qlabels[k] + "</span>" +
+        '<span class="sq-val' + (isDash ? " dash" : "") + '">' + (isDash ? "—" : val) + "</span>" +
+      "</div>";
+  });
+  quickHTML += "</div>";
+
+  /* 导航按钮 */
+  var navHTML = '<div class="side-nav">';
+  if (prev) {
+    navHTML +=
+      '<button id="navPrev">' +
+        '<span class="nav-label">上一条</span>' +
+        '<span class="nav-name jp-font">' + prev.name + "</span>" +
+      "</button>";
+  } else {
+    navHTML += '<button disabled><span class="nav-label">上一条</span><span class="nav-name">—</span></button>';
+  }
+  if (next) {
+    navHTML +=
+      '<button id="navNext">' +
+        '<span class="nav-label">下一条</span>' +
+        '<span class="nav-name jp-font">' + next.name + "</span>" +
+      "</button>";
+  } else {
+    navHTML += '<button disabled><span class="nav-label">下一条</span><span class="nav-name">—</span></button>';
+  }
+  navHTML += "</div>";
+
+  /* 相似语法 */
+  var simHTML = "";
+  if (g.similar && g.similar.length > 0) {
+    simHTML = "";
+    g.similar.forEach(function(s) {
+      /* 查找相似语法是否在数据中 */
+      var match = null;
+      for (var i = 0; i < GRAMMAR_DATA.length; i++) {
+        if (GRAMMAR_DATA[i].name === s.name || GRAMMAR_DATA[i].name === "〜" + s.name) {
+          match = GRAMMAR_DATA[i];
+          break;
+        }
+      }
+      simHTML +=
+        '<div class="side-similar-link" data-sid="' + (match ? match.id : "") + '">' +
+          '<div class="ssl-name jp-font">' + s.name + "</div>" +
+          '<div class="ssl-desc">' + s.desc + "</div>" +
+        "</div>";
+    });
+  }
+
+  side.innerHTML =
+    '<div class="side-card">' +
+      '<div class="section-label" style="margin-bottom:12px;">接续速查</div>' +
+      quickHTML +
+    "</div>" +
+    '<div class="side-card">' +
+      '<div class="section-label" style="margin-bottom:12px;">难度等级</div>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<span class="tag-pill tag-level">' + g.level + "</span>" +
+        '<span class="tag-pill tag-cat">' + g.category + "</span>" +
+      "</div>" +
+    "</div>" +
+    '<div class="side-card">' +
+      '<div class="section-label" style="margin-bottom:12px;">语法导航</div>' +
+      navHTML +
+    "</div>" +
+    (simHTML ?
+      '<div class="side-card">' +
+        '<div class="section-label" style="margin-bottom:12px;">相似语法</div>' +
+        simHTML +
+      "</div>" : "");
+
+  /* 绑定导航 */
+  if (prev) {
+    el("navPrev").addEventListener("click", function() {
+      currentGrammarId = prev.id;
+      renderDetail();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+  if (next) {
+    el("navNext").addEventListener("click", function() {
+      currentGrammarId = next.id;
+      renderDetail();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  /* 绑定相似语法跳转 */
+  side.querySelectorAll(".side-similar-link").forEach(function(link) {
+    link.addEventListener("click", function() {
+      var sid = this.getAttribute("data-sid");
+      if (sid) {
+        currentGrammarId = sid;
+        renderDetail();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+  });
+}
+
+/* ================================================================
+   面包屑导航
+================================================================ */
+el("bcHome1").addEventListener("click", function() {
+  showView("overview");
+});
+
+/* ================================================================
+   初始化
+================================================================ */
+renderOverview();
+</script>
+</body>
+</html>

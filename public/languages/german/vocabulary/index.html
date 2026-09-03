@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Deutscher Wortschatz · 德语单词库</title>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --text: #1C1C1C;
+    --text-soft: #6b6b6b;
+    --border: #DDD;
+    --border-light: #EEE;
+    --ger-red: #C8102E;
+    --ger-gold: #E8B400;
+    --ger-gold-light: #FDF8EC;
+    --gray: #999;
+    --gray-bg: #F5F5F5;
+    --m: #C8102E;
+    --m-bg: #FBF0F0;
+    --f: #4A6FA5;
+    --f-bg: #EBF0F7;
+    --n: #888;
+    --n-bg: #F0F0F0;
+    --pl: #8B6B8B;
+    --pl-bg: #F5F0F5;
+    --none: #999;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Inter", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+
+  .flag-stripe { display: flex; height: 3px; width: 100%; }
+  .stripe-black { flex: 1; background: var(--text); }
+  .stripe-red { flex: 1; background: var(--ger-red); }
+  .stripe-gold { flex: 1; background: var(--ger-gold); }
+
+  .header { text-align: center; padding: 28px 20px 10px; }
+  .header h1 { font-size: 26px; font-weight: 700; color: var(--text); }
+  .header h1 .de-accent { color: var(--ger-red); }
+  .header p { margin-top: 6px; font-size: 13px; color: var(--text-soft); }
+
+  .view { display: none; animation: fade .25s ease; }
+  .view.active { display: block; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  /* 总览页 */
+  .overview-wrap { max-width: 960px; margin: 0 auto; padding: 20px 20px 60px; }
+  .level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .level-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 24px 16px 20px; text-align: center;
+    transition: border-color .2s ease, box-shadow .2s ease;
+    position: relative; overflow: hidden;
+  }
+  .level-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--text); transition: background .2s ease;
+  }
+  .level-card.available::before { background: var(--ger-gold); }
+  .level-card.preview::before { background: var(--ger-gold); }
+  .level-card.available, .level-card.preview { cursor: pointer; }
+  .level-card.available:hover, .level-card.preview:hover {
+    border-color: var(--ger-red);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+  .level-card.available:hover::before, .level-card.preview:hover::before { background: var(--ger-red); }
+  .level-card.locked { opacity: .5; cursor: not-allowed; }
+  .level-card .lv-badge {
+    display: inline-block; font-size: 12px; font-weight: 700;
+    border: 1.5px solid var(--ger-gold); padding: 3px 14px; border-radius: 6px; margin-bottom: 12px;
+  }
+  .level-card.available .lv-badge { color: var(--ger-red); border-color: var(--ger-red); }
+  .level-card.locked .lv-badge { border-color: var(--gray); color: var(--gray); }
+  .level-card .lv-name { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .level-card .lv-desc { font-size: 12px; color: var(--text-soft); }
+  .level-card .lv-count { margin-top: 8px; font-size: 12px; color: var(--text-soft); }
+  .level-card .lv-soon {
+    margin-top: 6px; font-size: 11px; color: var(--text-soft);
+    background: var(--gray-bg); padding: 2px 8px; border-radius: 4px; display: inline-block;
+  }
+
+  /* 目录页 */
+  .catalog-wrap { max-width: 1000px; margin: 0 auto; padding: 10px 20px 60px; }
+  .breadcrumb { font-size: 13px; color: var(--text-soft); margin-bottom: 14px; }
+  .breadcrumb a { color: var(--ger-red); text-decoration: none; cursor: pointer; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb .sep { color: var(--gray); margin: 0 6px; }
+
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .filter-tag {
+    border: 1px solid var(--border); background: #fff; color: var(--text-soft);
+    font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 6px;
+    cursor: pointer; transition: all .15s ease; font-family: inherit;
+  }
+  .filter-tag:hover { border-color: var(--ger-red); color: var(--ger-red); }
+  .filter-tag.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+  .search-box { margin-bottom: 16px; }
+  .search-box input {
+    width: 100%; max-width: 400px; padding: 8px 14px; font-size: 14px;
+    border: 1px solid var(--border); border-radius: 6px; font-family: inherit; outline: none;
+    transition: border-color .15s ease;
+  }
+  .search-box input:focus { border-color: var(--ger-red); }
+
+  /* 词汇表格 */
+  .topic-group { margin-bottom: 28px; }
+  .topic-group-title {
+    font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px;
+    padding-bottom: 4px; border-bottom: 1px solid var(--border-light);
+    padding-left: 10px; border-left: 3px solid var(--ger-gold);
+  }
+  .topic-group-count { font-size: 12px; color: var(--text-soft); font-weight: 400; margin-left: 8px; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 16px; }
+  .vocab-table {
+    border-collapse: collapse; width: 100%; font-size: 14px;
+  }
+  .vocab-table th, .vocab-table td {
+    border: 1px solid var(--border); padding: 8px 12px; text-align: left;
+  }
+  .vocab-table thead th {
+    background: var(--text); font-weight: 600; color: #fff;
+    border-bottom: 2px solid var(--ger-gold);
+    white-space: nowrap;
+  }
+  .vocab-table tbody tr:hover td { background: var(--ger-gold-light); }
+
+  .art-badge {
+    display: inline-block; font-size: 12px; font-weight: 700;
+    padding: 1px 8px; border-radius: 4px; min-width: 36px; text-align: center;
+  }
+  .art-der { background: var(--m); color: #fff; }
+  .art-die { background: var(--f); color: #fff; }
+  .art-das { background: #8a8a8a; color: #fff; }
+  .art-pl  { background: var(--pl); color: #fff; }
+  .art-none { color: var(--none); }
+
+  .word-de { font-weight: 600; color: var(--text); }
+  .word-plural { font-size: 12px; color: var(--text-soft); font-weight: 400; }
+  .word-cn { color: var(--text); }
+  .ex-de { color: var(--text); }
+  .ex-cn { font-size: 12px; color: var(--text-soft); margin-top: 2px; }
+
+  .back-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    border: 1px solid var(--border); background: #fff; color: var(--text-soft);
+    font-size: 13px; padding: 6px 14px; border-radius: 6px;
+    cursor: pointer; transition: all .15s ease; font-family: inherit; margin-bottom: 16px;
+  }
+  .back-btn:hover { border-color: var(--ger-red); color: var(--ger-red); }
+
+  .empty { text-align: center; color: var(--gray); padding: 60px 20px; font-size: 14px; }
+
+  @media (max-width: 760px) {
+    .header h1 { font-size: 22px; }
+    .level-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+    .vocab-table { font-size: 13px; }
+    .vocab-table th, .vocab-table td { padding: 6px 8px; }
+  }
+
+  .back-fixed {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 9999;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid var(--ger-red, #C8102E);
+    border-radius: 20px;
+    color: var(--ger-red, #C8102E);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    transition: background .2s ease, color .2s ease;
+  }
+  .back-fixed:hover {
+    background: var(--ger-red, #C8102E);
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+  <button class="back-fixed" onclick="smartBack()">&larr; Zurück</button>
+  <div class="flag-stripe">
+    <div class="stripe-black"></div>
+    <div class="stripe-red"></div>
+    <div class="stripe-gold"></div>
+  </div>
+  <header class="header">
+    <h1><span class="de-accent">Deutscher</span> Wortschatz</h1>
+    <p>德语单词库 · A1 — C2</p>
+  </header>
+
+  <section class="view active" id="viewOverview">
+    <div class="overview-wrap">
+      <div class="level-grid" id="levelGrid"></div>
+    </div>
+  </section>
+
+  <section class="view" id="viewCatalog">
+    <div class="catalog-wrap">
+      <div class="breadcrumb">
+        <a id="bcHome">Startseite</a><span class="sep">/</span><span id="bcLevel">A1 词汇</span>
+      </div>
+      <button class="back-btn" id="backToOverview">← Zurück zur Startseite</button>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索单词或中文翻译..." />
+      </div>
+      <div class="filter-bar" id="filterBar"></div>
+      <div id="vocabContent"></div>
+    </div>
+  </section>
+
+<script src="a1_data.js"></script>
+<script src="a2_data.js"></script>
+<script src="b1_data.js"></script>
+<script src="b2_data.js"></script>
+<script src="c1_data.js"></script>
+<script src="c2_data.js"></script>
+<script>
+/* ================================================================
+   等级配置
+================================================================ */
+var LEVELS = [
+  { level: "A1", name: "A1 基础词汇", desc: "入门必备单词", available: true },
+  { level: "A2", name: "A2 初级词汇", desc: "初级实用单词", available: true },
+  { level: "B1", name: "B1 中级词汇", desc: "中级表达提升", available: true },
+  { level: "B2", name: "B2 中高级词汇", desc: "中高级辨析", available: true },
+  { level: "C1", name: "C1 高级词汇", desc: "高级书面表达", available: true },
+  { level: "C2", name: "C2 母语级词汇", desc: "母语级精微", available: true }
+];
+
+/* ================================================================
+   合并词汇数据
+================================================================ */
+var VOCAB_DATA = A1_DATA.concat(A2_DATA).concat(B1_DATA).concat(B2_DATA).concat(C1_DATA).concat(C2_DATA);
+
+/* ================================================================
+   状态管理
+================================================================ */
+var currentLevel = "A1";
+var currentFilter = "全部";
+var currentSearch = "";
+var currentView = "overview";
+
+/* ================================================================
+   工具函数
+================================================================ */
+function el(id) { return document.getElementById(id); }
+
+function showView(name) {
+  currentView = name;
+  document.querySelectorAll(".view").forEach(function(v) { v.classList.remove("active"); });
+  var target = el("view" + name.charAt(0).toUpperCase() + name.slice(1));
+  if (target) target.classList.add("active");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function smartBack() {
+  if (currentView === "catalog") {
+    showView("overview");
+  } else {
+    history.back();
+  }
+}
+
+function getLevelData(level) {
+  for (var i = 0; i < LEVELS.length; i++) {
+    if (LEVELS[i].level === level) return LEVELS[i];
+  }
+  return null;
+}
+
+function getTopicsByLevel(level) {
+  return VOCAB_DATA.filter(function(g) { return g.level === level; });
+}
+
+function countWordsByLevel(level) {
+  var groups = getTopicsByLevel(level);
+  var count = 0;
+  groups.forEach(function(g) { count += g.words.length; });
+  return count;
+}
+
+/* ================================================================
+   总览页渲染
+================================================================ */
+function renderOverview() {
+  var grid = el("levelGrid");
+  grid.innerHTML = "";
+  LEVELS.forEach(function(lv) {
+    var card = document.createElement("div");
+    var cls = "level-card";
+    if (lv.available) cls += " available";
+    else if (lv.preview) cls += " preview";
+    else cls += " locked";
+    card.className = cls;
+
+    var count = lv.available ? countWordsByLevel(lv.level) + " 词" : "";
+    var soon = lv.available ? "" : (lv.preview ? '<span class="lv-soon">即将上线</span>' : '<span class="lv-soon">敬请期待</span>');
+    card.innerHTML =
+      '<span class="lv-badge">' + lv.level + "</span>" +
+      '<div class="lv-name">' + lv.name + "</div>" +
+      '<div class="lv-desc">' + lv.desc + "</div>" +
+      (count ? '<div class="lv-count">' + count + "</div>" : "") +
+      soon;
+
+    if (lv.available) {
+      card.addEventListener("click", function() {
+        currentLevel = lv.level;
+        currentFilter = "全部";
+        currentSearch = "";
+        showView("catalog");
+        renderCatalog();
+      });
+    }
+    grid.appendChild(card);
+  });
+}
+
+/* ================================================================
+   目录页渲染
+================================================================ */
+function renderCatalog() {
+  el("bcLevel").textContent = currentLevel + " 词汇";
+  renderFilters();
+  renderVocabContent();
+}
+
+function renderFilters() {
+  var bar = el("filterBar");
+  bar.innerHTML = "";
+  var topics = getTopicsByLevel(currentLevel);
+  var tags = ["全部"];
+  topics.forEach(function(g) { tags.push(g.topic); });
+  tags.forEach(function(tag) {
+    var btn = document.createElement("button");
+    btn.className = "filter-tag" + (tag === currentFilter ? " active" : "");
+    btn.textContent = tag;
+    btn.addEventListener("click", function() {
+      currentFilter = tag;
+      renderFilters();
+      renderVocabContent();
+    });
+    bar.appendChild(btn);
+  });
+}
+
+function renderVocabContent() {
+  var container = el("vocabContent");
+  container.innerHTML = "";
+  var topics = getTopicsByLevel(currentLevel);
+
+  // 搜索过滤
+  var search = currentSearch.toLowerCase().trim();
+  var filtered = topics;
+  if (currentFilter !== "全部") {
+    filtered = topics.filter(function(g) { return g.topic === currentFilter; });
+  }
+
+  var hasResults = false;
+  filtered.forEach(function(group) {
+    var words = group.words;
+    if (search) {
+      words = words.filter(function(w) {
+        return w.word.toLowerCase().indexOf(search) !== -1 ||
+               w.cn.indexOf(currentSearch.trim()) !== -1 ||
+               w.ex_de.toLowerCase().indexOf(search) !== -1;
+      });
+    }
+    if (words.length === 0) return;
+    hasResults = true;
+
+    var groupDiv = document.createElement("div");
+    groupDiv.className = "topic-group";
+    groupDiv.innerHTML =
+      '<div class="topic-group-title">' + group.topic +
+      '<span class="topic-group-count">' + words.length + ' 词</span></div>' +
+      renderVocabTable(words);
+    container.appendChild(groupDiv);
+  });
+
+  if (!hasResults) {
+    container.innerHTML = '<div class="empty">未找到匹配的单词</div>';
+  }
+}
+
+function renderVocabTable(words) {
+  var html = '<div class="table-wrap"><table class="vocab-table"><thead><tr>' +
+    '<th style="width:70px">词性</th>' +
+    '<th style="width:200px">单词</th>' +
+    '<th style="width:160px">中文翻译</th>' +
+    '<th>例句</th>' +
+    '</tr></thead><tbody>';
+  words.forEach(function(w) {
+    var artClass = "art-none";
+    var artText = "—";
+    if (w.art === "der") { artClass = "art-der"; artText = "der"; }
+    else if (w.art === "die") { artClass = "art-die"; artText = "die"; }
+    else if (w.art === "das") { artClass = "art-das"; artText = "das"; }
+    else if (w.art === "Pl.") { artClass = "art-pl"; artText = "Pl."; }
+
+    var wordHTML = '<span class="word-de">' + w.word + '</span>';
+    if (w.plural && w.plural !== "" && w.plural !== "—") {
+      wordHTML += ' <span class="word-plural">, ' + w.plural + '</span>';
+    }
+
+    html += '<tr>' +
+      '<td><span class="art-badge ' + artClass + '">' + artText + '</span></td>' +
+      '<td>' + wordHTML + '</td>' +
+      '<td class="word-cn">' + w.cn + '</td>' +
+      '<td><div class="ex-de">' + w.ex_de + '</div><div class="ex-cn">' + w.ex_cn + '</div></td>' +
+      '</tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+/* ================================================================
+   事件绑定
+================================================================ */
+el("bcHome").addEventListener("click", function() { showView("overview"); });
+el("backToOverview").addEventListener("click", function() { showView("overview"); });
+el("searchInput").addEventListener("input", function() {
+  currentSearch = this.value;
+  renderVocabContent();
+});
+
+/* ================================================================
+   初始化
+================================================================ */
+renderOverview();
+</script>
+</body>
+</html>

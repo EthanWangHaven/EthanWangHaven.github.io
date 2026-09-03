@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>English Vocabulary</title>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --text: #1C1C1C;
+    --text-soft: #6b6b6b;
+    --border: #DDD;
+    --border-light: #EEE;
+    --en-blue: #2E7BC0;
+    --en-blue-light: #EBF3FA;
+    --en-blue-dark: #1B5C99;
+    --gray: #999;
+    --gray-bg: #F5F5F5;
+    --level-kaoyan: #C8102E;
+    --level-kaoyan-bg: #FBF0F0;
+    --level-cet6: #B8860B;
+    --level-cet6-bg: #FDF8EC;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Inter", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+
+  .flag-stripe { display: flex; height: 3px; width: 100%; }
+  .stripe-blue { flex: 1; background: var(--en-blue); }
+
+  .header { text-align: center; padding: 28px 20px 10px; }
+  .header h1 { font-size: 26px; font-weight: 700; color: var(--text); }
+  .header h1 .en-accent { color: var(--en-blue); }
+  .header p { margin-top: 6px; font-size: 13px; color: var(--text-soft); }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 16px 20px 60px; }
+
+  .back-link {
+    display: inline-block;
+    padding: 6px 14px; margin-bottom: 12px;
+    font-size: 13px; color: var(--en-blue); text-decoration: none;
+    border: 1px solid var(--en-blue); border-radius: 8px;
+    background: var(--en-blue-light);
+    transition: all .2s;
+  }
+  .back-link:hover { background: var(--en-blue); color: #fff; }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .search-box {
+    flex: 1; min-width: 200px;
+    padding: 10px 14px; font-size: 14px;
+    border: 1px solid var(--border); border-radius: 8px;
+    outline: none; transition: border-color .2s;
+  }
+  .search-box:focus { border-color: var(--en-blue); }
+  .filter-btn {
+    padding: 8px 16px; font-size: 13px; font-weight: 600;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--text-soft); cursor: pointer;
+    transition: all .2s;
+  }
+  .filter-btn:hover { border-color: var(--en-blue); color: var(--en-blue); }
+  .filter-btn.active {
+    background: var(--en-blue); color: #fff; border-color: var(--en-blue);
+  }
+
+  /* Stats */
+  .stats-row {
+    display: flex; gap: 12px; margin-bottom: 14px; font-size: 13px; color: var(--text-soft);
+  }
+  .stats-row span { font-weight: 600; color: var(--text); }
+
+  /* 3-column word grid */
+  .word-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .word-card {
+    background: #fff; border: 1px solid var(--border-light); border-radius: 8px;
+    padding: 12px 14px; transition: border-color .2s, box-shadow .2s;
+    position: relative;
+  }
+  .word-card:hover { border-color: var(--en-blue); box-shadow: 0 2px 8px rgba(46,123,192,0.08); }
+  .word-card.user-added { border-left: 3px solid var(--en-blue); }
+
+  .word-head { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+  .word-text { font-size: 15px; font-weight: 700; color: var(--text); }
+  .word-pos { font-size: 12px; color: var(--gray); font-style: italic; }
+  .word-level {
+    font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 10px;
+    margin-left: auto;
+  }
+  .word-level.kaoyan { background: var(--level-kaoyan-bg); color: var(--level-kaoyan); }
+  .word-level.cet6 { background: var(--level-cet6-bg); color: var(--level-cet6); }
+  .word-level.custom { background: var(--en-blue-light); color: var(--en-blue-dark); }
+  .word-translation { font-size: 13px; color: var(--text-soft); margin-top: 3px; }
+  .word-delete {
+    position: absolute; top: 6px; right: 6px;
+    font-size: 12px; color: var(--gray); cursor: pointer;
+    border: none; background: none; transition: color .2s; line-height: 1;
+  }
+  .word-delete:hover { color: var(--level-kaoyan); }
+
+  /* Add form */
+  .add-section {
+    margin-top: 22px; padding: 18px 20px;
+    background: var(--gray-bg); border-radius: 12px;
+  }
+  .add-section h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+  .add-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .add-form .field { display: flex; flex-direction: column; gap: 3px; }
+  .add-form label { font-size: 11px; color: var(--text-soft); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+  .add-form input, .add-form select {
+    padding: 8px 12px; font-size: 14px;
+    border: 1px solid var(--border); border-radius: 8px;
+    outline: none; transition: border-color .2s;
+  }
+  .add-form input:focus, .add-form select:focus { border-color: var(--en-blue); }
+  .add-form .input-word { width: 180px; }
+  .add-form .input-translation { flex: 1; min-width: 200px; }
+  .add-form .input-level { width: 120px; }
+
+  /* POS dynamic rows */
+  .pos-rows { display: flex; flex-direction: column; gap: 6px; }
+  .pos-row { display: flex; gap: 6px; align-items: center; }
+  .pos-row select { padding: 6px 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; }
+  .pos-row input { flex: 1; min-width: 120px; padding: 6px 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; outline: none; }
+  .pos-row input:focus, .pos-row select:focus { border-color: var(--en-blue); }
+  .pos-row .pos-remove { font-size: 16px; color: var(--gray); cursor: pointer; border: none; background: none; line-height: 1; }
+  .pos-row .pos-remove:hover { color: var(--level-kaoyan); }
+  .pos-add-btn {
+    margin-top: 4px; font-size: 12px; color: var(--en-blue);
+    border: 1px dashed var(--en-blue); border-radius: 6px;
+    padding: 4px 10px; cursor: pointer; background: none;
+    transition: all .2s;
+  }
+  .pos-add-btn:hover { background: var(--en-blue-light); }
+
+  .add-btn {
+    padding: 9px 28px; font-size: 14px; font-weight: 700;
+    background: var(--en-blue); color: #fff;
+    border: none; border-radius: 8px; cursor: pointer;
+    transition: background .2s;
+  }
+  .add-btn:hover { background: var(--en-blue-dark); }
+
+  .empty-state { grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: var(--gray); font-size: 14px; }
+
+  /* Responsive */
+  @media (max-width: 800px) {
+    .word-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 520px) {
+    .word-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="flag-stripe"><div class="stripe-blue"></div></div>
+
+<div class="header">
+  <h1>English <span class="en-accent">Vocabulary</span></h1>
+  <p>Postgraduate Entrance &amp; CET-6 Vocabulary</p>
+</div>
+
+<div class="wrap">
+  <a href="/languages/" class="back-link">&larr; Back to Languages</a>
+
+  <div class="toolbar">
+    <input type="text" class="search-box" id="searchBox" placeholder="Search word or translation..." />
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="考研">Postgraduate</button>
+    <button class="filter-btn" data-filter="六级">CET-6</button>
+    <button class="filter-btn" data-filter="custom">Custom</button>
+  </div>
+
+  <div class="stats-row" id="stats"></div>
+
+  <div class="word-grid" id="wordGrid"></div>
+
+  <div class="add-section">
+    <h3>+ Add New Word</h3>
+    <div class="add-form">
+      <div class="field">
+        <label>Word</label>
+        <input type="text" class="input-word" id="newWord" placeholder="e.g. persevere" />
+      </div>
+      <div class="field" style="min-width: 280px;">
+        <label>Parts of Speech &amp; Meanings</label>
+        <div class="pos-rows" id="posRows">
+          <div class="pos-row">
+            <select class="pos-select">
+              <option value="n.">n.</option>
+              <option value="v.">v.</option>
+              <option value="vt.">vt.</option>
+              <option value="vi.">vi.</option>
+              <option value="adj.">adj.</option>
+              <option value="adv.">adv.</option>
+              <option value="prep.">prep.</option>
+              <option value="conj.">conj.</option>
+              <option value="pron.">pron.</option>
+              <option value="num.">num.</option>
+              <option value="art.">art.</option>
+            </select>
+            <input type="text" class="pos-meaning" placeholder="e.g. to persist" />
+            <button class="pos-remove" onclick="this.parentElement.remove()">&times;</button>
+          </div>
+        </div>
+        <button class="pos-add-btn" id="addPosBtn">+ Add part of speech</button>
+      </div>
+      <div class="field">
+        <label>Level</label>
+        <select class="input-level" id="newLevel">
+          <option value="custom">Custom</option>
+          <option value="考研">Postgraduate</option>
+          <option value="六级">CET-6</option>
+        </select>
+      </div>
+      <button class="add-btn" id="addBtn">Add</button>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function() {
+  var allWords = [];
+  var currentFilter = 'all';
+
+  function init() {
+    var builtIn = (typeof VOCAB_DATA !== 'undefined') ? VOCAB_DATA.words : [];
+    var userWords = getUserWords();
+    // Mark user words with _userIdx for deletion
+    userWords = userWords.map(function(w, i) { w._userIdx = i; return w; });
+    allWords = builtIn.map(function(w) { w._builtin = true; return w; })
+      .concat(userWords.map(function(w) { w._builtin = false; return w; }));
+    render();
+  }
+
+  function getUserWords() {
+    try { return JSON.parse(localStorage.getItem('en_vocab_user') || '[]'); }
+    catch(e) { return []; }
+  }
+  function saveUserWords(words) {
+    localStorage.setItem('en_vocab_user', JSON.stringify(words));
+  }
+
+  // Build display string for POS (supports multiple POS entries)
+  function buildPosDisplay(w) {
+    if (w.posEntries && Array.isArray(w.posEntries) && w.posEntries.length > 0) {
+      return w.posEntries.map(function(e) {
+        return '<span class="word-pos">' + escapeHtml(e.pos) + '</span> <span class="word-translation">' + escapeHtml(e.meaning) + '</span>';
+      }).join('<br>');
+    }
+    // Fallback: single pos field
+    return '<span class="word-pos">' + escapeHtml(w.pos || '') + '</span>' +
+           '<div class="word-translation">' + escapeHtml(w.translation || '') + '</div>';
+  }
+
+  // Build search text from all meanings
+  function buildSearchText(w) {
+    if (w.posEntries && w.posEntries.length > 0) {
+      return w.word.toLowerCase() + ' ' + w.posEntries.map(function(e) { return e.meaning; }).join(' ');
+    }
+    return w.word.toLowerCase() + ' ' + (w.translation || '').toLowerCase();
+  }
+
+  function render() {
+    var grid = document.getElementById('wordGrid');
+    var search = document.getElementById('searchBox').value.toLowerCase().trim();
+    var filtered = allWords.filter(function(w) {
+      var matchFilter = currentFilter === 'all' || w.level === currentFilter ||
+        (currentFilter === 'custom' && !w._builtin);
+      var searchText = buildSearchText(w);
+      var matchSearch = !search || searchText.indexOf(search) >= 0;
+      return matchFilter && matchSearch;
+    });
+
+    // Stats
+    var stats = document.getElementById('stats');
+    var kaoyanCount = allWords.filter(function(w){return w.level==='考研';}).length;
+    var cet6Count = allWords.filter(function(w){return w.level==='六级';}).length;
+    var customCount = allWords.filter(function(w){return !w._builtin;}).length;
+    stats.innerHTML = '<span>' + allWords.length + '</span> words total' +
+      ' &middot; Postgraduate <span>' + kaoyanCount + '</span>' +
+      ' &middot; CET-6 <span>' + cet6Count + '</span>' +
+      ' &middot; Custom <span>' + customCount + '</span>';
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div class="empty-state">No matching words found</div>';
+      return;
+    }
+
+    grid.innerHTML = filtered.map(function(w) {
+      var levelClass = w.level === '考研' ? 'kaoyan' : (w.level === '六级' ? 'cet6' : 'custom');
+      var levelText = w.level === '考研' ? 'Postgrad' : (w.level === '六级' ? 'CET-6' : 'Custom');
+      var cardClass = w._builtin ? '' : 'user-added';
+      var deleteBtn = w._builtin ? '' :
+        '<button class="word-delete" data-idx="' + w._userIdx + '">&times;</button>';
+      return '<div class="word-card ' + cardClass + '">' +
+        deleteBtn +
+        '<div class="word-head">' +
+          '<span class="word-text">' + escapeHtml(w.word) + '</span>' +
+          '<span class="word-level ' + levelClass + '">' + escapeHtml(levelText) + '</span>' +
+        '</div>' +
+        '<div>' + buildPosDisplay(w) + '</div>' +
+      '</div>';
+    }).join('');
+
+    // Bind delete
+    grid.querySelectorAll('.word-delete').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var idx = parseInt(this.dataset.idx);
+        var userWords = getUserWords();
+        userWords.splice(idx, 1);
+        saveUserWords(userWords);
+        init();
+      });
+    });
+  }
+
+  // Add POS row
+  document.getElementById('addPosBtn').addEventListener('click', function() {
+    var row = document.createElement('div');
+    row.className = 'pos-row';
+    row.innerHTML =
+      '<select class="pos-select">' +
+        '<option value="n.">n.</option><option value="v.">v.</option><option value="vt.">vt.</option>' +
+        '<option value="vi.">vi.</option><option value="adj.">adj.</option><option value="adv.">adv.</option>' +
+        '<option value="prep.">prep.</option><option value="conj.">conj.</option><option value="pron.">pron.</option>' +
+        '<option value="num.">num.</option><option value="art.">art.</option>' +
+      '</select>' +
+      '<input type="text" class="pos-meaning" placeholder="e.g. to persist" />' +
+      '<button class="pos-remove" onclick="this.parentElement.remove()">&times;</button>';
+    document.getElementById('posRows').appendChild(row);
+  });
+
+  // Add word
+  document.getElementById('addBtn').addEventListener('click', function() {
+    var word = document.getElementById('newWord').value.trim();
+    var level = document.getElementById('newLevel').value;
+
+    if (!word) {
+      alert('Please enter a word');
+      return;
+    }
+
+    // Collect POS entries
+    var posRows = document.querySelectorAll('#posRows .pos-row');
+    var posEntries = [];
+    var hasMeaning = false;
+    posRows.forEach(function(row) {
+      var pos = row.querySelector('.pos-select').value;
+      var meaning = row.querySelector('.pos-meaning').value.trim();
+      if (meaning) {
+        posEntries.push({ pos: pos, meaning: meaning });
+        hasMeaning = true;
+      }
+    });
+
+    if (!hasMeaning) {
+      alert('Please enter at least one meaning');
+      return;
+    }
+
+    var userWords = getUserWords();
+    userWords.push({ word: word, posEntries: posEntries, level: level || 'custom' });
+    saveUserWords(userWords);
+
+    // Reset form
+    document.getElementById('newWord').value = '';
+    document.getElementById('posRows').innerHTML =
+      '<div class="pos-row">' +
+        '<select class="pos-select">' +
+          '<option value="n.">n.</option><option value="v.">v.</option><option value="vt.">vt.</option>' +
+          '<option value="vi.">vi.</option><option value="adj.">adj.</option><option value="adv.">adv.</option>' +
+          '<option value="prep.">prep.</option><option value="conj.">conj.</option><option value="pron.">pron.</option>' +
+          '<option value="num.">num.</option><option value="art.">art.</option>' +
+        '</select>' +
+        '<input type="text" class="pos-meaning" placeholder="e.g. to persist" />' +
+        '<button class="pos-remove" onclick="this.parentElement.remove()">&times;</button>' +
+      '</div>';
+    document.getElementById('newLevel').value = 'custom';
+
+    init();
+  });
+
+  // Search
+  document.getElementById('searchBox').addEventListener('input', render);
+
+  // Filter
+  document.querySelectorAll('.filter-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      currentFilter = this.dataset.filter;
+      render();
+    });
+  });
+
+  function escapeHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Deutsch Aussprache lernen!</title>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --bg-soft: #FAFAFA;
+    --card: #ffffff;
+    --card-border: #DDD;
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    --card-shadow-hover: 0 4px 14px rgba(0,0,0,0.10);
+    --ger-red: #C8102E;
+    --ger-gold: #E8B400;
+    --text: #1C1C1C;
+    --text-soft: #6b6b6b;
+    --gray: #999;
+    --gray-bg: #F5F5F5;
+    --highlight: #FFF5F5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Heiti SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .header {
+    text-align: center;
+    padding: 36px 20px 18px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 1px;
+  }
+  .header p {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--text-soft);
+  }
+
+  .controls {
+    max-width: 1080px;
+    margin: 0 auto 14px;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    background: var(--gray-bg);
+    padding: 6px;
+    border-radius: 14px;
+    flex-wrap: wrap;
+  }
+  .tab {
+    border: none;
+    background: transparent;
+    color: var(--gray);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 9px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .2s ease;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .tab.active {
+    background: var(--ger-red);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(200, 16, 46, 0.25);
+  }
+  .tab:not(.active):hover { color: var(--ger-red); }
+
+  .switch-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-soft);
+    user-select: none;
+  }
+  .switch {
+    position: relative;
+    width: 46px;
+    height: 26px;
+    flex: 0 0 auto;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    inset: 0;
+    background: var(--gray);
+    border-radius: 999px;
+    transition: .25s;
+    cursor: pointer;
+  }
+  .slider::before {
+    content: "";
+    position: absolute;
+    width: 20px; height: 20px;
+    left: 3px; top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: .25s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .switch input:checked + .slider { background: var(--ger-red); }
+  .switch input:checked + .slider::before { transform: translateX(20px); }
+
+  .content-wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 10px 20px 40px;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .grid {
+    flex: 0 1 720px;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 14px;
+  }
+  .content-wrap:not(.has-info) .grid { flex-basis: 720px; }
+
+  .info-panel {
+    width: 320px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 20px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    box-shadow: var(--card-shadow);
+    padding: 24px 20px;
+    min-height: 380px;
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  .info-panel.hidden {
+    display: none;
+  }
+  .info-panel .ip-placeholder {
+    text-align: center;
+    color: var(--gray);
+    font-size: 14px;
+    padding-top: 120px;
+    line-height: 2;
+  }
+  .info-panel .ip-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--card-border);
+    flex-wrap: wrap;
+  }
+  .info-panel .ip-main {
+    font-size: 40px;
+    color: var(--text);
+    line-height: 1.1;
+    word-break: break-word;
+  }
+  .info-panel .ip-ipa {
+    font-size: 18px;
+    color: var(--text-soft);
+  }
+  .info-panel .ip-section { margin-bottom: 16px; }
+  .info-panel .ip-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ger-red);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .info-panel .ip-label::before {
+    content: "";
+    width: 3px; height: 12px;
+    background: var(--ger-gold);
+    border-radius: 2px;
+  }
+  .info-panel .ip-text {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .info-panel .ip-words {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .info-panel .ip-word {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .info-panel .ip-word .w-de {
+    color: var(--ger-red);
+    font-weight: 600;
+    min-width: 70px;
+  }
+  .info-panel .ip-word .w-cn {
+    color: var(--text-soft);
+    margin-left: auto;
+  }
+  .info-panel .ip-word.word-highlight {
+    animation: wordPop 0.5s ease;
+  }
+  .info-panel .ip-word.word-highlight .w-de {
+    color: var(--ger-gold);
+  }
+  @keyframes wordPop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  .btn-readall {
+    border: none;
+    background: var(--ger-red);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .2s ease;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-readall:hover { background: #a00d24; }
+  .btn-readall.reading {
+    background: var(--gray);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .btn-readall .play-ico {
+    width: 0; height: 0;
+    border-left: 7px solid #fff;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+
+  .card.hovered {
+    border-color: var(--ger-red);
+    box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.15), var(--card-shadow-hover);
+  }
+
+  .card {
+    background: #FFFCE8;
+    border: 1px solid var(--ger-gold);
+    border-radius: 18px;
+    padding: 18px 10px 14px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: var(--card-shadow);
+    transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .card:hover {
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-2px);
+  }
+  .card.active {
+    transform: scale(0.94);
+    background: var(--highlight);
+    box-shadow: var(--card-shadow-hover);
+  }
+  .de-main {
+    line-height: 1.1;
+    color: var(--text);
+  }
+  .card.alpha-card .de-main {
+    font-size: 38px;
+  }
+  .card.spell-card .de-main {
+    font-size: 20px;
+    word-break: break-word;
+  }
+  .de-sub {
+    font-size: 22px;
+    color: var(--text-soft);
+    transition: opacity .2s ease, height .2s ease, margin .2s ease;
+  }
+  .de-ipa {
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--gray);
+    transition: opacity .2s ease, height .2s ease, margin .2s ease;
+  }
+  .de-desc {
+    font-size: 13px;
+    color: var(--text-soft);
+  }
+  body.hide-ipa .de-ipa {
+    opacity: 0;
+    height: 0;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .row-label {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    color: var(--text-soft);
+    margin: 14px 0 -4px 2px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .row-label::before {
+    content: "";
+    width: 4px; height: 14px;
+    background: var(--ger-gold);
+    border-radius: 2px;
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--gray);
+    padding: 40px;
+  }
+
+  .voice-tip {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  .voice-tip .tip-box {
+    display: none;
+    margin-top: 4px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: #8a6d3b;
+    background: #fdf6e3;
+    border: 1px solid #f0e3c2;
+    border-radius: 10px;
+  }
+
+  body.write-mode .de-main,
+  body.write-mode .de-sub,
+  body.write-mode .de-ipa,
+  body.write-mode .de-desc { opacity: 0; }
+  body.write-mode .card:hover .de-main,
+  body.write-mode .card:hover .de-sub,
+  body.write-mode .card:hover .de-ipa,
+  body.write-mode .card:hover .de-desc { opacity: 0; }
+
+  @media (max-width: 600px) {
+    .header h1 { font-size: 23px; }
+    .content-wrap { padding: 10px 14px 40px; }
+    .grid { flex-basis: 100% !important; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+    .card.alpha-card .de-main { font-size: 32px; }
+    .card.spell-card .de-main { font-size: 17px; }
+    .de-sub { font-size: 18px; }
+    .controls { padding: 0 14px; }
+    .tab { padding: 8px 12px; font-size: 14px; }
+  }
+
+  .back-btn {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 9999;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid var(--ger-red, #C8102E);
+    border-radius: 20px;
+    color: var(--ger-red, #C8102E);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    transition: background .2s ease, color .2s ease;
+  }
+  .back-btn:hover {
+    background: var(--ger-red, #C8102E);
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+  <button class="back-btn" onclick="history.back()">&larr; Zurück</button>
+  <header class="header">
+    <h1>Deutsch Aussprache lernen!</h1>
+    <p>Deutsch Aussprache meistern, natürlich und präzise sprechen</p>
+  </header>
+
+  <div class="controls">
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="alphabet">字母表</button>
+      <button class="tab" data-tab="vokale">单元音</button>
+      <button class="tab" data-tab="konsonanten">辅音</button>
+      <button class="tab" data-tab="diphthonge">复合元音</button>
+      <button class="tab" data-tab="konsonantenverbindungen">辅音组合</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <label class="switch-wrap">
+        <span>显示IPA</span>
+        <span class="switch">
+          <input type="checkbox" id="ipaToggle" checked />
+          <span class="slider"></span>
+        </span>
+      </label>
+      <label class="switch-wrap">
+        <span>悬停详情</span>
+        <span class="switch">
+          <input type="checkbox" id="infoToggle" checked />
+          <span class="slider"></span>
+        </span>
+      </label>
+      <label class="switch-wrap">
+        <span>默写模式</span>
+        <span class="switch">
+          <input type="checkbox" id="writeToggle" />
+          <span class="slider"></span>
+        </span>
+      </label>
+      <button class="btn-readall" id="btnReadAll">
+        <span class="play-ico"></span>连读
+      </button>
+    </div>
+  </div>
+
+  <div class="voice-tip">
+    <div class="tip-box" id="voiceTip"></div>
+  </div>
+
+  <div class="content-wrap has-info" id="contentWrap">
+    <main class="grid" id="grid"></main>
+    <aside class="info-panel" id="infoPanel">
+      <div class="ip-placeholder">将鼠标悬停在卡片上<br>查看详细信息</div>
+    </aside>
+  </div>
+
+<script>
+/* ============ 德语发音数据 ============ */
+const DATA = {
+  alphabet: [
+    { row: "字母表", items: [
+      { letter: "A", lower: "a", ipa: "[aː]", speak: "A", info: "嘴巴自然张开，发音较长", examples: [["da","那里"],["Tag","天"],["Name","名字"]] },
+      { letter: "B", lower: "b", ipa: "[beː]", speak: "B", info: "嘴唇轻闭再打开，b加e", examples: [["Bahn","轨道"],["Bitte","请求"]] },
+      { letter: "C", lower: "c", ipa: "[tseː]", speak: "C", info: "类似英语ts加e", examples: [["Café","咖啡馆"],["Computer","电脑"]] },
+      { letter: "D", lower: "d", ipa: "[deː]", speak: "D", info: "d加e", examples: [["da","那里"],["denn","那么"]] },
+      { letter: "E", lower: "e", ipa: "[eː]", speak: "E", info: "嘴角微展，发音较长", examples: [["dem","(定冠词)"],["eben","正是"]] },
+      { letter: "F", lower: "f", ipa: "[ɛf]", speak: "F", info: "f加ɛ", examples: [["Fahne","旗帜"],["Fisch","鱼"]] },
+      { letter: "G", lower: "g", ipa: "[ɡeː]", speak: "G", info: "g加e", examples: [["gebe","给"],["gehen","走"]] },
+      { letter: "H", lower: "h", ipa: "[haː]", speak: "H", info: "h加a", examples: [["Haus","房子"],["Hund","狗"]] },
+      { letter: "I", lower: "i", ipa: "[iː]", speak: "I", info: "嘴角展开，发音较长", examples: [["Kino","电影院"],["ir","(否定前缀)"]] },
+      { letter: "J", lower: "j", ipa: "[jɔt]", speak: "J", info: "y加ɔt", examples: [["ja","是"],["Jahr","年"]] },
+      { letter: "K", lower: "k", ipa: "[kaː]", speak: "K", info: "k加a", examples: [["kann","能"],["Kopf","头"]] },
+      { letter: "L", lower: "l", ipa: "[ɛl]", speak: "L", info: "ɛ加l", examples: [["Lohn","工资"],["alt","老"]] },
+      { letter: "M", lower: "m", ipa: "[ɛm]", speak: "M", info: "ɛ加m", examples: [["Mann","男人"],["Oma","奶奶"]] },
+      { letter: "N", lower: "n", ipa: "[ɛn]", speak: "N", info: "ɛ加n", examples: [["nah","近"],["nein","不"]] },
+      { letter: "O", lower: "o", ipa: "[oː]", speak: "O", info: "嘴唇收圆，发音较长", examples: [["so","所以"],["Opa","爷爷"]] },
+      { letter: "P", lower: "p", ipa: "[peː]", speak: "P", info: "p加e", examples: [["Papa","爸爸"],["Post","邮局"]] },
+      { letter: "Q", lower: "q", ipa: "[kuː]", speak: "Q", info: "k加uː", examples: [["Qualität","质量"],["Quiz","测验"]] },
+      { letter: "R", lower: "r", ipa: "[ɛr]", speak: "R", info: "ɛ加r，小舌颤音", examples: [["rot","红"],["reisen","旅行"]] },
+      { letter: "S", lower: "s", ipa: "[ɛs]", speak: "S", info: "ɛ加s", examples: [["ist","是"],["Gas","煤气"]] },
+      { letter: "T", lower: "t", ipa: "[teː]", speak: "T", info: "t加e", examples: [["gut","好"],["Tag","天"]] },
+      { letter: "U", lower: "u", ipa: "[uː]", speak: "U", info: "嘴唇圆撮，发音较长", examples: [["du","你"],["gut","好"]] },
+      { letter: "V", lower: "v", ipa: "[faʊ]", speak: "V", info: "f加aʊ", examples: [["von","来自"],["Vater","父亲"]] },
+      { letter: "W", lower: "w", ipa: "[veː]", speak: "W", info: "v加eː", examples: [["West","西"],["Wasser","水"]] },
+      { letter: "X", lower: "x", ipa: "[ɪks]", speak: "X", info: "ɪ加k加s", examples: [["Taxi","出租车"],["Hexe","女巫"]] },
+      { letter: "Y", lower: "y", ipa: "[ˈʏpsilɔn]", speak: "Y", info: "ʏp加silɔn", examples: [["Typ","类型"],["Yoga","瑜伽"]] },
+      { letter: "Z", lower: "z", ipa: "[tsɛt]", speak: "Z", info: "ts加ɛt", examples: [["zehn","十"],["Zeit","时间"]] },
+      { letter: "Ä", lower: "ä", ipa: "[ɛː]", speak: "Ä", info: "嘴角微展，发长ɛ", examples: [["Häfen","港口"],["Nähe","附近"]] },
+      { letter: "Ö", lower: "ö", ipa: "[øː]", speak: "Ö", info: "嘴唇圆撮发e的音", examples: [["öde","荒凉的"],["Höhe","高度"]] },
+      { letter: "Ü", lower: "ü", ipa: "[yː]", speak: "Ü", info: "嘴唇圆撮发i的音", examples: [["üben","练习"],["Bühne","舞台"]] },
+      { letter: "ß", lower: "ß", ipa: "[ɛsˈtsɛt]", speak: "ß", info: "ɛs加tsɛt", examples: [["Fuß","脚"],["Straße","街道"]] }
+    ]}
+  ],
+  vokale: [
+    { row: "a 组", items: [
+      { spell: "a, aa, ah", ipa: "[aː]", desc: "长音", speak: "da", info: "嘴巴自然张开，发音类似中文啊，发音较长", examples: [["da","那里"],["Tag","天"],["Name","名字"],["nah","近的"]] },
+      { spell: "a", ipa: "[a]", desc: "短音", speak: "dann", info: "嘴巴自然张开，发音短促", examples: [["dann","那么"],["Mappe","书包"]] }
+    ]},
+    { row: "e 组", items: [
+      { spell: "e, ee, eh", ipa: "[eː]", desc: "长音", speak: "eben", info: "嘴角微展，发音类似诶，发音较长", examples: [["eben","正是"],["Tee","茶"],["geht","走"]] },
+      { spell: "e", ipa: "[ɛ]", desc: "短音", speak: "Bett", info: "嘴角微展，发音短促", examples: [["Bett","床"],["Heft","本子"]] },
+      { spell: "e", ipa: "[ə]", desc: "弱读", speak: "bekannt", info: "弱读非重音e，类似英语schwa的[ə]", examples: [["bekannt","熟悉的"],["Gebiet","区域"]] }
+    ]},
+    { row: "i 组", items: [
+      { spell: "i, ie, ih, ieh", ipa: "[iː]", desc: "长音", speak: "Kino", info: "嘴角展开，发音类似衣，发音较长", examples: [["Kino","电影院"],["die","定冠词"],["Lied","歌曲"]] },
+      { spell: "i", ipa: "[ɪ]", desc: "短音", speak: "ist", info: "嘴角微展，发音短促", examples: [["ist","是"],["Bitte","请求"]] }
+    ]},
+    { row: "o 组", items: [
+      { spell: "o, oo, oh", ipa: "[oː]", desc: "长音", speak: "Opa", info: "嘴唇收圆，发音类似哦，发音较长", examples: [["Opa","爷爷"],["ohne","没有"],["Boot","船"]] },
+      { spell: "o", ipa: "[ɔ]", desc: "短音", speak: "oft", info: "嘴唇收圆，发音短促", examples: [["oft","经常"],["Bonn","波恩"]] }
+    ]},
+    { row: "u 组", items: [
+      { spell: "u, uh", ipa: "[uː]", desc: "长音", speak: "du", info: "嘴唇圆撮，发音类似乌，发音较长", examples: [["du","你"],["gut","好"],["Kuh","牛"]] },
+      { spell: "u", ipa: "[ʊ]", desc: "短音", speak: "und", info: "嘴唇圆撮，发音短促", examples: [["und","和"],["Bus","公交车"]] }
+    ]},
+    { row: "变元音 ä ö ü", items: [
+      { spell: "ä, äh", ipa: "[ɛː]", desc: "长音", speak: "Nähe", info: "嘴角微展，发长ɛ音", examples: [["Häfen","港口"],["Nähe","附近"]] },
+      { spell: "ä", ipa: "[ɛ]", desc: "短音", speak: "Hände", info: "嘴角微展，发短ɛ音", examples: [["Hände","手"],["hätte","有(虚拟式)"]] },
+      { spell: "ö, öh", ipa: "[øː]", desc: "长音", speak: "öde", info: "嘴唇圆撮发e的音，类似法语eu", examples: [["öde","荒凉的"],["Höhe","高度"]] },
+      { spell: "ö", ipa: "[œ]", desc: "短音", speak: "können", info: "嘴唇圆撮发短e的音", examples: [["können","能"]] },
+      { spell: "ü, üh", ipa: "[yː]", desc: "长音", speak: "üben", info: "嘴唇圆撮发i的音，类似中文鱼", examples: [["üben","练习"],["Bühne","舞台"]] },
+      { spell: "ü, y", ipa: "[ʏ]", desc: "短音", speak: "fünf", info: "嘴唇圆撮发短i的音", examples: [["fünf","五"],["Typ","类型"]] }
+    ]},
+    { row: "r 化元音", items: [
+      { spell: "er, -er, -ern, -ert", ipa: "[ɐ]", desc: "r元音化", speak: "Mutter", info: "r在词尾元音化为[ɐ]，类似英语schwa+r", examples: [["Mutter","母亲"],["Eltern","父母"]] }
+    ]}
+  ],
+  konsonanten: [
+    { row: "b - p", items: [
+      { spell: "b, bb", ipa: "[b]", desc: "浊辅音", speak: "Bahn", info: "声带振动的b", examples: [["Bahn","轨道"],["Bitte","请求"],["Ebbe","低潮"]] },
+      { spell: "p, pp", ipa: "[p]", desc: "清辅音", speak: "Papa", info: "送气的p", examples: [["Papa","爸爸"],["Post","邮局"]] },
+      { spell: "b (词尾)", ipa: "[p]", desc: "清化", speak: "Bub", info: "词尾浊辅音清化，b读成[p]", examples: [["Bub","男孩"]] }
+    ]},
+    { row: "d - t", items: [
+      { spell: "d, dd", ipa: "[d]", desc: "浊辅音", speak: "da", info: "声带振动的d", examples: [["da","那里"],["denn","那么"]] },
+      { spell: "t, tt, th, dt", ipa: "[t]", desc: "清辅音", speak: "gut", info: "送气的t，th也读t", examples: [["gut","好"],["Thomas","托马斯"]] },
+      { spell: "d (词尾)", ipa: "[t]", desc: "清化", speak: "Bad", info: "词尾浊辅音清化，d读成[t]", examples: [["Bad","浴室"],["Kind","孩子"]] }
+    ]},
+    { row: "g - k", items: [
+      { spell: "g, gg", ipa: "[ɡ]", desc: "浊辅音", speak: "geben", info: "声带振动的g", examples: [["geben","给"],["fliegen","飞"]] },
+      { spell: "k, ck, kk", ipa: "[k]", desc: "清辅音", speak: "kann", info: "送气的k", examples: [["kann","能"],["dick","胖"]] },
+      { spell: "g (词尾)", ipa: "[k]", desc: "清化", speak: "Tag", info: "词尾浊辅音清化，g读成[k]", examples: [["Tag","天"],["magst","喜欢"]] }
+    ]},
+    { row: "m - n", items: [
+      { spell: "m, mm", ipa: "[m]", desc: "鼻音", speak: "Mann", info: "闭唇鼻音m", examples: [["Mann","男人"],["Oma","奶奶"]] },
+      { spell: "n, nn", ipa: "[n]", desc: "鼻音", speak: "nah", info: "舌尖抵上齿龈鼻音n", examples: [["nah","近"],["nein","不"]] }
+    ]},
+    { row: "l - r", items: [
+      { spell: "l, ll", ipa: "[l]", desc: "边音", speak: "Lohn", info: "舌尖抵上齿龈的边音l", examples: [["Lohn","工资"],["alt","老"]] },
+      { spell: "r, rr", ipa: "[r]", desc: "颤音", speak: "rot", info: "小舌颤音r，或舌尖颤音", examples: [["rot","红"],["irre","疯狂的"]] }
+    ]},
+    { row: "f - v - w", items: [
+      { spell: "f, ff, ph", ipa: "[f]", desc: "清擦音", speak: "Fahne", info: "上齿咬下唇的f音", examples: [["Fahne","旗帜"],["Phonetik","语音学"]] },
+      { spell: "v (本土词)", ipa: "[f]", desc: "读f", speak: "von", info: "本土词中v读[f]", examples: [["von","来自"],["Vater","父亲"]] },
+      { spell: "w, v (外来词)", ipa: "[v]", desc: "浊擦音", speak: "Wasser", info: "w读[v]，外来词v也读[v]", examples: [["Wasser","水"],["Vase","花瓶"]] }
+    ]},
+    { row: "s", items: [
+      { spell: "s, ss, ß", ipa: "[s]", desc: "清擦音", speak: "ist", info: "s在词尾/辅音前读清音[s]", examples: [["ist","是"],["Fuß","脚"]] },
+      { spell: "s (元音前)", ipa: "[z]", desc: "浊擦音", speak: "sieben", info: "s在元音前读浊音[z]，类似英语z", examples: [["sieben","七"],["also","所以"]] }
+    ]},
+    { row: "h - j - y", items: [
+      { spell: "h", ipa: "[h]", desc: "清擦音", speak: "Haus", info: "词首h发音，类似英语h", examples: [["Haus","房子"],["hören","听"]] },
+      { spell: "j, y", ipa: "[j]", desc: "半元音", speak: "ja", info: "j读[y]半元音，类似英语y", examples: [["ja","是"],["Jahr","年"]] }
+    ]}
+  ],
+  diphthonge: [
+    { row: "复合元音", items: [
+      { spell: "ei, ai, ey, ay", ipa: "[ai]", desc: "二合元音", speak: "Eis", info: "a平滑过渡到i，类似英语eye", examples: [["Eis","冰淇淋"],["Wein","葡萄酒"],["Mai","五月"]] },
+      { spell: "au", ipa: "[ao]", desc: "二合元音", speak: "auf", info: "a平滑过渡到o，类似英语ow", examples: [["auf","在...上"],["Frau","女士"],["Haus","房子"]] },
+      { spell: "eu, äu", ipa: "[ɔy]", desc: "二合元音", speak: "neu", info: "ɔ平滑过渡到y", examples: [["neu","新的"],["heute","今天"],["Häuser","房子(复数)"]] }
+    ]}
+  ],
+  konsonantenverbindungen: [
+    { row: "辅音组合", items: [
+      { spell: "ch (a/o/u后)", ipa: "[x]", desc: "后舌擦音", speak: "ach", info: "后元音后发[x]，类似汉语h但摩擦更重", examples: [["ach","啊"],["doch","但是"],["auch","也"]] },
+      { spell: "ch (其余后), -ig", ipa: "[ç]", desc: "前舌擦音", speak: "ich", info: "前元音/辅音后发[ç]，类似汉语x(西)的声母", examples: [["Küche","厨房"],["Milch","牛奶"],["wichtig","重要"]] },
+      { spell: "sch", ipa: "[ʃ]", desc: "清擦音", speak: "Fisch", info: "sch读[ʃ]，类似英语sh", examples: [["Fisch","鱼"],["Schule","学校"]] },
+      { spell: "ch (外来词)", ipa: "[ʃ]", desc: "读ʃ", speak: "Chef", info: "外来词中ch读[ʃ]", examples: [["Chef","老板"],["Chance","机会"]] },
+      { spell: "tsch", ipa: "[tʃ]", desc: "塞擦音", speak: "Deutsch", info: "tsch读[tʃ]，类似英语ch", examples: [["Deutsch","德语"],["tschüss","再见"]] },
+      { spell: "st (词首)", ipa: "[ʃt]", desc: "sh+t", speak: "Student", info: "词首st读[ʃt]，类似sh+t", examples: [["Student","学生"],["Stück","块"]] },
+      { spell: "sp (词首)", ipa: "[ʃp]", desc: "sh+p", speak: "Sport", info: "词首sp读[ʃp]，类似sh+p", examples: [["Sport","运动"],["spät","晚"]] },
+      { spell: "pf", ipa: "[pf]", desc: "塞擦音", speak: "Apfel", info: "p和f连读", examples: [["Apfel","苹果"],["Pfund","磅"]] },
+      { spell: "qu", ipa: "[kv]", desc: "k+v", speak: "Qualität", info: "qu读[kv]", examples: [["Qualität","质量"],["Quiz","测验"]] },
+      { spell: "ng", ipa: "[ŋ]", desc: "鼻音", speak: "Englisch", info: "ng读[ŋ]，类似英语ng", examples: [["Englisch","英语"],["Packung","包裹"]] },
+      { spell: "nk", ipa: "[ŋk]", desc: "鼻音+k", speak: "krank", info: "nk读[ŋk]，类似英语nk", examples: [["krank","生病的"],["Schinken","火腿"]] },
+      { spell: "x, cks, gs, chs", ipa: "[ks]", desc: "塞擦音", speak: "Taxi", info: "x读[ks]，chs也读[ks]", examples: [["Taxi","出租车"],["Hexe","女巫"],["sechs","六"]] }
+    ]}
+  ]
+};
+
+let currentTab = "alphabet";
+const grid = document.getElementById("grid");
+
+function render(tab) {
+  grid.innerHTML = "";
+  const groups = DATA[tab];
+  if (!groups) { grid.innerHTML = "<div class='empty'>暂无数据</div>"; return; }
+  const isAlpha = (tab === "alphabet");
+  groups.forEach(group => {
+    const label = document.createElement("div");
+    label.className = "row-label";
+    label.textContent = group.row;
+    grid.appendChild(label);
+    group.items.forEach(item => {
+      const card = document.createElement("div");
+      card.className = isAlpha ? "card alpha-card" : "card spell-card";
+      card._item = item;
+      if (isAlpha) {
+        card.innerHTML =
+          "<div class='de-main'>" + item.letter + "</div>" +
+          "<div class='de-sub'>" + item.lower + "</div>" +
+          "<div class='de-ipa'>" + item.ipa + "</div>";
+      } else {
+        card.innerHTML =
+          "<div class='de-main'>" + item.spell + "</div>" +
+          "<div class='de-ipa'>" + item.ipa + "</div>" +
+          "<div class='de-desc'>" + item.desc + "</div>";
+      }
+      card.addEventListener("click", () => speakCard(card, item.speak || item.letter));
+      card.addEventListener("mouseenter", () => showInfo(card));
+      grid.appendChild(card);
+    });
+  });
+}
+
+/* ============ 信息面板 ============ */
+const infoPanel = document.getElementById("infoPanel");
+const contentWrap = document.getElementById("contentWrap");
+let infoEnabled = true;
+
+function showInfo(card) {
+  if (!infoEnabled) return;
+  if (document.body.classList.contains("write-mode")) return;
+  document.querySelectorAll(".card.hovered").forEach(c => c.classList.remove("hovered"));
+  card.classList.add("hovered");
+
+  const item = card._item;
+  if (!item) return;
+
+  const isAlpha = !!item.letter;
+  const mainText = isAlpha ? item.letter : item.spell;
+
+  let wordsHTML = "";
+  if (item.examples && item.examples.length) {
+    wordsHTML = item.examples.map(w =>
+      "<div class='ip-word' data-word='" + w[0] + "'><span class='w-de'>" + w[0] + "</span><span class='w-cn'>" + w[1] + "</span></div>"
+    ).join("");
+  }
+
+  infoPanel.innerHTML =
+    "<div class='ip-header'>" +
+      "<span class='ip-main'>" + mainText + "</span>" +
+      "<span class='ip-ipa'>" + item.ipa + "</span>" +
+    "</div>" +
+    "<div class='ip-section'><div class='ip-label'>发音说明</div><div class='ip-text'>" + item.info + "</div></div>" +
+    (wordsHTML ? "<div class='ip-section'><div class='ip-label'>例词</div><div class='ip-words'>" + wordsHTML + "</div></div>" : "");
+}
+
+/* ============ 本地音频播放 ============ */
+const voiceTip = document.getElementById("voiceTip");
+let currentAudio = null;
+
+/* speak文本 -> 音频文件名映射 */
+const AUDIO_MAP = {
+  // 字母表
+  "A": "alpha_a", "B": "alpha_b", "C": "alpha_c", "D": "alpha_d",
+  "E": "alpha_e", "F": "alpha_f", "G": "alpha_g", "H": "alpha_h",
+  "I": "alpha_i", "J": "alpha_j", "K": "alpha_k", "L": "alpha_l",
+  "M": "alpha_m", "N": "alpha_n", "O": "alpha_o", "P": "alpha_p",
+  "Q": "alpha_q", "R": "alpha_r", "S": "alpha_s", "T": "alpha_t",
+  "U": "alpha_u", "V": "alpha_v", "W": "alpha_w", "X": "alpha_x",
+  "Y": "alpha_y", "Z": "alpha_z",
+  "Ä": "alpha_ae", "Ö": "alpha_oe", "Ü": "alpha_ue", "ß": "alpha_ss",
+  // 单元音
+  "da": "vok_a_long", "dann": "vok_a_short",
+  "eben": "vok_e_long", "Bett": "vok_e_short", "bekannt": "vok_e_schwa",
+  "Kino": "vok_i_long", "ist": "vok_i_short",
+  "Opa": "vok_o_long", "oft": "vok_o_short",
+  "du": "vok_u_long", "und": "vok_u_short",
+  "Nähe": "vok_ae_long", "Hände": "vok_ae_short",
+  "öde": "vok_oe_long", "können": "vok_oe_short",
+  "üben": "vok_ue_long", "fünf": "vok_ue_short",
+  "Mutter": "vok_er",
+  // 辅音
+  "Bahn": "kon_b", "Papa": "kon_p", "Bub": "kon_b_end",
+  "Bad": "kon_d_end", "gut": "kon_t",
+  "geben": "kon_g", "kann": "kon_k", "Tag": "kon_g_end",
+  "Mann": "kon_m", "nah": "kon_n",
+  "Lohn": "kon_l", "rot": "kon_r",
+  "Fahne": "kon_f", "von": "kon_v_native", "Wasser": "kon_w",
+  "sieben": "kon_s_vowel",
+  "Haus": "kon_h", "ja": "kon_j",
+  // 复合元音
+  "Eis": "diph_ei", "auf": "diph_au", "neu": "diph_eu",
+  // 辅音组合
+  "ach": "comb_ch_x", "ich": "comb_ch_c",
+  "Fisch": "comb_sch", "Chef": "comb_ch_foreign",
+  "Deutsch": "comb_tsch",
+  "Student": "comb_st", "Sport": "comb_sp",
+  "Apfel": "comb_pf", "Qualität": "comb_qu",
+  "Englisch": "comb_ng", "krank": "comb_nk",
+  "Taxi": "comb_x",
+};
+
+function speak(text) {
+  const fileKey = AUDIO_MAP[text] || text;
+  const url = "audio/" + fileKey + ".mp3";
+  if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+  currentAudio = new Audio(url);
+  currentAudio.play().catch(err => {
+    voiceTip.style.display = "block";
+    voiceTip.textContent = "音频加载失败：" + text + " (" + err.message + ")";
+  });
+}
+
+function speakCard(card, text) {
+  card.classList.add("active");
+  setTimeout(() => card.classList.remove("active"), 260);
+  try {
+    speak(text);
+    highlightExampleWord(text);
+  } catch (e) {
+    voiceTip.style.display = "block";
+    voiceTip.textContent = "播放出错：" + e.message;
+  }
+}
+
+/* 高亮正在朗读的例词 */
+function highlightExampleWord(text) {
+  document.querySelectorAll(".ip-word.word-highlight").forEach(w => {
+    w.classList.remove("word-highlight");
+  });
+  const item = document.querySelector(".card.hovered");
+  if (!item) return;
+  const examples = item._item && item._item.examples;
+  if (!examples) return;
+  const match = examples.find(w => w[0] === text);
+  if (!match) return;
+  const wordEl = infoPanel.querySelector(".ip-word[data-word='" + text + "']");
+  if (wordEl) {
+    wordEl.classList.add("word-highlight");
+    setTimeout(() => wordEl.classList.remove("word-highlight"), 600);
+  }
+}
+
+/* ============ 交互绑定 ============ */
+const btnReadAll = document.getElementById("btnReadAll");
+let isReading = false;
+
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentTab = tab.dataset.tab;
+    render(currentTab);
+    if (isReading) stopReadAll();
+  });
+});
+
+document.getElementById("ipaToggle").addEventListener("change", e => {
+  document.body.classList.toggle("hide-ipa", !e.target.checked);
+});
+
+document.getElementById("infoToggle").addEventListener("change", e => {
+  infoEnabled = e.target.checked;
+  if (infoEnabled) {
+    infoPanel.classList.remove("hidden");
+    contentWrap.classList.add("has-info");
+  } else {
+    infoPanel.classList.add("hidden");
+    contentWrap.classList.remove("has-info");
+    document.querySelectorAll(".card.hovered").forEach(c => c.classList.remove("hovered"));
+  }
+});
+
+document.getElementById("writeToggle").addEventListener("change", e => {
+  document.body.classList.toggle("write-mode", e.target.checked);
+  if (e.target.checked) {
+    document.querySelectorAll(".card.hovered").forEach(c => c.classList.remove("hovered"));
+    if (infoPanel) infoPanel.innerHTML = "<div class='ip-placeholder'>默写模式已开启<br>卡片内容已隐藏</div>";
+  }
+});
+
+/* ============ 连读功能 ============ */
+function playOne(text) {
+  return new Promise(resolve => {
+    const fileKey = AUDIO_MAP[text] || text;
+    const audio = new Audio("audio/" + fileKey + ".mp3");
+    audio.addEventListener("ended", resolve);
+    audio.addEventListener("error", resolve);
+    audio.play().catch(resolve);
+  });
+}
+
+async function startReadAll() {
+  if (isReading) return;
+  isReading = true;
+  btnReadAll.classList.add("reading");
+  btnReadAll.innerHTML = "<span class='play-ico'></span>朗读中...";
+  const cards = [...document.querySelectorAll("#grid .card")];
+  for (let i = 0; i < cards.length; i++) {
+    if (!isReading) break;
+    const card = cards[i];
+    card.classList.add("hovered");
+    showInfo(card);
+    const item = card._item;
+    const speakText = item.speak || item.letter;
+    highlightExampleWord(speakText);
+    await playOne(speakText);
+    card.classList.remove("hovered");
+  }
+  isReading = false;
+  btnReadAll.classList.remove("reading");
+  btnReadAll.innerHTML = "<span class='play-ico'></span>连读";
+}
+
+function stopReadAll() {
+  isReading = false;
+  if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+  btnReadAll.classList.remove("reading");
+  btnReadAll.innerHTML = "<span class='play-ico'></span>连读";
+  document.querySelectorAll(".card.hovered").forEach(c => c.classList.remove("hovered"));
+}
+
+btnReadAll.addEventListener("click", () => {
+  if (isReading) stopReadAll(); else startReadAll();
+});
+
+render(currentTab);
+</script>
+</body>
+</html>

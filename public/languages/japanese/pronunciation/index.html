@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>日本語の発音を楽しもう！</title>
+<style>
+  :root {
+    /* 浅薄荷绿主色调 */
+    --bg: #eef7f2;
+    --bg-soft: #f5fbf8;
+    --card: #ffffff;
+    --card-border: #d8ece4;
+    --card-shadow: 0 4px 14px rgba(120, 180, 150, 0.12);
+    --card-shadow-hover: 0 8px 24px rgba(120, 180, 150, 0.22);
+    --mint: #6fc6a4;
+    --mint-light: #e3f3ec;
+    --mint-deep: #3f9b78;   /* 选中Tab深绿 */
+    --mint-dark: #2f7d60;
+    --text: #2c3e35;
+    --text-soft: #6b8378;
+    --gray: #9bb0a7;        /* 未选中标签灰 */
+    --gray-bg: #eef3f0;
+    --highlight: #d6f0e4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Heiti SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 页头 */
+  .header {
+    text-align: center;
+    padding: 36px 20px 18px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--mint-dark);
+    letter-spacing: 1px;
+  }
+  .header p {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--text-soft);
+  }
+
+  /* 控制条 */
+  .controls {
+    max-width: 1080px;
+    margin: 0 auto 14px;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* Tab 标签 */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    background: var(--gray-bg);
+    padding: 6px;
+    border-radius: 14px;
+  }
+  .tab {
+    border: none;
+    background: transparent;
+    color: var(--gray);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 9px 22px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .2s ease;
+    font-family: inherit;
+  }
+  .tab.active {
+    background: var(--mint-deep);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(63, 155, 120, 0.35);
+  }
+  .tab:not(.active):hover { color: var(--mint-dark); }
+
+  /* 片假名开关 */
+  .switch-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-soft);
+    user-select: none;
+  }
+  .switch {
+    position: relative;
+    width: 46px;
+    height: 26px;
+    flex: 0 0 auto;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    inset: 0;
+    background: var(--gray);
+    border-radius: 999px;
+    transition: .25s;
+    cursor: pointer;
+  }
+  .slider::before {
+    content: "";
+    position: absolute;
+    width: 20px; height: 20px;
+    left: 3px; top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: .25s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .switch input:checked + .slider { background: var(--mint-deep); }
+  .switch input:checked + .slider::before { transform: translateX(20px); }
+
+  /* 内容布局：网格 + 右侧信息面板，整体居中 */
+  .content-wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 10px 20px 40px;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .grid {
+    flex: 0 1 720px;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 14px;
+  }
+  .content-wrap:not(.has-info) .grid { flex-basis: 720px; }
+
+  /* 右侧信息面板 */
+  .info-panel {
+    width: 320px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 20px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    box-shadow: var(--card-shadow);
+    padding: 24px 20px;
+    min-height: 380px;
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  .info-panel.hidden {
+    display: none;
+  }
+  .info-panel .ip-placeholder {
+    text-align: center;
+    color: var(--gray);
+    font-size: 14px;
+    padding-top: 120px;
+    line-height: 2;
+  }
+  .info-panel .ip-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .info-panel .ip-hira {
+    font-size: 52px;
+    font-family: "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    color: var(--mint-dark);
+    line-height: 1;
+  }
+  .info-panel .ip-kata {
+    font-size: 28px;
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    color: var(--text-soft);
+  }
+  .info-panel .ip-roma {
+    font-size: 16px;
+    color: var(--gray);
+    margin-left: auto;
+    letter-spacing: 1px;
+  }
+  .info-panel .ip-section { margin-bottom: 16px; }
+  .info-panel .ip-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--mint-deep);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .info-panel .ip-label::before {
+    content: "";
+    width: 3px; height: 12px;
+    background: var(--mint);
+    border-radius: 2px;
+  }
+  .info-panel .ip-text {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .info-panel .ip-words {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .info-panel .ip-word {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .info-panel .ip-word .w-jp {
+    font-family: "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    color: var(--mint-dark);
+    font-weight: 600;
+    min-width: 70px;
+  }
+  .info-panel .ip-word .w-romaji {
+    color: var(--gray);
+    font-size: 11px;
+  }
+  .info-panel .ip-word .w-cn {
+    color: var(--text-soft);
+    margin-left: auto;
+  }
+
+  /* 连读按钮 */
+  .btn-readall {
+    border: none;
+    background: var(--mint-deep);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .2s ease;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-readall:hover { background: var(--mint-dark); }
+  .btn-readall.reading {
+    background: var(--gray);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .btn-readall .play-ico {
+    width: 0; height: 0;
+    border-left: 7px solid #fff;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+
+  /* 卡片悬停高亮 */
+  .card.hovered {
+    border-color: var(--mint);
+    box-shadow: 0 0 0 2px rgba(111, 198, 164, 0.3), var(--card-shadow-hover);
+  }
+
+  /* 卡片 */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    padding: 18px 10px 14px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: var(--card-shadow);
+    transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .card:hover {
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-2px);
+  }
+  .card.active {
+    transform: scale(0.94);
+    background: var(--highlight);
+    box-shadow: var(--card-shadow-hover);
+  }
+  .kana-ja {
+    font-size: 38px;
+    line-height: 1.1;
+    font-family: "Hiragino Sans", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif;
+    color: var(--mint-dark);
+  }
+  .kana-kata {
+    font-size: 22px;
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif;
+    color: var(--text-soft);
+    transition: opacity .2s ease, height .2s ease, margin .2s ease;
+  }
+  .kana-romaji {
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--gray);
+    text-transform: lowercase;
+  }
+  body.hide-kata .kana-kata {
+    opacity: 0;
+    height: 0;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  /* 行标题（浊音/拗音分组） */
+  .row-label {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    color: var(--text-soft);
+    margin: 14px 0 -4px 2px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .row-label::before {
+    content: "";
+    width: 4px; height: 14px;
+    background: var(--mint);
+    border-radius: 2px;
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--gray);
+    padding: 40px;
+  }
+
+  /* 语音状态提示 */
+  .voice-tip {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  .voice-tip .tip-box {
+    display: none;
+    margin-top: 4px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: #8a6d3b;
+    background: #fdf6e3;
+    border: 1px solid #f0e3c2;
+    border-radius: 10px;
+  }
+
+  /* 默写模式：隐藏卡片内容 */
+  body.write-mode .kana-ja,
+  body.write-mode .kana-kata,
+  body.write-mode .kana-romaji { opacity: 0; }
+  body.write-mode .card:hover .kana-ja,
+  body.write-mode .card:hover .kana-kata,
+  body.write-mode .card:hover .kana-romaji { opacity: 0; }
+
+  @media (max-width: 600px) {
+    .header h1 { font-size: 23px; }
+    .content-wrap { padding: 10px 14px 40px; }
+    .grid { flex-basis: 100% !important; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+    .kana-ja { font-size: 32px; }
+    .controls { padding: 0 14px; }
+    .tab { padding: 8px 16px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+  <header class="header">
+    <h1>日本語の発音を楽しもう！</h1>
+    <p>自然な日本語の発音を学び、正確に表現しよう</p>
+  </header>
+
+  <div class="controls">
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="seion">清音</button>
+      <button class="tab" data-tab="dakuon">浊音</button>
+      <button class="tab" data-tab="youon">拗音</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <label class="switch-wrap">
+        <span>显示片假名</span>
+        <span class="switch">
+          <input type="checkbox" id="kataToggle" checked />
+          <span class="slider"></span>
+        </span>
+      </label>
+      <label class="switch-wrap">
+        <span>悬停详情</span>
+        <span class="switch">
+          <input type="checkbox" id="infoToggle" checked />
+          <span class="slider"></span>
+        </span>
+      </label>
+      <label class="switch-wrap">
+        <span>默写模式</span>
+        <span class="switch">
+          <input type="checkbox" id="writeToggle" />
+          <span class="slider"></span>
+        </span>
+      </label>
+      <button class="btn-readall" id="btnReadAll">
+        <span class="play-ico"></span>连读
+      </button>
+    </div>
+  </div>
+
+  <div class="voice-tip">
+    <div class="tip-box" id="voiceTip"></div>
+  </div>
+
+  <div class="content-wrap has-info" id="contentWrap">
+    <main class="grid" id="grid"></main>
+    <aside class="info-panel" id="infoPanel">
+      <div class="ip-placeholder">将鼠标悬停在假名卡片上<br>查看详细信息</div>
+    </aside>
+  </div>
+
+<script>
+/* ============ 返回按钮 ============ */
+(function() {
+  var btn = document.createElement('a');
+  btn.href = '/languages/';
+  btn.innerHTML = '&larr; 戻る';
+  btn.style.cssText = 'position:fixed;top:1rem;left:1rem;z-index:9999;display:inline-flex;align-items:center;gap:0.35rem;padding:0.5rem 1rem;background:#fff;border:1.5px solid #3f9b78;border-radius:8px;color:#3f9b78;text-decoration:none;font-size:0.9rem;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:all 0.2s ease;cursor:pointer;font-family:sans-serif;';
+  document.body.appendChild(btn);
+})();
+
+/* ============ 五十音数据 ============ */
+const DATA = {
+  seion: [
+    { row: "あ行", items: [
+      ["あ","ア","a"],["い","イ","i"],["う","ウ","u"],["え","エ","e"],["お","オ","o"]
+    ]},
+    { row: "か行", items: [
+      ["か","カ","ka"],["き","キ","ki"],["く","ク","ku"],["け","ケ","ke"],["こ","コ","ko"]
+    ]},
+    { row: "さ行", items: [
+      ["さ","サ","sa"],["し","シ","shi"],["す","ス","su"],["せ","セ","se"],["そ","ソ","so"]
+    ]},
+    { row: "た行", items: [
+      ["た","タ","ta"],["ち","チ","chi"],["つ","ツ","tsu"],["て","テ","te"],["と","ト","to"]
+    ]},
+    { row: "な行", items: [
+      ["な","ナ","na"],["に","ニ","ni"],["ぬ","ヌ","nu"],["ね","ネ","ne"],["の","ノ","no"]
+    ]},
+    { row: "は行", items: [
+      ["は","ハ","ha"],["ひ","ヒ","hi"],["ふ","フ","fu"],["へ","ヘ","he"],["ほ","ホ","ho"]
+    ]},
+    { row: "ま行", items: [
+      ["ま","マ","ma"],["み","ミ","mi"],["む","ム","mu"],["め","メ","me"],["も","モ","mo"]
+    ]},
+    { row: "や行", items: [
+      ["や","ヤ","ya"],["ゆ","ユ","yu"],["よ","ヨ","yo"]
+    ]},
+    { row: "ら行", items: [
+      ["ら","ラ","ra"],["り","リ","ri"],["る","ル","ru"],["れ","レ","re"],["ろ","ロ","ro"]
+    ]},
+    { row: "わ行", items: [
+      ["わ","ワ","wa"],["を","ヲ","wo"],["ん","ン","n"]
+    ]},
+  ],
+  dakuon: [
+    { row: "が行", items: [
+      ["が","ガ","ga"],["ぎ","ギ","gi"],["ぐ","グ","gu"],["げ","ゲ","ge"],["ご","ゴ","go"]
+    ]},
+    { row: "ざ行", items: [
+      ["ざ","ザ","za"],["じ","ジ","ji"],["ず","ズ","zu"],["ぜ","ゼ","ze"],["ぞ","ゾ","zo"]
+    ]},
+    { row: "だ行", items: [
+      ["だ","ダ","da"],["ぢ","ヂ","ji"],["づ","ヅ","zu"],["で","デ","de"],["ど","ド","do"]
+    ]},
+    { row: "ば行", items: [
+      ["ば","バ","ba"],["び","ビ","bi"],["ぶ","ブ","bu"],["べ","ベ","be"],["ぼ","ボ","bo"]
+    ]},
+    { row: "ぱ行（半浊音）", items: [
+      ["ぱ","パ","pa"],["ぴ","ピ","pi"],["ぷ","プ","pu"],["ぺ","ペ","pe"],["ぽ","ポ","po"]
+    ]},
+  ],
+  youon: [
+    { row: "か行拗音", items: [
+      ["きゃ","キャ","kya"],["きゅ","キュ","kyu"],["きょ","キョ","kyo"]
+    ]},
+    { row: "さ行拗音", items: [
+      ["しゃ","シャ","sha"],["しゅ","シュ","shu"],["しょ","ショ","sho"]
+    ]},
+    { row: "た行拗音", items: [
+      ["ちゃ","チャ","cha"],["ちゅ","チュ","chu"],["ちょ","チョ","cho"]
+    ]},
+    { row: "な行拗音", items: [
+      ["にゃ","ニャ","nya"],["にゅ","ニュ","nyu"],["にょ","ニョ","nyo"]
+    ]},
+    { row: "は行拗音", items: [
+      ["ひゃ","ヒャ","hya"],["ひゅ","ヒュ","hyu"],["ひょ","ヒョ","hyo"]
+    ]},
+    { row: "ま行拗音", items: [
+      ["みゃ","ミャ","mya"],["みゅ","ミュ","myu"],["みょ","ミョ","myo"]
+    ]},
+    { row: "り行拗音", items: [
+      ["りゃ","リャ","rya"],["りゅ","リュ","ryu"],["りょ","リョ","ryo"]
+    ]},
+    { row: "が行拗音", items: [
+      ["ぎゃ","ギャ","gya"],["ぎゅ","ギュ","gyu"],["ぎょ","ギョ","gyo"]
+    ]},
+    { row: "ざ行拗音", items: [
+      ["じゃ","ジャ","ja"],["じゅ","ジュ","ju"],["じょ","ジョ","jo"]
+    ]},
+    { row: "ば行拗音", items: [
+      ["びゃ","ビャ","bya"],["びゅ","ビュ","byu"],["びょ","ビョ","byo"]
+    ]},
+    { row: "ぱ行拗音", items: [
+      ["ぴゃ","ピャ","pya"],["ぴゅ","ピュ","pyu"],["ぴょ","ピョ","pyo"]
+    ]},
+  ]
+};
+
+/* ============ 假名详细信息（汉字起源/口诀/发音/示例词） ============ */
+const KANA_INFO = {
+  "あ": {origin:"安 的草书；片假名ア取自阿的左耳旁",mnemonic:"啊(a)一声，安心的安",pronounce:"嘴巴自然张开，发音类似中文啊",words:[["あい","ai","爱"],["あさ","asa","早晨"]]},
+  "い": {origin:"以 的草书；イ取自伊单人旁",mnemonic:"衣(i)，以的草书",pronounce:"嘴角微展，发音类似衣",words:[["いぬ","inu","狗"],["いち","ichi","一"]]},
+  "う": {origin:"宇 的草书；ウ取自宇宝盖头",mnemonic:"乌(u)，宇的宝盖头",pronounce:"嘴不用撅太圆，介于u和yu之间",words:[["うみ","umi","海"],["うえ","ue","上面"]]},
+  "え": {origin:"恵 的草书；エ取自恵上部",mnemonic:"诶(e)，惠的上半部",pronounce:"嘴巴微扁，发音类似诶",words:[["えき","eki","车站"],["え","e","画"]]},
+  "お": {origin:"於 的草书；オ取自於左上角",mnemonic:"喔(o)，於的左上角",pronounce:"嘴唇收圆，发音类似哦",words:[["おちゃ","ocha","茶"],["おと","oto","声音"]]},
+  "か": {origin:"加 的草书；カ取自加左边力字旁",mnemonic:"加的力字旁，ka",pronounce:"k加a，词首送气，词中不送气",words:[["かさ","kasa","伞"],["かぜ","kaze","风"]]},
+  "き": {origin:"幾 的草书；キ取自幾的上部",mnemonic:"幾的上部，ki",pronounce:"k加i，类似key",words:[["きつつき","kitsutsuki","啄木鸟"],["きかい","kikai","机械"]]},
+  "く": {origin:"久 的草书；ク取自久右侧笔画",mnemonic:"久的右侧，ku",pronounce:"k加u，类似库",words:[["くも","kumo","云"],["くち","kuchi","嘴"]]},
+  "け": {origin:"計 的草书；ケ取自計右边部件",mnemonic:"計的右边，ke",pronounce:"k加e，类似凯",words:[["けむり","kemuri","烟"],["けさ","kesa","今天早上"]]},
+  "こ": {origin:"古 的草书；コ取自古上半部分",mnemonic:"古的上半，ko",pronounce:"k加o，类似扣",words:[["こころ","kokoro","心"],["こめ","kome","米"]]},
+  "さ": {origin:"左 的草书；サ取自左上部",mnemonic:"左的上部，sa",pronounce:"s加a，类似萨",words:[["さかな","sakana","鱼"],["さくら","sakura","樱花"]]},
+  "し": {origin:"之 的草书；シ取自之变形",mnemonic:"之的变形，shi",pronounce:"发音xi，不是si！类似西",words:[["しま","shima","岛"],["しお","shio","盐"]]},
+  "す": {origin:"須 的草书；ス取自須偏旁",mnemonic:"须的偏旁，su",pronounce:"发音介于si和su之间",words:[["すし","sushi","寿司"],["すい","sui","水"]]},
+  "せ": {origin:"世 的草书；セ取自世简化",mnemonic:"世的简化，se",pronounce:"s加e，类似塞",words:[["せかい","sekai","世界"],["せんせい","sensei","老师"]]},
+  "そ": {origin:"曽 的草书；ソ取自曽上半部分",mnemonic:"曾的上半，so",pronounce:"s加o，类似嗦",words:[["そら","sora","天空"],["そと","soto","外面"]]},
+  "た": {origin:"太 的草书；タ取自太的下半部分",mnemonic:"太的下半，ta",pronounce:"t加a，词中不送气接近da",words:[["たまご","tamago","鸡蛋"],["たべる","taberu","吃"]]},
+  "ち": {origin:"知 的草书；チ取自知右边",mnemonic:"知的右边，chi",pronounce:"发音qi，不是ti！类似七",words:[["ちち","chichi","爸爸"],["ちから","chikara","力量"]]},
+  "つ": {origin:"川 的草书；ツ取自川变形",mnemonic:"川的变形，tsu",pronounce:"发音ci，不是tu！类似次",words:[["つき","tsuki","月亮"],["つみ","tsumi","罪"]]},
+  "て": {origin:"天 的草书；テ取自天上部",mnemonic:"天的上部，te",pronounce:"t加e，类似忒",words:[["て","te","手"],["てんき","tenki","天气"]]},
+  "と": {origin:"徒 的草书；ト取自徒右边土偏旁",mnemonic:"徒的右边，to",pronounce:"t加o，类似托",words:[["とり","tori","鸟"],["ともだち","tomodachi","朋友"]]},
+  "な": {origin:"奈 的草书；ナ取自奈左上部件",mnemonic:"奈的左上，na",pronounce:"n加a，类似那",words:[["なつ","natsu","夏天"],["なまえ","namae","名字"]]},
+  "に": {origin:"仁 的草书；ニ取自仁二横",mnemonic:"仁的二横，ni(尼)",pronounce:"n加i，类似尼",words:[["にほん","nihon","日本"],["にわ","niwa","庭院"]]},
+  "ぬ": {origin:"奴 的草书；ヌ取自奴右边又字旁",mnemonic:"奴的又旁，nu",pronounce:"n加u，类似奴",words:[["ぬい","nui","缝"],["ぬるい","nurui","温的"]]},
+  "ね": {origin:"禰 的草书；ネ取自示字旁",mnemonic:"示字旁，ne(内)",pronounce:"n加e，类似内",words:[["ねこ","neko","猫"],["ねる","neru","睡觉"]]},
+  "の": {origin:"乃 的草书；ノ取自乃第一撇",mnemonic:"乃的第一撇，no",pronounce:"n加o，类似诺",words:[["の","no","的"],["のはら","nohara","原野"]]},
+  "は": {origin:"波 的草书；ハ取自波上边两个点",mnemonic:"波上两点，ha",pronounce:"h加a；单词中作助词读wa！",words:[["はな","hana","花"],["はし","hashi","桥"]]},
+  "ひ": {origin:"比 的草书；ヒ取自比右边",mnemonic:"比的右边，hi(嘿)",pronounce:"h加i，类似嘿",words:[["ひかり","hikari","光"],["ひる","hiru","白天"]]},
+  "ふ": {origin:"不 的草书；フ取自不第一笔",mnemonic:"不的第一笔，fu",pronounce:"轻吹嘴唇，不要读成夫",words:[["ふね","fune","船"],["ふじさん","fujisan","富士山"]]},
+  "へ": {origin:"部 的草书；ヘ取自部右侧",mnemonic:"部的右侧，he",pronounce:"h加e；助词时发音不变he",words:[["へや","heya","房间"],["へい","hei","墙"]]},
+  "ほ": {origin:"保 的草书；ホ取自保上边部分",mnemonic:"保的上部，ho",pronounce:"h加o，类似霍",words:[["ほし","hoshi","星星"],["ほん","hon","书"]]},
+  "ま": {origin:"末 的草书；マ取自末上半部分",mnemonic:"末的上半，ma",pronounce:"m加a，类似妈",words:[["まち","machi","城镇"],["まど","mado","窗户"]]},
+  "み": {origin:"美 的草书；ミ取自美三横",mnemonic:"美的三横，mi(米)",pronounce:"m加i，类似米",words:[["みみ","mimi","耳朵"],["みず","mizu","水"]]},
+  "む": {origin:"武 的草书；ム取自武上部",mnemonic:"武的上部，mu",pronounce:"m加u，类似姆",words:[["むし","mushi","虫"],["むり","muri","无理"]]},
+  "め": {origin:"女 的草书；メ取自女简化",mnemonic:"女的简化，me(麦)",pronounce:"m加e，类似麦",words:[["め","me","眼"],["めがね","megane","眼镜"]]},
+  "も": {origin:"毛 的草书；モ取自毛上半部分",mnemonic:"毛的上半，mo",pronounce:"m加o，类似摸",words:[["もり","mori","森林"],["もし","moshi","如果"]]},
+  "や": {origin:"也 的草书；ヤ取自也简化",mnemonic:"也的简化，ya(呀)",pronounce:"y加a，类似呀",words:[["やま","yama","山"],["やさい","yasai","蔬菜"]]},
+  "ゆ": {origin:"由 的草书；ユ取自由上部",mnemonic:"由的上部，yu(优)",pronounce:"y加u，类似优",words:[["ゆき","yuki","雪"],["ゆめ","yume","梦"]]},
+  "よ": {origin:"与 的草书；ヨ取自与简化",mnemonic:"与的简化，yo(哟)",pronounce:"y加o，类似哟",words:[["よる","yoru","夜晚"],["よい","yoi","好"]]},
+  "ら": {origin:"良 的草书；ラ取自良左上",mnemonic:"良的左上，读作la",pronounce:"日语r读轻弹舌尖l音！",words:[["らいらく","rairaku","快乐"],["らくだ","rakuda","骆驼"]]},
+  "り": {origin:"利 的草书；リ取自利右边刂",mnemonic:"利的右刀，读作li",pronounce:"r加i，轻弹舌尖，读li",words:[["りんご","ringo","苹果"],["りょうり","ryouri","料理"]]},
+  "る": {origin:"流 的草书；ル取自流右侧",mnemonic:"流的右侧，读作lu",pronounce:"r加u，轻弹舌尖，读lu",words:[["るす","rusu","不在"],["るい","rui","类"]]},
+  "れ": {origin:"礼 的草书；レ取自礼偏旁",mnemonic:"礼的偏旁，读作le",pronounce:"r加e，轻弹舌尖，读le",words:[["れきし","rekishi","历史"],["れい","rei","例子"]]},
+  "ろ": {origin:"呂 的草书；ロ取自呂方框",mnemonic:"吕的方框，读作lo",pronounce:"r加o，轻弹舌尖，读lo",words:[["ろうそく","rousoku","蜡烛"],["ろく","roku","六"]]},
+  "わ": {origin:"和 的草书；ワ取自和上部",mnemonic:"和的上部，wa(哇)",pronounce:"w加a，类似哇",words:[["わたし","watashi","我"],["わかめ","wakame","海带"]]},
+  "を": {origin:"遠 的草书；ヲ取自遠偏旁",mnemonic:"远的偏旁，仅助词用",pronounce:"仅助词使用，实际读o",words:[["を","wo","助词-宾格标记"]]},
+  "ん": {origin:"拨音，唯一不能单独发音的假名",mnemonic:"鼻音n，依附前面音节",pronounce:"鼻子出气，不能单独成音",words:[["ほん","hon","书"],["にほん","nihon","日本"]]},
+  "が": {origin:"か行加浊点，声带振动",mnemonic:"清音ka加两点变ga",pronounce:"g加a，声带振动",words:[["がっこう","gakkou","学校"],["がく","gaku","学"]]},
+  "ぎ": {origin:"き加浊点",mnemonic:"清音ki加两点变gi",pronounce:"g加i，声带振动",words:[["ぎん","gin","银"],["ぎじゅつ","gijutsu","技术"]]},
+  "ぐ": {origin:"く加浊点",mnemonic:"清音ku加两点变gu",pronounce:"g加u，声带振动",words:[["ぐあい","guai","状况"],["ぐん","gun","群"]]},
+  "げ": {origin:"け加浊点",mnemonic:"清音ke加两点变ge",pronounce:"g加e，声带振动",words:[["げんき","genki","精力"],["げつ","getsu","月"]]},
+  "ご": {origin:"こ加浊点",mnemonic:"清音ko加两点变go",pronounce:"g加o，声带振动",words:[["ごはん","gohan","米饭"],["ごま","goma","芝麻"]]},
+  "ざ": {origin:"さ行加浊点",mnemonic:"清音sa加两点变za",pronounce:"z加a，声带振动",words:[["ざっし","zasshi","杂志"],["ざん","zan","残"]]},
+  "じ": {origin:"し加浊点",mnemonic:"清音shi加两点变ji",pronounce:"发音ji，等于ぢ，声带振动",words:[["じかん","jikan","时间"],["じぶん","jibun","自己"]]},
+  "ず": {origin:"す加浊点",mnemonic:"清音su加两点变zu",pronounce:"发音zu，等于づ，声带振动",words:[["ずつき","zutsuki","头痛"],["ずいぶん","zuibun","颇"]]},
+  "ぜ": {origin:"せ加浊点",mnemonic:"清音se加两点变ze",pronounce:"z加e，声带振动",words:[["ぜんぶ","zenbu","全部"],["ぜひ","zehi","务必"]]},
+  "ぞ": {origin:"そ加浊点",mnemonic:"清音so加两点变zo",pronounce:"z加o，声带振动",words:[["ぞう","zou","大象"],["ぞん","zon","存"]]},
+  "だ": {origin:"た行加浊点",mnemonic:"清音ta加两点变da",pronounce:"d加a，声带振动",words:[["だいがく","daigaku","大学"],["だれ","dare","谁"]]},
+  "ぢ": {origin:"ち加浊点，现代极少用",mnemonic:"清音chi加两点变ji",pronounce:"发音等于じ(ji)，现代极少用",words:[["ぢぎょう","jigyou","事业(少用)"]]},
+  "づ": {origin:"つ加浊点，现代极少用",mnemonic:"清音tsu加两点变zu",pronounce:"发音等于ず(zu)，现代极少用",words:[["づくり","dukuri","制作(少用)"]]},
+  "で": {origin:"て加浊点",mnemonic:"清音te加两点变de",pronounce:"d加e，声带振动",words:[["でんわ","denwa","电话"],["でぐち","deguchi","出口"]]},
+  "ど": {origin:"と加浊点",mnemonic:"清音to加两点变do",pronounce:"d加o，声带振动",words:[["どろ","doro","泥"],["どこ","doko","哪里"]]},
+  "ば": {origin:"は行加浊点",mnemonic:"清音ha加两点变ba",pronounce:"b加a，声带振动",words:[["ばら","bara","玫瑰"],["ばけつ","baketsu","桶"]]},
+  "び": {origin:"ひ加浊点",mnemonic:"清音hi加两点变bi",pronounce:"b加i，声带振动",words:[["びょういん","byouin","医院"],["びん","bin","瓶"]]},
+  "ぶ": {origin:"ふ加浊点",mnemonic:"清音fu加两点变bu",pronounce:"b加u，声带振动",words:[["ぶん","bun","文"],["ぶか","buka","部下"]]},
+  "べ": {origin:"へ加浊点",mnemonic:"清音he加两点变be",pronounce:"b加e，声带振动",words:[["べんきょう","benkyou","学习"],["べんり","benri","便利"]]},
+  "ぼ": {origin:"ほ加浊点",mnemonic:"清音ho加两点变bo",pronounce:"b加o，声带振动",words:[["ぼうし","boushi","帽子"],["ぼく","boku","我(男)"]]},
+  "ぱ": {origin:"は行加半浊点",mnemonic:"清音ha加小圈变pa",pronounce:"p加a，送气爆破",words:[["パン","pan","面包"],["パンダ","panda","熊猫"]]},
+  "ぴ": {origin:"ひ加半浊点",mnemonic:"清音hi加小圈变pi",pronounce:"p加i，送气爆破",words:[["ピアノ","piano","钢琴"],["ピンク","pinku","粉色"]]},
+  "ぷ": {origin:"ふ加半浊点",mnemonic:"清音fu加小圈变pu",pronounce:"p加u，送气爆破",words:[["プラス","purasu","加"],["プール","puuru","游泳池"]]},
+  "ぺ": {origin:"へ加半浊点",mnemonic:"清音he加小圈变pe",pronounce:"p加e，送气爆破",words:[["ペン","pen","笔"],["ページ","peeji","页"]]},
+  "ぽ": {origin:"ほ加半浊点",mnemonic:"清音ho加小圈变po",pronounce:"p加o，送气爆破",words:[["ポスト","posuto","邮筒"],["ポケット","poketto","口袋"]]},
+  "きゃ": {origin:"き加小字や，单拍音",mnemonic:"ki加ya等于kya，一拍",pronounce:"不要读成ki和ya两个音节",words:[["きゃく","kyaku","客人"],["キャンセル","kyanseru","取消"]]},
+  "きゅ": {origin:"き加小字ゆ，单拍音",mnemonic:"ki加yu等于kyu，一拍",pronounce:"不要读成ki和yu两个音节",words:[["きゅう","kyuu","九"],["きゅうり","kyuuri","黄瓜"]]},
+  "きょ": {origin:"き加小字よ，单拍音",mnemonic:"ki加yo等于kyo，一拍",pronounce:"不要读成ki和yo两个音节",words:[["きょう","kyou","今天"],["きょねん","kyonen","去年"]]},
+  "しゃ": {origin:"し加小字や，单拍音",mnemonic:"shi加ya等于sha，一拍",pronounce:"不要读成shi和ya两个音节",words:[["しゃしん","shashin","照片"],["しゃかい","shakai","社会"]]},
+  "しゅ": {origin:"し加小字ゆ，单拍音",mnemonic:"shi加yu等于shu，一拍",pronounce:"不要读成shi和yu两个音节",words:[["しゅぎ","shugi","主义"],["しゅみ","shumi","兴趣"]]},
+  "しょ": {origin:"し加小字よ，单拍音",mnemonic:"shi加yo等于sho，一拍",pronounce:"不要读成shi和yo两个音节",words:[["しょり","shori","处理"],["しょうせつ","shousetsu","小说"]]},
+  "ちゃ": {origin:"ち加小字や，单拍音",mnemonic:"chi加ya等于cha，一拍",pronounce:"不要读成chi和ya两个音节",words:[["ちゃ","cha","茶"],["ちゃいろ","chairo","茶色"]]},
+  "ちゅ": {origin:"ち加小字ゆ，单拍音",mnemonic:"chi加yu等于chu，一拍",pronounce:"不要读成chi和yu两个音节",words:[["ちゅう","chuu","中"],["ちゅうい","chuui","注意"]]},
+  "ちょ": {origin:"ち加小字よ，单拍音",mnemonic:"chi加yo等于cho，一拍",pronounce:"不要读成chi和yo两个音节",words:[["ちょきん","chokin","储蓄"],["ちょう","chou","丁"]]},
+  "にゃ": {origin:"に加小字や，单拍音",mnemonic:"ni加ya等于nya，一拍",pronounce:"不要读成ni和ya两个音节",words:[["にゃん","nyan","喵"]]},
+  "にゅ": {origin:"に加小字ゆ，单拍音",mnemonic:"ni加yu等于nyu，一拍",pronounce:"不要读成ni和yu两个音节",words:[["にゅういん","nyuuin","住院"]]},
+  "にょ": {origin:"に加小字よ，单拍音",mnemonic:"ni加yo等于nyo，一拍",pronounce:"不要读成ni和yo两个音节",words:[["にょぼ","nyobo","妻子(古)"]]},
+  "ひゃ": {origin:"ひ加小字や，单拍音",mnemonic:"hi加ya等于hya，一拍",pronounce:"不要读成hi和ya两个音节",words:[["ひゃく","hyaku","百"]]},
+  "ひゅ": {origin:"ひ加小字ゆ，单拍音",mnemonic:"hi加yu等于hyu，一拍",pronounce:"不要读成hi和yu两个音节",words:[["ひゅう","hyuu","呼啸声"]]},
+  "ひょ": {origin:"ひ加小字よ，单拍音",mnemonic:"hi加yo等于hyo，一拍",pronounce:"不要读成hi和yo两个音节",words:[["ひょう","hyou","冰雹"],["ひょういん","hyouin","票据"]]},
+  "みゃ": {origin:"み加小字や，单拍音",mnemonic:"mi加ya等于mya，一拍",pronounce:"不要读成mi和ya两个音节",words:[["みゃく","myaku","脉"]]},
+  "みゅ": {origin:"み加小字ゆ，单拍音",mnemonic:"mi加yu等于myu，一拍",pronounce:"不要读成mi和yu两个音节",words:[["みゅう","myuu","谬"]]},
+  "みょ": {origin:"み加小字よ，单拍音",mnemonic:"mi加yo等于myo，一拍",pronounce:"不要读成mi和yo两个音节",words:[["みょうじ","myouji","名字"]]},
+  "りゃ": {origin:"り加小字や，单拍音",mnemonic:"ri加ya等于rya，一拍",pronounce:"不要读成ri和ya两个音节",words:[["りゃく","ryaku","略"]]},
+  "りゅ": {origin:"り加小字ゆ，单拍音",mnemonic:"ri加yu等于ryu，一拍",pronounce:"不要读成ri和yu两个音节",words:[["りゅう","ryuu","龙"],["りゅうがく","ryuugaku","留学"]]},
+  "りょ": {origin:"り加小字よ，单拍音",mnemonic:"ri加yo等于ryo，一拍",pronounce:"不要读成ri和yo两个音节",words:[["りょこう","ryokou","旅行"],["りょうり","ryouri","料理"]]},
+  "ぎゃ": {origin:"ぎ加小字や，单拍音",mnemonic:"gi加ya等于gya，一拍",pronounce:"浊音版きゃ，声带振动",words:[["ぎゃく","gyaku","逆"]]},
+  "ぎゅ": {origin:"ぎ加小字ゆ，单拍音",mnemonic:"gi加yu等于gyu，一拍",pronounce:"浊音版きゅ，声带振动",words:[["ぎゅうにく","gyuuniku","牛肉"]]},
+  "ぎょ": {origin:"ぎ加小字よ，单拍音",mnemonic:"gi加yo等于gyo，一拍",pronounce:"浊音版きょ，声带振动",words:[["ぎょう","gyou","业"],["ぎょざ","gyoza","饺子"]]},
+  "じゃ": {origin:"じ加小字や，单拍音",mnemonic:"ji加ya等于ja，一拍",pronounce:"浊音版しゃ，声带振动",words:[["じゃま","jama","妨碍"]]},
+  "じゅ": {origin:"じ加小字ゆ，单拍音",mnemonic:"ji加yu等于ju，一拍",pronounce:"浊音版しゅ，声带振动",words:[["じゅう","juu","十"],["じゅぎょう","jugyou","课"]]},
+  "じょ": {origin:"じ加小字よ，单拍音",mnemonic:"ji加yo等于jo，一拍",pronounce:"浊音版しょ，声带振动",words:[["じょせい","josei","女性"],["じょゆう","joyuu","女演员"]]},
+  "びゃ": {origin:"び加小字や，单拍音",mnemonic:"bi加ya等于bya，一拍",pronounce:"浊音版ひゃ，声带振动",words:[["びゃくやく","byakuyaku","白药"]]},
+  "びゅ": {origin:"び加小字ゆ，单拍音",mnemonic:"bi加yu等于byu，一拍",pronounce:"浊音版ひゅ，声带振动",words:[["びゅう","byuu","谬(浊)"]]},
+  "びょ": {origin:"び加小字よ，单拍音",mnemonic:"bi加yo等于byo，一拍",pronounce:"浊音版ひょ，声带振动",words:[["びょういん","byouin","医院"],["びょうき","byouki","病"]]},
+  "ぴゃ": {origin:"ぴ加小字や，单拍音",mnemonic:"pi加ya等于pya，一拍",pronounce:"半浊音版ひゃ，送气",words:[["ぴゃく","pyaku","百(少用)"]]},
+  "ぴゅ": {origin:"ぴ加小字ゆ，单拍音",mnemonic:"pi加yu等于pyu，一拍",pronounce:"半浊音版ひゅ，送气",words:[["ぴゅう","pyuu","咻"]]},
+  "ぴょ": {origin:"ぴ加小字よ，单拍音",mnemonic:"pi加yo等于pyo，一拍",pronounce:"半浊音版ひょ，送气",words:[["ぴょういん","pyouin","票据(浊)"]]},
+};
+
+let currentTab = "seion";
+
+function render(tab) {
+  grid.innerHTML = "";
+  const groups = DATA[tab];
+  if (!groups) { grid.innerHTML = '<div class="empty">暂无数据</div>'; return; }
+  groups.forEach(group => {
+    const label = document.createElement("div");
+    label.className = "row-label";
+    label.textContent = group.row;
+    grid.appendChild(label);
+    group.items.forEach(([hira, kata, roma]) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.dataset.text = hira;
+      card.dataset.roma = roma;
+      card.innerHTML =
+        '<div class="kana-ja">' + hira + '</div>' +
+        '<div class="kana-kata">' + kata + '</div>' +
+        '<div class="kana-romaji">' + roma + '</div>';
+      card.addEventListener("click", () => speak(card, roma));
+      card.addEventListener("mouseenter", () => showInfo(card, hira));
+      grid.appendChild(card);
+    });
+  });
+}
+
+/* ============ 信息面板 ============ */
+const infoPanel = document.getElementById("infoPanel");
+const contentWrap = document.getElementById("contentWrap");
+let infoEnabled = true;
+
+function showInfo(card, hira) {
+  if (!infoEnabled) return;
+  if (document.body.classList.contains("write-mode")) return;
+  document.querySelectorAll(".card.hovered").forEach(c => c.classList.remove("hovered"));
+  card.classList.add("hovered");
+
+  const info = KANA_INFO[hira];
+  if (!info) return;
+  const roma = card.dataset.roma;
+  const kata = card.querySelector(".kana-kata") ? card.querySelector(".kana-kata").textContent : "";
+
+  let wordsHTML = "";
+  if (info.words && info.words.length) {
+    wordsHTML = info.words.map(w =>
+      '<div class="ip-word"><span class="w-jp">' + w[0] + '</span><span class="w-romaji">' + w[1] + '</span><span class="w-cn">' + w[2] + '</span></div>'
+    ).join("");
+  }
+
+  infoPanel.innerHTML =
+    '<div class="ip-header">' +
+      '<span class="ip-hira">' + hira + '</span>' +
+      '<span class="ip-kata">' + kata + '</span>' +
+      '<span class="ip-roma">' + roma + '</span>' +
+    '</div>' +
+    '<div class="ip-section"><div class="ip-label">汉字起源</div><div class="ip-text">' + info.origin + '</div></div>' +
+    '<div class="ip-section"><div class="ip-label">记忆口诀</div><div class="ip-text">' + info.mnemonic + '</div></div>' +
+    '<div class="ip-section"><div class="ip-label">发音要点</div><div class="ip-text">' + info.pronounce + '</div></div>' +
+    (wordsHTML ? '<div class="ip-section"><div class="ip-label">示例单词</div><div class="ip-words">' + wordsHTML + '</div></div>' : '');
+}
+
+/* ============ 语音播放（本地音频文件） ============ */
+const voiceTip = document.getElementById("voiceTip");
+let currentAudio = null;
+
+function speak(card, roma) {
+  // 点击反馈
+  card.classList.add("active");
+  setTimeout(() => card.classList.remove("active"), 260);
+
+  const url = "audio/" + roma + ".mp3";
+  try {
+    if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+    currentAudio = new Audio(url);
+    currentAudio.play().catch(err => {
+      voiceTip.style.display = "block";
+      voiceTip.textContent = "音频加载失败：" + roma + " (" + err.message + ")";
+    });
+  } catch (e) {
+    voiceTip.style.display = "block";
+    voiceTip.textContent = "播放出错：" + e.message;
+  }
+}
+
+/* ============ 交互绑定 ============ */
+const btnReadAll = document.getElementById("btnReadAll");
+let isReading = false;
+
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentTab = tab.dataset.tab;
+    render(currentTab);
+    if (isReading) stopReadAll();
+  });
+});
+
+document.getElementById("kataToggle").addEventListener("change", e => {
+  document.body.classList.toggle("hide-kata", !e.target.checked);
+});
+
+document.getElementById("infoToggle").addEventListener("change", e => {
+  infoEnabled = e.target.checked;
+  if (infoEnabled) {
+    infoPanel.classList.remove("hidden");
+    contentWrap.classList.add("has-info");
+  } else {
+    infoPanel.classList.add("hidden");
+    contentWrap.classList.remove("has-info");
+    document.querySelectorAll(".card.hovered").forEach(c => c.classList.remove("hovered"));
+  }
+});
+
+document.getElementById("writeToggle").addEventListener("change", e => {
+  document.body.classList.toggle("write-mode", e.target.checked);
+  if (e.target.checked) {
+    document.querySelectorAll(".card.hovered").forEach(c => c.classList.remove("hovered"));
+    if (infoPanel) infoPanel.innerHTML = '<div class="ip-placeholder">默写模式已开启<br>卡片内容已隐藏</div>';
+  }
+});
+
+/* ============ 连读功能 ============ */
+
+function playOne(roma) {
+  return new Promise(resolve => {
+    const audio = new Audio("audio/" + roma + ".mp3");
+    audio.addEventListener("ended", resolve);
+    audio.addEventListener("error", resolve);
+    audio.play().catch(resolve);
+  });
+}
+
+async function startReadAll() {
+  if (isReading) return;
+  isReading = true;
+  btnReadAll.classList.add("reading");
+  btnReadAll.innerHTML = '<span class="play-ico"></span>朗读中...';
+  const cards = [...document.querySelectorAll("#grid .card")];
+  for (let i = 0; i < cards.length; i++) {
+    if (!isReading) break;
+    const card = cards[i];
+    card.classList.add("hovered");
+    showInfo(card, card.dataset.text);
+    await playOne(card.dataset.roma);
+    card.classList.remove("hovered");
+  }
+  isReading = false;
+  btnReadAll.classList.remove("reading");
+  btnReadAll.innerHTML = '<span class="play-ico"></span>连读';
+}
+
+function stopReadAll() {
+  isReading = false;
+  if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+  btnReadAll.classList.remove("reading");
+  btnReadAll.innerHTML = '<span class="play-ico"></span>连读';
+  document.querySelectorAll(".card.hovered").forEach(c => c.classList.remove("hovered"));
+}
+
+btnReadAll.addEventListener("click", () => {
+  if (isReading) stopReadAll(); else startReadAll();
+});
+
+render(currentTab);
+</script>
+</body>
+</html>

@@ -1,0 +1,2086 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Deutsche Grammatik · 德语语法学习</title>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --text: #1C1C1C;
+    --text-soft: #6b6b6b;
+    --border: #DDD;
+    --border-light: #EEE;
+    --ger-red: #C8102E;
+    --ger-gold: #E8B400;
+    --gray: #999;
+    --gray-bg: #F5F5F5;
+    --warn: #B04040;
+    --warn-bg: #FFF5F5;
+    --warn-border: #E5D0D0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Inter", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+
+  .flag-stripe { display: flex; height: 3px; width: 100%; }
+  .stripe-black { flex: 1; background: var(--text); }
+  .stripe-red { flex: 1; background: var(--ger-red); }
+  .stripe-gold { flex: 1; background: var(--ger-gold); }
+
+  .header { text-align: center; padding: 28px 20px 10px; }
+  .header h1 { font-size: 26px; font-weight: 700; color: var(--text); }
+  .header h1 .de-accent { color: var(--ger-red); }
+  .header p { margin-top: 6px; font-size: 13px; color: var(--text-soft); }
+
+  .view { display: none; animation: fade .25s ease; }
+  .view.active { display: block; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  /* 总览页 */
+  .overview-wrap { max-width: 960px; margin: 0 auto; padding: 20px 20px 60px; }
+  .level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .level-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 24px 16px 20px; text-align: center;
+    transition: border-color .2s ease, box-shadow .2s ease;
+    position: relative; overflow: hidden;
+  }
+  .level-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--text); transition: background .2s ease;
+  }
+  .level-card.available::before { background: var(--ger-gold); }
+  .level-card.preview::before { background: var(--ger-gold); }
+  .level-card.available:hover, .level-card.preview:hover {
+    border-color: var(--ger-red);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+  .level-card.available:hover::before, .level-card.preview:hover::before { background: var(--ger-red); }
+  .level-card.locked { opacity: .5; cursor: not-allowed; }
+  .level-card .lv-badge {
+    display: inline-block; font-size: 12px; font-weight: 700; color: var(--text);
+    border: 1.5px solid var(--ger-gold); padding: 3px 14px; border-radius: 6px; margin-bottom: 12px;
+  }
+  .level-card.locked .lv-badge { border-color: var(--gray); color: var(--gray); }
+  .level-card.available .lv-badge { color: var(--ger-red); border-color: var(--ger-red); }
+  .level-card .lv-name { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .level-card .lv-desc { font-size: 12px; color: var(--text-soft); }
+  .level-card .lv-count { margin-top: 8px; font-size: 12px; color: var(--text-soft); }
+  .level-card .lv-soon {
+    margin-top: 6px; font-size: 11px; color: var(--text-soft);
+    background: var(--gray-bg); padding: 2px 8px; border-radius: 4px; display: inline-block;
+  }
+
+  /* 目录页 */
+  .catalog-wrap { max-width: 960px; margin: 0 auto; padding: 10px 20px 60px; }
+  .breadcrumb { font-size: 13px; color: var(--text-soft); margin-bottom: 14px; }
+  .breadcrumb a { color: var(--ger-red); text-decoration: none; cursor: pointer; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb .sep { color: var(--gray); margin: 0 6px; }
+
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .filter-tag {
+    border: 1px solid var(--border); background: #fff; color: var(--text-soft);
+    font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 6px;
+    cursor: pointer; transition: all .15s ease; font-family: inherit;
+  }
+  .filter-tag:hover { border-color: var(--ger-red); color: var(--ger-red); }
+  .filter-tag.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+  .grammar-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .grammar-item {
+    background: #fff; border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; cursor: pointer;
+    transition: border-color .15s ease;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .grammar-item:hover { border-color: var(--ger-red); }
+  .grammar-item .gi-num {
+    flex-shrink: 0; font-size: 13px; color: var(--text-soft); font-weight: 600; min-width: 24px;
+  }
+  .grammar-item .gi-body { flex: 1; min-width: 0; }
+  .grammar-item .gi-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .grammar-item .gi-name .cat-pill {
+    font-size: 11px; font-weight: 500; color: var(--text-soft);
+    border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+  }
+  .grammar-item .gi-meaning {
+    font-size: 12px; color: var(--text-soft); margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* 详情页 — 单栏，表格为核心 */
+  .detail-wrap { max-width: 880px; margin: 0 auto; padding: 10px 20px 60px; }
+
+  .detail-title { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--ger-red); }
+  .detail-title .dt-name { font-size: 22px; font-weight: 700; color: var(--text); }
+  .detail-title .dt-level { font-size: 13px; color: var(--text-soft); margin-top: 4px; }
+
+  .detail-desc { font-size: 14px; line-height: 1.7; color: var(--text); margin-bottom: 20px; }
+
+  .detail-section { margin-bottom: 24px; }
+  .section-label {
+    font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 8px;
+    padding-bottom: 4px; border-bottom: 1px solid var(--border-light);
+    padding-left: 10px; border-left: 3px solid var(--ger-red);
+  }
+
+  /* 核心表格样式 */
+  .table-wrap { overflow-x: auto; margin-bottom: 16px; }
+  .table-caption { font-size: 13px; font-weight: 600; color: var(--text-soft); margin-bottom: 6px; }
+  .grammar-table {
+    border-collapse: collapse; width: 100%; font-size: 14px;
+  }
+  .grammar-table th, .grammar-table td {
+    border: 1px solid var(--border); padding: 8px 12px; text-align: left;
+  }
+  .grammar-table thead th {
+    background: var(--text); font-weight: 600; color: #fff;
+    border-bottom: 2px solid var(--ger-gold);
+  }
+  .grammar-table th.row-header {
+    background: #FDF8EC; font-weight: 600; color: var(--text); white-space: nowrap;
+    border-left: 2px solid var(--ger-gold);
+  }
+  .grammar-table td { color: var(--text); }
+  .grammar-table tr:hover td { background: #FDF8EC; }
+
+  .pitfall-box {
+    background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 6px;
+    padding: 10px 14px; font-size: 13px; line-height: 1.7; color: var(--warn);
+  }
+  .pitfall-box::before { content: "\26A0  "; font-weight: 700; }
+
+  .similar-list { display: flex; flex-direction: column; gap: 6px; }
+  .similar-row {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 8px 12px; border: 1px solid var(--border-light); border-radius: 6px;
+  }
+  .similar-row .sr-name { flex-shrink: 0; font-size: 14px; font-weight: 600; color: var(--text); min-width: 80px; }
+  .similar-row .sr-desc { font-size: 13px; color: var(--text-soft); line-height: 1.5; }
+
+  .example-list { display: flex; flex-direction: column; gap: 8px; }
+  .example-item { padding: 8px 12px; border-left: 2px solid var(--ger-red); background: #FAFAFA; }
+  .example-de { font-size: 15px; line-height: 1.7; color: var(--text); margin-bottom: 2px; }
+  .example-cn { font-size: 13px; color: var(--text-soft); }
+
+  .detail-nav { display: flex; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-light); }
+  .detail-nav button {
+    flex: 1; border: 1px solid var(--border); background: #fff; color: var(--text-soft);
+    font-size: 13px; padding: 8px 12px; border-radius: 6px;
+    cursor: pointer; transition: all .15s ease; font-family: inherit;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .detail-nav button:hover:not(:disabled) { border-color: var(--ger-red); color: var(--ger-red); }
+  .detail-nav button:disabled { opacity: .35; cursor: not-allowed; }
+  .detail-nav button .nav-label { font-size: 11px; }
+  .detail-nav button .nav-name { font-size: 13px; font-weight: 600; }
+
+  .back-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    border: 1px solid var(--border); background: #fff; color: var(--text-soft);
+    font-size: 13px; padding: 6px 14px; border-radius: 6px;
+    cursor: pointer; transition: all .15s ease; font-family: inherit; margin-bottom: 16px;
+  }
+  .back-btn:hover { border-color: var(--ger-red); color: var(--ger-red); }
+
+  .empty { text-align: center; color: var(--gray); padding: 60px 20px; font-size: 14px; }
+
+  /* 主题大纲列表 */
+  .topics-wrap { max-width: 880px; margin: 0 auto; padding: 10px 20px 60px; }
+  .topics-intro {
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px 16px; margin-bottom: 20px; font-size: 13px; color: var(--text-soft); line-height: 1.7;
+  }
+  .topics-group { margin-bottom: 24px; }
+  .topics-group-title {
+    font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px;
+    padding-bottom: 4px; border-bottom: 1px solid var(--border-light);
+    padding-left: 10px; border-left: 3px solid var(--ger-gold);
+  }
+  .topics-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px; }
+  .topic-item {
+    border: 1px solid var(--border-light); border-radius: 6px;
+    padding: 10px 14px; font-size: 13px; color: var(--text);
+  }
+  .topic-item .ti-dot { color: var(--text-soft); margin-right: 6px; }
+
+  @media (max-width: 760px) {
+    .header h1 { font-size: 22px; }
+    .level-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+    .topics-items { grid-template-columns: 1fr; }
+    .detail-wrap { max-width: 100%; }
+    .grammar-table { font-size: 13px; }
+    .grammar-table th, .grammar-table td { padding: 6px 8px; }
+  }
+
+  .back-fixed {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 9999;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid var(--ger-red, #C8102E);
+    border-radius: 20px;
+    color: var(--ger-red, #C8102E);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    transition: background .2s ease, color .2s ease;
+  }
+  .back-fixed:hover {
+    background: var(--ger-red, #C8102E);
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+  <button class="back-fixed" onclick="smartBack()">&larr; Zurück</button>
+  <div class="flag-stripe">
+    <div class="stripe-black"></div>
+    <div class="stripe-red"></div>
+    <div class="stripe-gold"></div>
+  </div>
+  <header class="header">
+    <h1><span class="de-accent">Deutsche</span> Grammatik</h1>
+    <p>德语语法学习 · A1 — C1</p>
+  </header>
+
+  <section class="view active" id="viewOverview">
+    <div class="overview-wrap">
+      <div class="level-grid" id="levelGrid"></div>
+    </div>
+  </section>
+
+  <section class="view" id="viewCatalog">
+    <div class="catalog-wrap">
+      <div class="breadcrumb">
+        <a id="bcHome1">Startseite</a><span class="sep">/</span><span id="bcLevel1">A1 语法</span>
+      </div>
+      <div class="filter-bar" id="filterBar"></div>
+      <div class="grammar-list" id="grammarList"></div>
+    </div>
+  </section>
+
+  <section class="view" id="viewDetail">
+    <div class="detail-wrap" id="detailMain"></div>
+  </section>
+
+  <section class="view" id="viewTopics">
+    <div class="topics-wrap">
+      <div class="breadcrumb">
+        <a id="bcHome2">Startseite</a><span class="sep">/</span><span id="bcLevel2">B1 语法概览</span>
+      </div>
+      <div id="topicsContent"></div>
+    </div>
+  </section>
+
+<script>
+/* ================================================================
+   语法数据 — A1 + A2
+================================================================ */
+var GRAMMAR_DATA = [
+  /* ========== A1 · 时态 ========== */
+  {
+    id: "a1-01", level: "A1", category: "时态",
+    name: "现在时 Präsens — 规则动词变位",
+    meaning: "德语现在时表示当前的事实、状态、习惯，也可表示将来。规则动词按人称加固定词尾 -e/-st/-t/-en/-t/-en。",
+    connection: {
+      "ich": "动词词干 + -e", "du": "动词词干 + -st",
+      "er/sie/es": "动词词干 + -t", "wir/Sie/sie": "动词词干 + -en",
+      "ihr": "动词词干 + -t", "例 machen": "mache / machst / macht / machen / macht / machen"
+    },
+    scene: "日常对话、陈述事实、表达习惯",
+    pitfalls: "词干以 -d/-t/-chn/-fn 结尾时，du 加 -est，er 加 -et（如 arbeitest / arbeitet）。动词 sein 和 haben 是强变化，不遵循此规则。",
+    tables: [
+      {
+        caption: "规则动词现在时变位",
+        headers: ["", "machen", "lernen", "kaufen"],
+        rows: [
+          ["ich", "mache", "lerne", "kaufe"],
+          ["du", "machst", "lernst", "kaufst"],
+          ["er/sie/es", "macht", "lernt", "kauft"],
+          ["wir", "machen", "lernen", "kaufen"],
+          ["ihr", "macht", "lernt", "kauft"],
+          ["sie/Sie", "machen", "lernen", "kaufen"]
+        ]
+      }
+    ],
+    similar: [{ name: "现在时 — 强变化动词", desc: "sein/haben 及高频不规则变位" }],
+    examples: [
+      { de: "Ich lerne Deutsch.", cn: "我在学德语。" },
+      { de: "Wir arbeiten in München.", cn: "我们在慕尼黑工作。" },
+      { de: "Machst du Hausaufgaben?", cn: "你在做作业吗？" }
+    ]
+  },
+  {
+    id: "a1-02", level: "A1", category: "时态",
+    name: "现在时 Präsens — 强变化动词",
+    meaning: "高频强变化动词在现在时不遵循规则词尾模式，需单独记忆。最重要的两个助动词 sein 和 haben 均为强变化。",
+    connection: {
+      "sein": "bin / bist / ist / sind / seid / sind",
+      "haben": "habe / hast / hat / haben / habt / haben",
+      "werden": "werde / wirst / wird / werden / werdet / werden",
+      "其他高频": "gehen→geht, kommen→kommt, lesen→liest, sprechen→spricht"
+    },
+    scene: "日常必备，sein/haben 是完成时和被动语态的助动词",
+    pitfalls: "sein 的第二人称单数是 bist（不是 bist），注意 ich→bin 不是 ich→seie。werden 的 du 形是 wirst（不规则）。",
+    tables: [
+      {
+        caption: "sein / haben / werden 现在时变位",
+        headers: ["", "sein", "haben", "werden"],
+        rows: [
+          ["ich", "bin", "habe", "werde"],
+          ["du", "bist", "hast", "wirst"],
+          ["er/sie/es", "ist", "hat", "wird"],
+          ["wir", "sind", "haben", "werden"],
+          ["ihr", "seid", "habt", "werdet"],
+          ["sie/Sie", "sind", "haben", "werden"]
+        ]
+      }
+    ],
+    similar: [{ name: "现在时 — 规则动词变位", desc: "按固定词尾 -e/-st/-t/-en/-t/-en 变位" }],
+    examples: [
+      { de: "Ich bin Student.", cn: "我是学生。" },
+      { de: "Hast du Zeit?", cn: "你有时间吗？" },
+      { de: "Er wird Lehrer.", cn: "他会成为老师。" }
+    ]
+  },
+  {
+    id: "a1-03", level: "A1", category: "时态",
+    name: "过去时 Präteritum — sein/haben",
+    meaning: "sein 和 haben 的过去时形式是德语最基础的不规则过去时，常用于书面叙述和口语。",
+    connection: {
+      "sein 过去": "war / warst / war / waren / wart / waren",
+      "haben 过去": "hatte / hattest / hatte / hatten / hattet / hatten",
+      "用途": "书面叙述过去事件；口语中 sein/haben 常用过去时代替完成时",
+      "对比": "其他动词口语多用 Perfekt，书面多用 Präteritum"
+    },
+    scene: "讲故事、写日记、口语中 sein/haben 的过去表达",
+    pitfalls: "口语中 sein/haben 的过去时和完成时都可使用（war/bin gewesen），但其他动词口语优先用 Perfekt。",
+    tables: [
+      {
+        caption: "sein / haben 过去时变位",
+        headers: ["", "sein (war)", "haben (hatte)"],
+        rows: [
+          ["ich", "war", "hatte"],
+          ["du", "warst", "hattest"],
+          ["er/sie/es", "war", "hatte"],
+          ["wir", "waren", "hatten"],
+          ["ihr", "wart", "hattet"],
+          ["sie/Sie", "waren", "hatten"]
+        ]
+      }
+    ],
+    similar: [{ name: "现在完成时 Perfekt", desc: "口语中最常用的过去时态" }],
+    examples: [
+      { de: "Ich war gestern in Berlin.", cn: "我昨天在柏林。" },
+      { de: "Wir hatten keine Zeit.", cn: "我们没有时间。" },
+      { de: "Warst du krank?", cn: "你生病了吗？" }
+    ]
+  },
+  {
+    id: "a1-04", level: "A1", category: "时态",
+    name: "现在完成时 Perfekt",
+    meaning: "德语口语中最常用的过去时态，由助动词 haben/sein 的现在时 + 过去分词构成。",
+    connection: {
+      "构成": "haben/sein (现在时) + ... + 过去分词",
+      "规则过去分词": "ge- + 动词词干 + -t (machen → gemacht)",
+      "不规则过去分词": "ge- + 变换词干 + -en (gehen → gegangen)",
+      "sein 动词": "表示位移/状态变化的动词用 sein (gehen, kommen, fahren, aufstehen)"
+    },
+    scene: "口语中表达过去发生的事",
+    pitfalls: "可分离动词的分词前缀 ge- 插在分离前缀和词干之间 (aufstehen → aufgestanden)。以 -ieren 结尾的动词不加 ge- (studieren → studiert)。",
+    tables: [
+      {
+        caption: "Perfekt 过去分词构成规律",
+        headers: ["类型", "助动词", "过去分词构成", "例"],
+        rows: [
+          ["规则动词", "haben", "ge- + 词干 + -t", "machen → gemacht"],
+          ["不规则动词", "haben", "ge- + 变换词干 + -en", "gehen → gegangen"],
+          ["可分离动词", "haben", "ge- 插在前缀与词干之间", "aufstehen → aufgestanden"],
+          ["-ieren 动词", "haben", "无 ge-，词干 + -t", "studieren → studiert"],
+          ["sein 动词", "sein", "ge- + 变换词干 + -en", "fahren → gefahren"]
+        ]
+      }
+    ],
+    similar: [{ name: "过去时 Präteritum", desc: "书面语常用，sein/haben 口语也用" }],
+    examples: [
+      { de: "Ich habe Deutsch gelernt.", cn: "我学了德语。" },
+      { de: "Er ist nach Berlin gefahren.", cn: "他去了柏林。" },
+      { de: "Was hast du gestern gemacht?", cn: "你昨天做了什么？" }
+    ]
+  },
+  {
+    id: "a1-05", level: "A1", category: "时态",
+    name: "将来时 Futur I",
+    meaning: "由 werden + 动词原形构成，表示将来要发生的事或对现在的推测。",
+    connection: {
+      "构成": "werden (现在时) + ... + 动词原形",
+      "werden 变位": "werde / wirst / wird / werden / werdet / werden",
+      "语序": "werden 在第二位，原形动词在句末（框型结构）",
+      "推测用法": "Er wird krank sein. = 他可能病了。"
+    },
+    scene: "表达计划、意图、对现在的推测",
+    pitfalls: "德语现在时也可表将来（Ich gehe morgen），Futur I 更强调意图或推测。werden 的 du 形是不规则的 wirst。",
+    tables: [
+      {
+        caption: "werden 现在时变位",
+        headers: ["", "werden"],
+        rows: [
+          ["ich", "werde"],
+          ["du", "wirst"],
+          ["er/sie/es", "wird"],
+          ["wir", "werden"],
+          ["ihr", "werdet"],
+          ["sie/Sie", "werden"]
+        ]
+      }
+    ],
+    similar: [{ name: "现在时 Präsens", desc: "也可用现在时表将来，需加时间状语" }],
+    examples: [
+      { de: "Ich werde morgen kommen.", cn: "我明天会来。" },
+      { de: "Wir werden Deutsch lernen.", cn: "我们将学德语。" },
+      { de: "Es wird regnen.", cn: "可能会下雨。" }
+    ]
+  },
+
+  /* ========== A1 · 格与冠词 ========== */
+  {
+    id: "a1-06", level: "A1", category: "格与冠词",
+    name: "名词三性 der/die/das",
+    meaning: "德语名词分阳性 (der)、阴性 (die)、中性 (das) 三种语法性别，复数统一用 die。名词性别需与名词一起记忆。",
+    connection: {
+      "阳性 der": "der Mann, der Tisch, der Monat",
+      "阴性 die": "die Frau, die Sonne, die Sprache",
+      "中性 das": "das Kind, das Buch, das Mädchen",
+      "复数 die": "die Männer, die Frauen, die Kinder"
+    },
+    scene: "学习任何德语名词时必须同时记忆其性别",
+    pitfalls: "名词性别往往不遵循自然性别（das Mädchen 中性，der Löffel 阳性）。以 -chen/-lein 结尾一律中性。",
+    tables: [
+      {
+        caption: "名词三性与定冠词",
+        headers: ["性别", "定冠词", "例词"],
+        rows: [
+          ["阳性", "der", "der Mann, der Tisch, der Monat"],
+          ["阴性", "die", "die Frau, die Sonne, die Sprache"],
+          ["中性", "das", "das Kind, das Buch, das Mädchen"],
+          ["复数", "die", "die Männer, die Frauen, die Kinder"]
+        ]
+      }
+    ],
+    similar: [{ name: "定冠词变格", desc: "der/die/das 在各格的变化" }],
+    examples: [
+      { de: "Der Tisch ist neu.", cn: "这张桌子是新的。" },
+      { de: "Die Sonne scheint.", cn: "太阳照耀。" },
+      { de: "Das Buch ist interessant.", cn: "这本书很有趣。" }
+    ]
+  },
+  {
+    id: "a1-07", level: "A1", category: "格与冠词",
+    name: "第一格 Nominativ",
+    meaning: "第一格是名词的基本形式，用作句子的主语和 sein/werden/bleiben 的表语。",
+    connection: {
+      "作主语": "Der Mann liest ein Buch.",
+      "作表语": "Er ist der Lehrer.",
+      "提问": "Wer? (谁) / Was? (什么)",
+      "冠词": "der / die / das / die (复数)"
+    },
+    scene: "句子的主语、sein 等系动词后的表语",
+    pitfalls: "第一格是最基本的形式，也是字典中列出的形式。注意区分主语（第一格）和宾语（第四格）。",
+    tables: [
+      {
+        caption: "第一格定冠词",
+        headers: ["", "m.", "f.", "n.", "Pl."],
+        rows: [
+          ["Nominativ", "der", "die", "das", "die"]
+        ]
+      }
+    ],
+    similar: [{ name: "第四格 Akkusativ", desc: "用作动词宾语和某些介词后" }],
+    examples: [
+      { de: "Die Studentin lernt fleißig.", cn: "这个女学生学习很努力。" },
+      { de: "Er ist ein guter Lehrer.", cn: "他是一位好老师。" }
+    ]
+  },
+  {
+    id: "a1-08", level: "A1", category: "格与冠词",
+    name: "第四格 Akkusativ",
+    meaning: "第四格用作及物动词的直接宾语，以及某些介词（durch, für, gegen, ohne, um）后的宾语。",
+    connection: {
+      "阳性": "der → den (ein → einen)",
+      "阴性": "die → die (不变)",
+      "中性": "das → das (不变)",
+      "复数": "die → die (不变)"
+    },
+    scene: "及物动词宾语、第四格介词后",
+    pitfalls: "只有阳性单数在第一格到第四格发生变化 (der→den, ein→einen)，阴性和中性不变。这是 A1 最容易出错的地方。",
+    tables: [
+      {
+        caption: "第一格与第四格对比（仅阳性变化 der→den）",
+        headers: ["", "m.", "f.", "n.", "Pl."],
+        rows: [
+          ["Nominativ", "der", "die", "das", "die"],
+          ["Akkusativ", "den", "die", "das", "die"]
+        ]
+      }
+    ],
+    similar: [{ name: "第一格 Nominativ", desc: "主语和表语用第一格" }],
+    examples: [
+      { de: "Ich sehe den Mann.", cn: "我看到那个男人。" },
+      { de: "Er kauft ein Buch.", cn: "他买了一本书。" },
+      { de: "Wir brauchen die Zeit.", cn: "我们需要时间。" }
+    ]
+  },
+  {
+    id: "a1-09", level: "A1", category: "格与冠词",
+    name: "定冠词变格（第一格和第四格）",
+    meaning: "定冠词 der/die/das 表示特指，在第一格和第四格的变化是 A1 基础。",
+    connection: {
+      "": "第一格(Nom)  第四格(Akk)",
+      "阳性 m": "der         den",
+      "阴性 f": "die         die",
+      "中性 n": "das         das",
+      "复数 Pl": "die         die"
+    },
+    scene: "特指已知的人或物",
+    pitfalls: "只有阳性单数从 der 变为 den。记忆口诀：阳性四格 der→den，其余不变。",
+    tables: [
+      {
+        caption: "定冠词第一格和第四格变格",
+        headers: ["", "m.", "f.", "n.", "Pl."],
+        rows: [
+          ["Nominativ", "der", "die", "das", "die"],
+          ["Akkusativ", "den", "die", "das", "die"]
+        ]
+      }
+    ],
+    similar: [{ name: "不定冠词变格", desc: "ein/eine/ein 的变化规律相同" }],
+    examples: [
+      { de: "Der Lehrer erklärt die Aufgabe.", cn: "老师讲解这道题。" },
+      { de: "Ich kenne den Studenten.", cn: "我认识这个学生。" }
+    ]
+  },
+  {
+    id: "a1-10", level: "A1", category: "格与冠词",
+    name: "不定冠词与 kein 变格",
+    meaning: "不定冠词 ein/eine/ein 表示泛指，kein 是其否定形式，变格与 ein 完全一致。",
+    connection: {
+      "": "第一格  第四格",
+      "阳性 m": "ein     einen",
+      "阴性 f": "eine    eine",
+      "中性 n": "ein     ein",
+      "kein 变格": "keinen / keine / kein (同 ein)"
+    },
+    scene: "首次提及、泛指某类事物中的一个",
+    pitfalls: "kein 否定带不定冠词的名词 (Ich habe kein Auto)，nicht 否定带定冠词的名词 (Ich kenne den Mann nicht)。",
+    tables: [
+      {
+        caption: "不定冠词 ein 变格",
+        headers: ["", "m.", "f.", "n."],
+        rows: [
+          ["Nominativ", "ein", "eine", "ein"],
+          ["Akkusativ", "einen", "eine", "ein"]
+        ]
+      },
+      {
+        caption: "否定冠词 kein 变格（同 ein）",
+        headers: ["", "m.", "f.", "n."],
+        rows: [
+          ["Nominativ", "kein", "keine", "kein"],
+          ["Akkusativ", "keinen", "keine", "kein"]
+        ]
+      }
+    ],
+    similar: [{ name: "kein 与 nicht 的区分", desc: "否定冠词 vs 否定副词的使用条件" }],
+    examples: [
+      { de: "Ich habe einen Bruder.", cn: "我有一个兄弟。" },
+      { de: "Ich habe kein Auto.", cn: "我没有车。" },
+      { de: "Kaufst du einen Apfel?", cn: "你要买一个苹果吗？" }
+    ]
+  },
+  {
+    id: "a1-11", level: "A1", category: "格与冠词",
+    name: "零冠词用法",
+    meaning: "某些情况下名词前不用任何冠词，称为零冠词（Nullartikel），是新求精教材重点。",
+    connection: {
+      "不可数名词": "Ich trinke Wasser. (水)",
+      "抽象概念": "Zeit ist Geld. (时间)",
+      "地名/国名": "Ich wohne in Berlin. / Ich fahre nach China.",
+      "职业/身份": "Er ist Lehrer. (作表语)"
+    },
+    scene: "泛指物质、抽象概念、地名、职业身份",
+    pitfalls: "不是所有国名都零冠词（die Schweiz, die USA, der Iran 有冠词）。职业作表语时零冠词，但作主语时可有冠词。",
+    similar: [{ name: "不定冠词", desc: "泛指'一个'，用于可数名词单数" }],
+    examples: [
+      { de: "Ich trinke Kaffee.", cn: "我喝咖啡。" },
+      { de: "Sie ist Ärztin.", cn: "她是医生。" },
+      { de: "Wir fahren nach Japan.", cn: "我们去日本。" }
+    ]
+  },
+  {
+    id: "a1-12", level: "A1", category: "格与冠词",
+    name: "弱变化名词入门",
+    meaning: "部分阳性名词在第二、三、四格单数时词尾加 -n 或 -en，称为弱变化名词 (n-Deklination)。",
+    connection: {
+      "特征": "阳性名词，非第一格加 -(e)n",
+      "第四格": "der Student → den Studenten",
+      "常见弱变化": "Student, Herr, Junge, Name, Kollege, Löwe",
+      "例外": "der Herr → den Herrn (加 -n 而非 -en)"
+    },
+    scene: "日常高频名词，A1 先认识常见弱变化名词",
+    pitfalls: "弱变化名词只在单数非第一格加 -n/-en，复数不额外变化。das Herz（心）也有特殊变化。",
+    tables: [
+      {
+        caption: "常见弱变化名词（非第一格加 -n/-en）",
+        headers: ["", "第一格", "第四格", "第三格"],
+        rows: [
+          ["der Student", "der Student", "den Studenten", "dem Studenten"],
+          ["der Herr", "der Herr", "den Herrn", "dem Herrn"],
+          ["der Name", "der Name", "den Namen", "dem Namen"],
+          ["der Junge", "der Junge", "den Jungen", "dem Jungen"]
+        ]
+      }
+    ],
+    similar: [{ name: "定冠词变格", desc: "弱变化只影响名词词尾，不影响冠词" }],
+    examples: [
+      { de: "Ich kenne den Studenten.", cn: "我认识这个学生。" },
+      { de: "Ich frage den Herrn.", cn: "我问这位先生。" }
+    ]
+  },
+
+  /* ========== A1 · 代词 ========== */
+  {
+    id: "a1-13", level: "A1", category: "代词",
+    name: "人称代词（第一格、第四格）",
+    meaning: "人称代词替代名词，避免重复。A1 阶段掌握第一格（主语）和第四格（宾语）。",
+    connection: {
+      "": "第一格  第四格",
+      "单数": "ich → mich, du → dich, er → ihn, sie → sie, es → es",
+      "复数": "wir → uns, ihr → euch, sie → sie, Sie → Sie",
+      "注意": "er 第四格是 ihn（不规则）"
+    },
+    scene: "替代名词作主语或宾语",
+    pitfalls: "er 的第四格是 ihn，不是 in。Sie（尊称）三格都是 Sie，首字母大写。",
+    tables: [
+      {
+        caption: "人称代词第一格与第四格",
+        headers: ["", "第一格", "第四格"],
+        rows: [
+          ["ich", "ich", "mich"],
+          ["du", "du", "dich"],
+          ["er", "er", "ihn"],
+          ["sie", "sie", "sie"],
+          ["es", "es", "es"],
+          ["wir", "wir", "uns"],
+          ["ihr", "ihr", "euch"],
+          ["sie/Sie", "sie/Sie", "sie/Sie"]
+        ]
+      }
+    ],
+    similar: [{ name: "物主代词", desc: "表示所属关系，变格类似 ein" }],
+    examples: [
+      { de: "Ich sehe ihn.", cn: "我看到他。" },
+      { de: "Er kennt mich.", cn: "他认识我。" },
+      { de: "Wir besuchen sie.", cn: "我们拜访她/她们。" }
+    ]
+  },
+  {
+    id: "a1-14", level: "A1", category: "代词",
+    name: "物主代词（第一格、第四格）",
+    meaning: "物主代词表示所属关系 (mein, dein, sein, unser, euer, ihr/Ihr)，变格方式与不定冠词 ein 相同。",
+    connection: {
+      "第一格 m/n/f/Pl": "mein / mein / meine / meine",
+      "第四格 m/n/f/Pl": "meinen / mein / meine / meine",
+      "所有形式": "mein dein sein unser euer ihr Ihr",
+      "euer 特殊": "euer + 阴性 → eure (省去 e)"
+    },
+    scene: "表示'我的/你的/他的/我们的/你们的/他们的'",
+    pitfalls: "euer 在加词尾时省去一个 e (eure, nicht euere)。第三人称单数 sein 可指 er 的或 es 的。",
+    tables: [
+      {
+        caption: "物主代词 mein 变格（第一格、第四格）",
+        headers: ["", "m.", "f.", "n.", "Pl."],
+        rows: [
+          ["Nominativ", "mein", "meine", "mein", "meine"],
+          ["Akkusativ", "meinen", "meine", "mein", "meine"]
+        ]
+      }
+    ],
+    similar: [{ name: "不定冠词 ein 变格", desc: "物主代词变格与 ein 完全相同" }],
+    examples: [
+      { de: "Das ist mein Buch.", cn: "这是我的书。" },
+      { de: "Ich lese deinen Brief.", cn: "我读你的信。" },
+      { de: "Wir brauchen unsere Zeit.", cn: "我们需要我们的时间。" }
+    ]
+  },
+
+  /* ========== A1 · 动词 ========== */
+  {
+    id: "a1-15", level: "A1", category: "动词",
+    name: "情态动词",
+    meaning: "六个情态动词 können/müssen/wollen/sollen/dürfen/mögen，表达能力、必要、意愿、许可等情态意义。变位不规则（单数变元音，无 -t 词尾）。",
+    connection: {
+      "können": "kann (能)", "müssen": "muss (必须)",
+      "wollen": "will (想要)", "sollen": "soll (应该)",
+      "dürfen": "darf (允许)", "mögen": "mag (喜欢)"
+    },
+    scene: "表达能力、义务、许可、愿望",
+    pitfalls: "情态动词单数第一人称变元音且第三人称单数不加 -t（er kann, 不是 er kannt）。mögen 的变位最特殊 (ich mag, du magst)。",
+    tables: [
+      {
+        caption: "情态动词现在时变位",
+        headers: ["", "können", "müssen", "wollen", "sollen", "dürfen", "mögen"],
+        rows: [
+          ["ich", "kann", "muss", "will", "soll", "darf", "mag"],
+          ["du", "kannst", "musst", "willst", "sollst", "darfst", "magst"],
+          ["er/sie/es", "kann", "muss", "will", "soll", "darf", "mag"],
+          ["wir", "können", "müssen", "wollen", "sollen", "dürfen", "mögen"],
+          ["ihr", "könnt", "müsst", "wollt", "sollt", "dürft", "mögt"],
+          ["sie/Sie", "können", "müssen", "wollen", "sollen", "dürfen", "mögen"]
+        ]
+      }
+    ],
+    similar: [{ name: "情态动词框型结构", desc: "情态动词在第二位，原形动词在句末" }],
+    examples: [
+      { de: "Ich kann Deutsch sprechen.", cn: "我会说德语。" },
+      { de: "Du musst früh aufstehen.", cn: "你必须早起。" },
+      { de: "Darf ich hier rauchen?", cn: "我可以在这里抽烟吗？" }
+    ]
+  },
+  {
+    id: "a1-16", level: "A1", category: "动词",
+    name: "情态动词框型结构",
+    meaning: "情态动词变位后在第二位，实义动词以原形放在句末，形成框型结构 (Satzklammer)。",
+    connection: {
+      "主句": "Ich will nach Hause gehen.",
+      "疑问句": "Willst du mitkommen?",
+      "否定": "nicht 放在原形动词前",
+      "从句": "原形动词和情态动词都在句末"
+    },
+    scene: "所有使用情态动词的句子",
+    pitfalls: "从句中实义动词和情态动词都在句末，顺序是：...dass ich nach Hause gehen will（实义在前，情态在后）。",
+    similar: [{ name: "可分离动词句框", desc: "可分离前缀也在句末形成框型" }],
+    examples: [
+      { de: "Wir müssen Deutsch lernen.", cn: "我们必须学德语。" },
+      { de: "Ich will nach Berlin fahren.", cn: "我想去柏林。" },
+      { de: "Er kann gut schwimmen.", cn: "他游泳很好。" }
+    ]
+  },
+  {
+    id: "a1-17", level: "A1", category: "动词",
+    name: "可分离动词",
+    meaning: "部分动词带有可分离前缀，在现在时和过去时中前缀分离，前缀移到句末。",
+    connection: {
+      "常见前缀": "ab-, an-, auf-, aus-, ein-, mit-, vor-, zu-, zurück-",
+      "现在时": "Ich rufe dich an. (anrufen)",
+      "完成时": "Ich habe dich angerufen. (ge- 插在中间)",
+      "从句": "不分离：...dass ich dich anrufe."
+    },
+    scene: "日常高频动词，大量德语动词为可分离动词",
+    pitfalls: "可分离前缀的重音在前缀上 (ANrufen)，不可分离前缀重音在词干上 (verSTEhen)。完成时 ge- 插在前缀和词干之间。",
+    similar: [{ name: "可分离动词句框规则", desc: "前缀在主句句末，从句中不分离" }],
+    examples: [
+      { de: "Ich stehe um 7 Uhr auf.", cn: "我7点起床。" },
+      { de: "Wir rufen dich tomorrow an.", cn: "我们明天给你打电话。" },
+      { de: "Der Zug fährt gleich ab.", cn: "火车马上出发。" }
+    ]
+  },
+  {
+    id: "a1-18", level: "A1", category: "动词",
+    name: "可分离动词句框规则",
+    meaning: "可分离动词在主句中前缀放句末，与变位动词形成框型结构；在从句中不分离。",
+    connection: {
+      "主句": "Ich kaufe heute ein. (einkaufen)",
+      "从句": "...dass ich heute einkaufe. (不分离)",
+      "命令句": "Steh auf! (前缀在句末)",
+      "完成时": "Ich habe eingekauft. (ge-在中间，前缀在句末)"
+    },
+    scene: "主句、从句、命令句、完成时中分别应用不同规则",
+    pitfalls: "从句中可分离动词不分离，整体放在句末。如果从句中有情态动词，顺序是：前缀+词干+情态动词。",
+    similar: [{ name: "情态动词框型结构", desc: "情态动词和原形动词也形成框型" }],
+    examples: [
+      { de: "Ich komme heute mit.", cn: "我今天一起来。" },
+      { de: "Er sagt, dass er mitkommt.", cn: "他说他会一起来。" },
+      { de: "Mach die Tür zu!", cn: "把门关上！" }
+    ]
+  },
+
+  /* ========== A1 · 句法与语序 ========== */
+  {
+    id: "a1-19", level: "A1", category: "句法",
+    name: "陈述句与动词第二位",
+    meaning: "德语陈述句中，变位动词始终位于第二位 (Position 2)，这是德语语序的核心规则。",
+    connection: {
+      "规则": "变位动词在第二位，不管主语在第一位还是第三位",
+      "主语在前": "Ich lerne Deutsch. (我学德语)",
+      "其他成分在前": "Heute lerne ich Deutsch. (今天我学德语)",
+      "注意": "第二位指句法位置，不是第二个词"
+    },
+    scene: "所有陈述句",
+    pitfalls: "'Heute lerne ich Deutsch.' 中 lerne 是第三个词但第二个句法成分（Heute 是第一位），因此仍在第二位。",
+    similar: [{ name: "正语序与反语序", desc: "主语在前为正语序，主语在动词后为反语序" }],
+    examples: [
+      { de: "Ich trinke Kaffee.", cn: "我喝咖啡。" },
+      { de: "Morgen fahre ich nach Berlin.", cn: "明天我去柏林。" },
+      { de: "Am Wochenende besuche ich meine Eltern.", cn: "周末我去看父母。" }
+    ]
+  },
+  {
+    id: "a1-20", level: "A1", category: "句法",
+    name: "疑问句",
+    meaning: "德语疑问句分一般疑问句 (Ja/Nein-Frage) 和特殊疑问句 (W-Frage)。",
+    connection: {
+      "一般疑问句": "动词第一位 + 主语 + ... ? (Kommst du mit?)",
+      "W-Frage": "疑问词 + 动词第二位 + 主语 + ... ?",
+      "常见 W 词": "wer(谁), was(什么), wo(哪里), wann(何时), warum(为何), wie(怎样)",
+      "注意": "一般疑问句动词在第一位，陈述句动词在第二位"
+    },
+    scene: "提问获取信息",
+    pitfalls: "wo 和 woher 容易混淆：wo = 在哪里，woher = 从哪里来。was 和 was für 有区别：was = 什么，was für = 什么样的。",
+    similar: [{ name: "陈述句与动词第二位", desc: "陈述句动词在第二位" }],
+    examples: [
+      { de: "Kommst du aus China?", cn: "你来自中国吗？" },
+      { de: "Wo wohnst du?", cn: "你住在哪里？" },
+      { de: "Was machst du beruflich?", cn: "你做什么职业？" }
+    ]
+  },
+  {
+    id: "a1-21", level: "A1", category: "句法",
+    name: "正语序与反语序",
+    meaning: "主语在变位动词前为正语序 (主语 + 动词...)，主语在变位动词后为反语序 (其他成分 + 动词 + 主语...)。",
+    connection: {
+      "正语序": "Ich lerne Deutsch. (主语 + 动词)",
+      "反语序": "Heute lerne ich Deutsch. (时间 + 动词 + 主语)",
+      "触发反语序": "时间/地点/方式状语在句首时",
+      "疑问句": "始终反语序 (动词第一位)"
+    },
+    scene: "强调句子不同成分时改变语序",
+    pitfalls: "并非所有非主语成分在句首都触发反语序——但德语中除了并列连词 (und/aber/oder) 外，任何成分放句首都会触发反语序。",
+    similar: [{ name: "陈述句与动词第二位", desc: "动词始终在第二位，主语位置可变" }],
+    examples: [
+      { de: "Ich fahre nach Berlin. (正语序)", cn: "我去柏林。" },
+      { de: "Nach Berlin fahre ich. (反语序)", cn: "去柏林的是我。" },
+      { de: "Deshalb lerne ich Deutsch.", cn: "所以我学德语。" }
+    ]
+  },
+
+  /* ========== A1 · 介词 ========== */
+  {
+    id: "a1-22", level: "A1", category: "介词",
+    name: "第四格介词",
+    meaning: "durch, für, gegen, ohne, um 五个介词始终支配第四格 (Akkusativ)。",
+    connection: {
+      "durch (通过)": "durch den Park (穿过公园)",
+      "für (为了)": "für dich (为了你)",
+      "gegen (反对/大约)": "gegen den Vorschlag (反对这个建议)",
+      "ohne (没有) / um (围绕)": "ohne mich (没有我) / um die Ecke (在拐角处)"
+    },
+    scene: "日常表达，表示通过、为了、反对、没有、围绕",
+    pitfalls: "这五个介词永远支配第四格，不会因为静三动四而变化。gegen 还可表示'大约' (gegen 3 Uhr = 大约3点)。",
+    tables: [
+      {
+        caption: "第四格介词一览",
+        headers: ["介词", "含义", "支配格", "例"],
+        rows: [
+          ["durch", "通过 / 穿过", "Akkusativ", "durch den Park"],
+          ["für", "为了", "Akkusativ", "für dich"],
+          ["gegen", "反对 / 大约", "Akkusativ", "gegen den Vorschlag"],
+          ["ohne", "没有", "Akkusativ", "ohne mich"],
+          ["um", "围绕 / 在...时刻", "Akkusativ", "um die Ecke"]
+        ]
+      }
+    ],
+    similar: [{ name: "静三动四介词", desc: "A2 将学到的双向介词" }],
+    examples: [
+      { de: "Das Geschenk ist für dich.", cn: "这个礼物是给你的。" },
+      { de: "Ich gehe durch den Wald.", cn: "我穿过森林。" },
+      { de: "Ohne dich bin ich nichts.", cn: "没有你我什么都不是。" }
+    ]
+  },
+
+  /* ========== A1 · 数字与时间 ========== */
+  {
+    id: "a1-23", level: "A1", category: "数字与时间",
+    name: "基数词",
+    meaning: "德语基数词用于表达数量和价格，1-12 需单独记忆，13-19 加 -zehn，20-99 十位和个位连写。",
+    connection: {
+      "1-12": "eins, zwei, drei, vier, fünf, sechs, sieben, acht, neun, zehn, elf, zwölf",
+      "13-19": "...zehn (dreizehn, vierzehn...)",
+      "20-99": "十位+个位 (einundzwanzig = 21)",
+      "100+": "hundert, tausend, Million"
+    },
+    scene: "购物、报电话号码、说时间",
+    pitfalls: "21 是 einundzwanzig (一和二十)，个位在前十位在后。17 是 siebzehn (不是 siebenzehn)。",
+    tables: [
+      {
+        caption: "基数词 1-20 及整十",
+        headers: ["数字", "德语"],
+        rows: [
+          ["1", "eins"],
+          ["2", "zwei"],
+          ["3", "drei"],
+          ["4", "vier"],
+          ["5", "fünf"],
+          ["6", "sechs"],
+          ["7", "sieben"],
+          ["8", "acht"],
+          ["9", "neun"],
+          ["10", "zehn"],
+          ["11", "elf"],
+          ["12", "zwölf"],
+          ["13", "dreizehn"],
+          ["14", "vierzehn"],
+          ["15", "fünfzehn"],
+          ["16", "sechzehn"],
+          ["17", "siebzehn"],
+          ["18", "achtzehn"],
+          ["19", "neunzehn"],
+          ["20", "zwanzig"],
+          ["30", "dreißig"],
+          ["40", "vierzig"],
+          ["50", "fünfzig"],
+          ["100", "(ein)hundert"]
+        ]
+      }
+    ],
+    similar: [{ name: "序数词与日期表达", desc: "第一、第二等序数词构成" }],
+    examples: [
+      { de: "Ich habe drei Bücher.", cn: "我有三本书。" },
+      { de: "Das kostet fünfundzwanzig Euro.", cn: "这个二十五欧元。" },
+      { de: "Wir sind zu zweit.", cn: "我们两个人。" }
+    ]
+  },
+  {
+    id: "a1-24", level: "A1", category: "数字与时间",
+    name: "钟点表达",
+    meaning: "德语钟点分官方时间（24小时制）和口语时间（12小时制），用介词 um 表示'在...点'。",
+    connection: {
+      "官方": "Es ist vierzehn Uhr dreißig. (14:30)",
+      "口语": "Es ist halb drei. (14:30 = 两点半)",
+      "介词": "um + 钟点 (um acht Uhr = 在八点)",
+      "halb/viertel": "halb = 半, viertel nach = 一刻, viertel vor = 三刻"
+    },
+    scene: "约定时间、询问几点",
+    pitfalls: "halb drei 是 2:30 不是 3:30（德语的 halb 表示'到了一半'，即前一个小时过了一半）。口语中常用 12 小时制。",
+    tables: [
+      {
+        caption: "钟点的官方与口语表达",
+        headers: ["时间", "官方表达", "口语表达"],
+        rows: [
+          ["7:00", "sieben Uhr", "sieben Uhr"],
+          ["7:15", "sieben Uhr fünfzehn", "Viertel nach sieben"],
+          ["7:30", "sieben Uhr dreißig", "halb acht"],
+          ["7:45", "sieben Uhr fünfundvierzig", "Viertel vor acht"],
+          ["8:00", "acht Uhr", "acht Uhr"],
+          ["12:00", "zwölf Uhr", "zwölf / mittags"],
+          ["14:30", "vierzehn Uhr dreißig", "halb drei"],
+          ["19:00", "neunzehn Uhr", "sieben (abends)"]
+        ]
+      }
+    ],
+    similar: [{ name: "基数词", desc: "钟点表达需要掌握基数词" }],
+    examples: [
+      { de: "Es ist acht Uhr.", cn: "现在是八点。" },
+      { de: "Um halb zehn habe ich Unterricht.", cn: "九点半我有课。" },
+      { de: "Der Zug fährt um vierzehn Uhr ab.", cn: "火车14点出发。" }
+    ]
+  },
+  {
+    id: "a1-25", level: "A1", category: "数字与时间",
+    name: "序数词与日期表达",
+    meaning: "序数词由基数词加 -te（1-19）或 -ste（20+）构成，用于表示日期和顺序。",
+    connection: {
+      "1-19": "erste, zweite, dritte, ..., neunzehnte",
+      "20+": "zwanzigste, einundzwanzigste, ...",
+      "日期": "am + 序数词 (am dritten März = 3月3日)",
+      "年份": "im Jahr + 数字 (im Jahr 2024)"
+    },
+    scene: "说日期、表示顺序",
+    pitfalls: "第一到第三不规则 (erste, zweite, dritte)。日期用 am + 序数词，'在几月'用 im + 月份名。",
+    tables: [
+      {
+        caption: "序数词 1-12 及 20、21",
+        headers: ["数字", "序数词"],
+        rows: [
+          ["1.", "erste"],
+          ["2.", "zweite"],
+          ["3.", "dritte"],
+          ["4.", "vierte"],
+          ["5.", "fünfte"],
+          ["6.", "sechste"],
+          ["7.", "siebte"],
+          ["8.", "achte"],
+          ["9.", "neunte"],
+          ["10.", "zehnte"],
+          ["11.", "elfte"],
+          ["12.", "zwölfte"],
+          ["20.", "zwanzigste"],
+          ["21.", "einundzwanzigste"]
+        ]
+      }
+    ],
+    similar: [{ name: "基数词", desc: "序数词建立在基数词基础上" }],
+    examples: [
+      { de: "Heute ist der erste Mai.", cn: "今天是五月一日。" },
+      { de: "Ich bin am dritten März geboren.", cn: "我三月三日出生。" },
+      { de: "Das ist mein erstes Auto.", cn: "这是我的第一辆车。" }
+    ]
+  },
+
+  /* ========== A1 · 否定与命令 ========== */
+  {
+    id: "a1-26", level: "A1", category: "否定与命令",
+    name: "kein 与 nicht 的区分",
+    meaning: "kein 否定带不定冠词或零冠词的名词，nicht 否定其他成分（动词、形容词、带定冠词的名词等）。",
+    connection: {
+      "kein": "否定名词本身（Ich habe kein Geld. / Das ist kein Problem.）",
+      "nicht": "否定动词/形容词/定冠词名词 (Ich komme nicht. / Das Auto ist nicht neu.)",
+      "口诀": "有 ein 用 kein，其他用 nicht",
+      "特例": "定冠词名词也用 nicht (Ich kenne den Mann nicht.)"
+    },
+    scene: "否定句中正确选择否定词",
+    pitfalls: "kein 只能否定名词，nicht 可以否定动词、形容词、副词、介词短语等。kein 的变格与 ein 相同。",
+    similar: [{ name: "否定位置", desc: "nicht 在句中的位置规则" }],
+    examples: [
+      { de: "Ich habe kein Auto.", cn: "我没有车。" },
+      { de: "Ich kenne den Mann nicht.", cn: "我不认识那个男人。" },
+      { de: "Das ist kein Buch.", cn: "这不是书。" }
+    ]
+  },
+  {
+    id: "a1-27", level: "A1", category: "否定与命令",
+    name: "否定位置",
+    meaning: "nicht 在句中的位置取决于否定的对象：否定动词在句末前，否定其他成分紧贴被否定成分。",
+    connection: {
+      "否定动词": "nicht 放句末前 (Ich komme heute nicht.)",
+      "否定形容词": "nicht 在形容词前 (Das ist nicht gut.)",
+      "否定地点": "nicht 在地点前 (Ich wohne nicht in Berlin.)",
+      "特例": "nicht 可以在句首强调否定 (Nicht heute, sondern morgen.)"
+    },
+    scene: "构建否定句",
+    pitfalls: "nicht 否定动词时放在句末（如果有助动词/不定式则放在它们前面）。可分离动词中 nicht 放在分离前缀前面。",
+    similar: [{ name: "kein 与 nicht 的区分", desc: "何时用 kein，何时用 nicht" }],
+    examples: [
+      { de: "Ich kann heute nicht kommen.", cn: "我今天不能来。" },
+      { de: "Das Buch ist nicht teuer.", cn: "这本书不贵。" },
+      { de: "Er wohnt nicht in München.", cn: "他不住在慕尼黑。" }
+    ]
+  },
+  {
+    id: "a1-28", level: "A1", category: "否定与命令",
+    name: "Sie-Form 命令句",
+    meaning: "尊称 Sie 的命令式与现在时完全相同，只需将动词提到第一位，Sie 跟在其后，句末加句号或感叹号。",
+    connection: {
+      "构成": "动词第一位 + Sie + ... ?/. / !",
+      "例": "Kommen Sie bitte hier! (请来这里！)",
+      "注意": "动词形式与现在时尊称完全相同",
+      "疑问命令": "Könnten Sie bitte helfen? (更礼貌)"
+    },
+    scene: "正式场合、对陌生人的请求/命令",
+    pitfalls: "Sie 命令式没有特殊变形，只是语序变化（动词第一位）。du 和 ihr 命令式在 A2 学。",
+    similar: [{ name: "du/ihr 命令式", desc: "A2 将学的非尊称命令式" }],
+    examples: [
+      { de: "Sprechen Sie bitte laut.", cn: "请大声说。" },
+      { de: "Machen Sie die Tür zu!", cn: "请关门！" },
+      { de: "Warten Sie einen Moment.", cn: "请稍等。" }
+    ]
+  },
+
+  /* ================================================================
+     A2 语法
+  ================================================================ */
+  /* ========== A2 · 格与代词 ========== */
+  {
+    id: "a2-01", level: "A2", category: "格与冠词",
+    name: "第三格 Dativ",
+    meaning: "第三格用作某些动词的间接宾语、某些介词后的宾语，以及表示'给某人'的接受者。A2 核心语法。",
+    connection: {
+      "": "第一格  第四格  第三格",
+      "阳性 m": "der     den     dem",
+      "阴性 f": "die     die     der",
+      "中性 n": "das     das     dem",
+      "复数 Pl": "die     die     den + 名词加-n"
+    },
+    scene: "间接宾语、三格介词后、三格动词后",
+    pitfalls: "复数第三格名词需加 -n（如果复数本身不以 -n 结尾）。dem/der/dem 对应的定冠词与第一格不同，需要记忆。",
+    tables: [
+      {
+        caption: "定冠词三格变化（Nom/Akk/Dat）",
+        headers: ["", "m.", "f.", "n.", "Pl."],
+        rows: [
+          ["Nominativ", "der", "die", "das", "die"],
+          ["Akkusativ", "den", "die", "das", "die"],
+          ["Dativ (新)", "dem", "der", "dem", "den +n"]
+        ]
+      }
+    ],
+    similar: [{ name: "第一格与第四格", desc: "A1 学过的 Nom 和 Akk" }],
+    examples: [
+      { de: "Ich gebe dem Kind ein Buch.", cn: "我给这个孩子一本书。" },
+      { de: "Sie hilft ihrem Freund.", cn: "她帮助她的朋友。" },
+      { de: "Wir danken dem Lehrer.", cn: "我们感谢老师。" }
+    ]
+  },
+  {
+    id: "a2-02", level: "A2", category: "格与冠词",
+    name: "冠词全套 1-4格",
+    meaning: "德语四个格的定冠词、不定冠词完整变格表，是 A2 阶段必须掌握的核心表格。",
+    connection: {
+      "定冠词": "m: der/den/dem/des  f: die/die/der/der  n: das/das/dem/des  Pl: die/die/den/der",
+      "不定冠词": "m: ein/einen/einem/eines  f: eine/eine/einer/einer  n: ein/ein/einem/eines",
+      "物主代词": "与 ein 同样变格，加适当词尾",
+      "kein": "kein/keinen/keinem/keines 等，与 ein 相同"
+    },
+    scene: "构建各种格的句子",
+    pitfalls: "第二格 (Genitiv) 阳性和中性用 des，名词加 -(e)s。复数第三格用 den + 名词加 -n。",
+    tables: [
+      {
+        caption: "定冠词变格表 (der/die/das)",
+        headers: ["", "m.", "f.", "n.", "Pl."],
+        rows: [
+          ["Nominativ", "der", "die", "das", "die"],
+          ["Akkusativ", "den", "die", "das", "die"],
+          ["Dativ", "dem", "der", "dem", "den"],
+          ["Genitiv", "des", "der", "des", "der"]
+        ]
+      },
+      {
+        caption: "不定冠词变格表 (ein/eine)",
+        headers: ["", "m.", "f.", "n.", "Pl."],
+        rows: [
+          ["Nominativ", "ein", "eine", "ein", "keine"],
+          ["Akkusativ", "einen", "eine", "ein", "keine"],
+          ["Dativ", "einem", "einer", "einem", "keinen"],
+          ["Genitiv", "eines", "einer", "eines", "keiner"]
+        ]
+      }
+    ],
+    similar: [{ name: "第三格 Dativ", desc: "A2 最重要的新格" }],
+    examples: [
+      { de: "Das Auto des Mannes ist neu.", cn: "这个男人的车是新的。" },
+      { de: "Ich spreche mit dem Lehrer.", cn: "我在和老师说话。" }
+    ]
+  },
+  {
+    id: "a2-03", level: "A2", category: "代词",
+    name: "人称代词与物主代词第三格",
+    meaning: "人称代词和物主代词在第三格的变化，配合三格动词和三格介词使用。",
+    connection: {
+      "人称代词 Dativ": "mir, dir, ihm, ihr, ihm, uns, euch, ihnen, Ihnen",
+      "物主代词 m": "meinem, deinem, seinem... (加 -em)",
+      "物主代词 f": "meiner, deiner, seiner... (加 -er)",
+      "物主代词 n/Pl": "meinem/-en... (n加-em, Pl加-en)"
+    },
+    scene: "三格动词的宾语、三格介词后",
+    pitfalls: "人称代词第三格中 ihm 可指阳性或中性（er 和 es 的三格都是 ihm），ihm/ihnen 容易混淆。",
+    tables: [
+      {
+        caption: "人称代词第一格与第三格",
+        headers: ["", "第一格(Nom)", "第三格(Dat)"],
+        rows: [
+          ["ich", "ich", "mir"],
+          ["du", "du", "dir"],
+          ["er", "er", "ihm"],
+          ["sie", "sie", "ihr"],
+          ["es", "es", "ihm"],
+          ["wir", "wir", "uns"],
+          ["ihr", "ihr", "euch"],
+          ["sie", "sie", "ihnen"],
+          ["Sie", "Sie", "Ihnen"]
+        ]
+      }
+    ],
+    similar: [{ name: "冠词全套 1-4格", desc: "物主代词变格与冠词平行" }],
+    examples: [
+      { de: "Wie geht es dir?", cn: "你好吗？" },
+      { de: "Ich antworte ihm.", cn: "我回答他。" },
+      { de: "Das gehört meiner Schwester.", cn: "这属于我姐姐。" }
+    ]
+  },
+  {
+    id: "a2-04", level: "A2", category: "动词",
+    name: "相互动词 reziproke Verben",
+    meaning: "相互动词表示两个或多个主语之间的相互动作，用 einander（互相）或反身代词 sich 表达。",
+    connection: {
+      "einander": "Wir treffen einander. (我们互相见面)",
+      "sich": "Wir treffen uns. (我们见面)",
+      "常见动词": "treffen, kennen, helfen, verstehen, lieben",
+      "与介词": "miteinander, voneinander, beieinander"
+    },
+    scene: "表达互相做某事",
+    pitfalls: "einander 可以和介词合并写（miteinander = mit + einander），但 sich 不行。sich 更口语化，einander 更正式。",
+    similar: [{ name: "反身动词", desc: "sich-Verben，动作指向自身" }],
+    examples: [
+      { de: "Wir kennen einander gut.", cn: "我们互相很了解。" },
+      { de: "Die beiden streiten sich oft.", cn: "他们俩经常争吵。" },
+      { de: "Sie arbeiten miteinander.", cn: "他们一起工作。" }
+    ]
+  },
+
+  /* ========== A2 · 介词 ========== */
+  {
+    id: "a2-05", level: "A2", category: "介词",
+    name: "三格固定介词",
+    meaning: "aus, bei, mit, nach, seit, von, zu 七个介词始终支配第三格 (Dativ)。",
+    connection: {
+      "aus (来自)": "Ich komme aus China.",
+      "bei (在...处)": "Ich bin bei meinem Freund.",
+      "mit (和/用)": "Ich fahre mit dem Zug.",
+      "nach/seit/von/zu": "nach Berlin / seit drei Tagen / von dir / zu dir"
+    },
+    scene: "日常高频使用，表示来源、位置、方式、方向、时间起点",
+    pitfalls: "nach 用于去无冠词的地名（nach Berlin），zu 用于去有冠词的场所（zu dem Arzt = zum Arzt）。",
+    tables: [
+      {
+        caption: "三格固定介词一览",
+        headers: ["介词", "含义", "支配格", "例"],
+        rows: [
+          ["aus", "来自", "Dativ", "Ich komme aus China."],
+          ["bei", "在...处", "Dativ", "Ich bin bei meinem Freund."],
+          ["mit", "和/用", "Dativ", "Ich fahre mit dem Zug."],
+          ["nach", "去/到", "Dativ", "Ich fahre nach Berlin."],
+          ["seit", "自从", "Dativ", "Seit drei Jahren lerne ich."],
+          ["von", "从/的", "Dativ", "Ich komme von der Arbeit."],
+          ["zu", "到...处", "Dativ", "Ich gehe zum Arzt."]
+        ]
+      }
+    ],
+    similar: [{ name: "第四格介词", desc: "durch/für/gegen/ohne/um 始终第四格" }],
+    examples: [
+      { de: "Ich komme aus München.", cn: "我来自慕尼黑。" },
+      { de: "Seit einem Jahr lerne ich Deutsch.", cn: "我学德语一年了。" },
+      { de: "Wir fahren mit dem Auto.", cn: "我们开车去。" }
+    ]
+  },
+  {
+    id: "a2-06", level: "A2", category: "介词",
+    name: "静三动四介词",
+    meaning: "an, auf, in, neben, über, unter, vor, hinter, zwischen 九个介词是双向介词：表示位置/状态用第三格 (Wo?)，表示方向/移动用第四格 (Wohin?)。",
+    connection: {
+      "Wo? (位置) → Dativ": "Ich bin in der Schule. (我在学校)",
+      "Wohin? (方向) → Akk": "Ich gehe in die Schule. (我去学校)",
+      "an/auf/in": "接触面/上方/内部",
+      "neben/über/unter/vor/hinter/zwischen": "旁边/上方/下方/前面/后面/之间"
+    },
+    scene: "描述位置和方向，德语最常考的介词规则",
+    pitfalls: "'静三动四'口诀：有位移动作用第四格，无位移静止用第三格。提问用 Wo 还是 Wohin 是判断关键。",
+    tables: [
+      {
+        caption: "静三动四介词 (Wechselpräpositionen)",
+        headers: ["介词", "Wo? (Dat)", "Wohin? (Akk)"],
+        rows: [
+          ["an", "am Tisch", "an den Tisch"],
+          ["auf", "auf dem Tisch", "auf den Tisch"],
+          ["in", "in der Schule", "in die Schule"],
+          ["neben", "neben dem Haus", "neben das Haus"],
+          ["über", "über dem Bett", "über das Bett"],
+          ["unter", "unter dem Stuhl", "unter den Stuhl"],
+          ["vor", "vor der Tür", "vor die Tür"],
+          ["hinter", "hinter dem Haus", "hinter das Haus"],
+          ["zwischen", "zwischen den Büchern", "zwischen die Bücher"]
+        ]
+      }
+    ],
+    similar: [{ name: "三格固定介词", desc: "始终第三格的介词" }],
+    examples: [
+      { de: "Das Buch liegt auf dem Tisch. (Wo?)", cn: "书在桌子上。" },
+      { de: "Ich lege das Buch auf den Tisch. (Wohin?)", cn: "我把书放到桌子上。" },
+      { de: "Wir gehen ins Kino. (in + das)", cn: "我们去电影院。" }
+    ]
+  },
+  {
+    id: "a2-07", level: "A2", category: "介词",
+    name: "动词支配介词",
+    meaning: "某些动词要求特定的介词搭配，介词决定了后面名词的格。这是 A2 超级重要、考试必考的知识点。",
+    connection: {
+      "denken an + Akk": "想到 (Ich denke an dich.)",
+      "warten auf + Akk": "等待 (Ich warte auf den Bus.)",
+      "sich interessieren für + Akk": "对...感兴趣",
+      "träumen von + Dat": "梦见 (Ich träume von dir.)"
+    },
+    scene: "日常动词搭配，新求精 A2 必学",
+    pitfalls: "动介搭配的介词决定格：auf/an/für 支配第四格，von/bei/mit 支配第三格。需要逐个记忆动词和介词的搭配。",
+    similar: [{ name: "代副词 Pronominaladverbien", desc: "动介搭配中介词+代词的替代形式" }],
+    examples: [
+      { de: "Ich warte auf den Zug.", cn: "我在等火车。" },
+      { de: "Er denkt an seine Familie.", cn: "他想念他的家人。" },
+      { de: "Wir sprechen über das Projekt.", cn: "我们讨论这个项目。" }
+    ]
+  },
+  {
+    id: "a2-08", level: "A2", category: "介词",
+    name: "代副词 Pronominaladverbien",
+    meaning: "当介词的宾语不是人而是事物时，用 da(r) + 介词 构成代副词替代。疑问用 wo(r) + 介词。",
+    connection: {
+      "da + 介词": "dafür (为此), damit (用它), davon (关于那事)",
+      "dar + 元音介词": "darüber (关于那事), darin (在其中), darauf (在上面)",
+      "wo + 介词": "wofür (为什么), womit (用什么), wovon (关于什么)",
+      "wor + 元音介词": "worüber, worin, worauf"
+    },
+    scene: "避免重复名词，代替介词+代词 es/das 的结构",
+    pitfalls: "介词以元音开头时加 r (darüber 不是 daüber)。代副词只能代替事物，不能代替人。",
+    similar: [{ name: "动词支配介词", desc: "代副词常用于替代动介搭配中的事物宾语" }],
+    examples: [
+      { de: "Ich denke daran.", cn: "我想着那件事。" },
+      { de: "Womit schreibst du?", cn: "你用什么写字？" },
+      { de: "Ich interessiere mich dafür.", cn: "我对此感兴趣。" }
+    ]
+  },
+
+  /* ========== A2 · 反身动词 ========== */
+  {
+    id: "a2-09", level: "A2", category: "反身动词",
+    name: "反身动词 sich-Verben",
+    meaning: "反身动词表示动作指向主语自身，必须带反身代词 sich（第三格或第四格）。",
+    connection: {
+      "真反身": "sich freuen (高兴), sich beeilen (赶紧), sich interessieren (感兴趣)",
+      "假反身": "sich waschen (洗自己/洗别人), sich anziehen (穿)",
+      "三格 sich": "ich→mir, du→dir, er/sie→sich, wir→uns, ihr→euch, sie/Sie→sich",
+      "四格 sich": "ich→mich, du→dich, er/sie→sich, wir→uns, ihr→euch, sie/Sie→sich"
+    },
+    scene: "日常高频使用，部分动词必须带反身代词",
+    pitfalls: "真反身动词的 sich 不可省略（sich freuen），假反身动词的 sich 可省略但意思改变。三格和四格的反身代词在第一二人称单数不同。",
+    tables: [
+      {
+        caption: "反身代词第三格与第四格",
+        headers: ["", "第三格(Dat)", "第四格(Akk)"],
+        rows: [
+          ["ich", "mir", "mich"],
+          ["du", "dir", "dich"],
+          ["er/sie/es", "sich", "sich"],
+          ["wir", "uns", "uns"],
+          ["ihr", "euch", "euch"],
+          ["sie/Sie", "sich", "sich"]
+        ]
+      }
+    ],
+    similar: [{ name: "相互动词", desc: "einander 也可表达相互动作" }],
+    examples: [
+      { de: "Ich freue mich auf das Wochenende.", cn: "我期待周末。" },
+      { de: "Er wäscht sich die Hände.", cn: "他洗手。（三格）" },
+      { de: "Wir beeilen uns.", cn: "我们赶紧。" }
+    ]
+  },
+  {
+    id: "a2-10", level: "A2", category: "反身动词",
+    name: "反身代词三格/四格区分",
+    meaning: "反身代词的格取决于动词：如果动词已有第四格宾语，反身代词用第三格；否则用第四格。",
+    connection: {
+      "规则": "句中已有四格宾语 → 反身用三格",
+      "四格例": "Ich freue mich. (mich = 四格，无其他宾语)",
+      "三格例": "Ich wasche mir die Hände. (mir = 三格，die Hände = 四格)",
+      "一二称差异": "ich: mich/mir, du: dich/dir (三格/四格不同)"
+    },
+    scene: "使用反身动词时判断反身代词的格",
+    pitfalls: "第三人称反身代词 sich 在三格和四格中形式相同，只有第一二人称单数有区别 (mich/mir, dich/dir)。",
+    tables: [
+      {
+        caption: "反身代词三格/四格使用规则",
+        headers: ["情况", "反身代词格", "例句"],
+        rows: [
+          ["无其他宾语", "第四格(Akk)", "Ich freue mich."],
+          ["已有四格宾语", "第三格(Dat)", "Ich wasche mir die Hände."]
+        ]
+      }
+    ],
+    similar: [{ name: "反身动词 sich-Verben", desc: "反身动词的基本概念" }],
+    examples: [
+      { de: "Ich putze mir die Zähne.", cn: "我刷牙。（三格反身）" },
+      { de: "Ich ziehe mich an.", cn: "我穿衣服。（四格反身）" },
+      { de: "Du kaufst dir ein Buch.", cn: "你给自己买本书。（三格反身）" }
+    ]
+  },
+
+  /* ========== A2 · 并列连词 ========== */
+  {
+    id: "a2-11", level: "A2", category: "连词",
+    name: "简单并列连词",
+    meaning: "und (和), aber (但是), oder (或者), denn (因为), sondern (而是) 五个并列连词不改变语序（位置0，动词仍在第二位）。",
+    connection: {
+      "und": "连接并列：Ich lese und schreibe.",
+      "aber": "表转折：Ich will, aber ich kann nicht.",
+      "oder": "表选择：Tea oder Kaffee?",
+      "denn/sondern": "denn = 因为(不换位), sondern = 而是(否定后)"
+    },
+    scene: "连接并列句或并列成分",
+    pitfalls: "denn 和 weil 都表原因，但 denn 不改变语序（动词仍在第二位），weil 引导从句（动词到句末）。sondern 前必须有否定。",
+    similar: [{ name: "成对连词", desc: "sowohl...als auch 等成对结构" }],
+    examples: [
+      { de: "Ich komme, aber ich habe wenig Zeit.", cn: "我来，但我时间不多。" },
+      { de: "Er ist nicht dumm, sondern faul.", cn: "他不笨，而是懒。" },
+      { de: "Bleib hier oder geh nach Hause.", cn: "留在这里或者回家。" }
+    ]
+  },
+  {
+    id: "a2-12", level: "A2", category: "连词",
+    name: "成对连词",
+    meaning: "成对连词由两部分组成，强调并列或对比关系，比简单连词更正式。",
+    connection: {
+      "sowohl...als auch": "既...又 (Sowohl Anna als auch Tom kommen.)",
+      "nicht nur...sondern auch": "不仅...而且",
+      "entweder...oder": "要么...要么",
+      "weder...noch": "既不...也不"
+    },
+    scene: "书面语和正式表达中强调并列或选择",
+    pitfalls: "成对连词的前半部分在位置0，不改变语序。entweder...oder 是二选一，weder...noch 是两者都不。",
+    similar: [{ name: "简单并列连词", desc: "und/aber/oder/denn/sondern" }],
+    examples: [
+      { de: "Sowohl Anna als auch Tom lernen Deutsch.", cn: "Anna 和 Tom 都学德语。" },
+      { de: "Entweder kommst du, oder du bleibst hier.", cn: "要么你来，要么你留在这里。" },
+      { de: "Weder Tee noch Kaffee mag er.", cn: "茶和咖啡他都不喜欢。" }
+    ]
+  },
+
+  /* ========== A2 · 从句入门 ========== */
+  {
+    id: "a2-13", level: "A2", category: "从句",
+    name: "dass 宾语从句",
+    meaning: "dass 引导宾语从句，无实际意义，仅起连接作用。从句中动词放在句末。",
+    connection: {
+      "构成": "主句 + dass + 从句(动词在末尾)",
+      "例": "Ich weiß, dass er kommt.",
+      "dass 无义": "dass 本身不翻译，只起语法连接作用",
+      "语序": "从句动词末尾位置"
+    },
+    scene: "陈述事实、转述他人的话",
+    pitfalls: "dass 从句的动词放在句末，这是德语从句的基本规则。dass 和 das 容易混淆：dass 是连词，das 是冠词/代词。",
+    similar: [{ name: "ob 从句", desc: "表示'是否'的宾语从句" }],
+    examples: [
+      { de: "Ich glaube, dass er Recht hat.", cn: "我相信他是对的。" },
+      { de: "Er sagt, dass er krank ist.", cn: "他说他病了。" },
+      { de: "Ich weiß, dass wir morgen Prüfung haben.", cn: "我知道我们明天有考试。" }
+    ]
+  },
+  {
+    id: "a2-14", level: "A2", category: "从句",
+    name: "ob 从句（是否）",
+    meaning: "ob 引导间接疑问从句，表示'是否'，动词放在句末。",
+    connection: {
+      "构成": "主句 + ob + 从句(动词在末尾)",
+      "例": "Ich weiß nicht, ob er kommt.",
+      "用途": "转述一般疑问句",
+      "对比": "dass 转述陈述句, ob 转述疑问句"
+    },
+    scene: "转述是非疑问句、表示不确定",
+    pitfalls: "ob 不能单独成句，必须依附主句。ob 和 dass 的区别：dass 确定事实，ob 表示不确定。",
+    similar: [{ name: "dass 宾语从句", desc: "转述确定事实" }],
+    examples: [
+      { de: "Ich weiß nicht, ob er kommt.", cn: "我不知道他是否来。" },
+      { de: "Frage ihn, ob er Zeit hat.", cn: "问问他是否有时间。" },
+      { de: "Ich frage mich, ob das stimmt.", cn: "我自问那是否正确。" }
+    ]
+  },
+  {
+    id: "a2-15", level: "A2", category: "从句",
+    name: "W-疑问词宾语从句",
+    meaning: "用疑问词 (was, wer, wo, wann, warum, wie 等) 引导的宾语从句，转述特殊疑问句，动词在句末。",
+    connection: {
+      "构成": "主句 + W词 + 从句(动词在末尾)",
+      "例": "Ich weiß nicht, was er macht.",
+      "常见W词": "was, wer, wo, wann, warum, wie, wohin, woher",
+      "语序": "W词在从句首位, 动词在末尾"
+    },
+    scene: "转述特殊疑问句",
+    pitfalls: "W-从句中疑问词在首位，但动词仍在句末（不像主句疑问句动词在第二位）。这是从句语序的关键区别。",
+    similar: [{ name: "dass 宾语从句", desc: "dass 从句和 W-从句的语序相同" }],
+    examples: [
+      { de: "Ich weiß nicht, wo er wohnt.", cn: "我不知道他住在哪里。" },
+      { de: "Sag mir, wann du kommst.", cn: "告诉我你什么时候来。" },
+      { de: "Ich frage mich, warum er so traurig ist.", cn: "我纳闷他为什么那么伤心。" }
+    ]
+  },
+  {
+    id: "a2-16", level: "A2", category: "从句",
+    name: "从句动词末尾位置规则",
+    meaning: "所有从句中，变位动词都放在句末，这是德语从句最重要的语序规则，称为'动词末尾位置' (Endstellung)。",
+    connection: {
+      "规则": "从句 = 连词 + ... + 动词(句末)",
+      "dass": "dass ich Deutsch lerne",
+      "ob/W词": "ob/wann er kommt",
+      "可分离动词": "从句中不分离: dass ich anrufe"
+    },
+    scene: "所有从句（dass, ob, W-从句，以及后续的 weil, wenn 等）",
+    pitfalls: "可分离动词在从句中不分离，整体放句末。如果有助动词+实义动词，实义动词在最末，助动词在前。",
+    similar: [{ name: "正语序与反语序", desc: "主句语序规则" }],
+    examples: [
+      { de: "Ich glaube, dass er heute Zeit hat.", cn: "我相信他今天有时间。" },
+      { de: "Ich weiß, dass sie Deutsch lernt.", cn: "我知道她在学德语。" },
+      { de: "Er fragt, ob wir mitkommen.", cn: "他问我们是否一起来。" }
+    ]
+  },
+
+  /* ========== A2 · 命令句 ========== */
+  {
+    id: "a2-17", level: "A2", category: "否定与命令",
+    name: "du-Form 命令式",
+    meaning: "对 du（你）的命令式：去掉 -st 词尾，不规则动词去变元音。句末加感叹号。",
+    connection: {
+      "规则动词": "mach → Mach! (做!)",
+      "去 -st": "lernst → Lern! (学!)",
+      "强变化去元音": "fährst → Fahr! (不是 Fähr!)",
+      "词干以-t/d结尾": "arbeite → Arbeit(e)!"
+    },
+    scene: "对朋友、家人的命令/请求",
+    pitfalls: "强变化动词 du 形有变元音 (du fährst)，但命令式去变元音 (Fahr!)。nehmen 特殊: nimm!",
+    similar: [{ name: "ihr-Form 命令式", desc: "对你们复数的命令式" }],
+    examples: [
+      { de: "Komm bitte her!", cn: "请过来！" },
+      { de: "Fahr vorsichtig!", cn: "小心开车！" },
+      { de: "Nimm das Buch!", cn: "拿这本书！" }
+    ]
+  },
+  {
+    id: "a2-18", level: "A2", category: "否定与命令",
+    name: "ihr-Form 命令式",
+    meaning: "对 ihr（你们）的命令式与现在时完全相同，只需去掉代词 ihr，动词提到第一位。",
+    connection: {
+      "构成": "动词(现在时ihr形) + ... !",
+      "例": "ihr kommt → Kommt! (来!)",
+      "无变化": "动词形式不变，只去掉 ihr",
+      "对比 Sie": "Sie 命令式保留 Sie, ihr 命令式去掉 ihr"
+    },
+    scene: "对多人非尊称的命令/请求",
+    pitfalls: "ihr 命令式最简单，因为动词形式不变。容易与 du 命令式混淆：du 去词尾变元音，ihr 不变。",
+    similar: [{ name: "du-Form 命令式", desc: "du 命令式需去词尾" }],
+    examples: [
+      { de: "Geht bitte nach Hause!", cn: "请回家！" },
+      { de: "Macht die Hausaufgaben!", cn: "做作业！" },
+      { de: "Wartet einen Moment!", cn: "等一下！" }
+    ]
+  },
+
+  /* ========== A2 · 形容词 ========== */
+  {
+    id: "a2-19", level: "A2", category: "形容词",
+    name: "形容词词尾变化（定冠词后）",
+    meaning: "定冠词 (der/die/das) 后的形容词加弱变化词尾 -e/-en，因为冠词已经显示了性别和格信息。",
+    connection: {
+      "第一格 m/n/f/Pl": "der gute / das gute / die gute / die guten",
+      "第四格 m/n/f/Pl": "den guten / das gute / die gute / die guten",
+      "第三格 m/n/f/Pl": "dem guten / dem guten / der guten / den guten",
+      "口诀": "定冠词后多 -e, 复数和阳性四格用 -en"
+    },
+    scene: "描述带定冠词名词的属性",
+    pitfalls: "所有格中除第一格阳性/中性/阴性为 -e 外，其余都是 -en。复数全部用 -en。",
+    tables: [
+      {
+        caption: "定冠词后形容词词尾变化",
+        headers: ["", "m.", "f.", "n.", "Pl."],
+        rows: [
+          ["Nominativ", "der gute", "die gute", "das gute", "die guten"],
+          ["Akkusativ", "den guten", "die gute", "das gute", "die guten"],
+          ["Dativ", "dem guten", "der guten", "dem guten", "den guten"],
+          ["Genitiv", "des guten", "der guten", "des guten", "der guten"]
+        ]
+      }
+    ],
+    similar: [{ name: "形容词词尾变化（不定冠词后）", desc: "不定冠词后用混合变化" }],
+    examples: [
+      { de: "Der alte Mann liest.", cn: "这位老人在读书。" },
+      { de: "Ich sehe das rote Auto.", cn: "我看到那辆红色的车。" },
+      { de: "Die schönen Blumen blühen.", cn: "美丽的花朵在绽放。" }
+    ]
+  },
+  {
+    id: "a2-20", level: "A2", category: "形容词",
+    name: "形容词词尾变化（不定冠词后）",
+    meaning: "不定冠词 (ein/kein/物主代词) 后的形容词用混合变化，因为冠词不完全显示性别（ein 可指阳性或中性）。",
+    connection: {
+      "第一格 m/n/f": "ein guter Mann / ein gutes Kind / eine gute Frau",
+      "第四格 m/n/f": "einen guten / ein gutes / eine gute",
+      "第三格 m/n/f": "einem guten / einem guten / einer guten",
+      "复数(kein后)": "keine guten (复数用-en)"
+    },
+    scene: "描述带不定冠词/物主代词名词的属性",
+    pitfalls: "不定冠词后的形容词在第一格阳性和中性、第四格中性用强变化词尾 (-er/-es)，因为 ein 不显示性别信息。其余用弱变化。",
+    tables: [
+      {
+        caption: "不定冠词后形容词词尾变化",
+        headers: ["", "m.", "f.", "n."],
+        rows: [
+          ["Nominativ", "ein guter", "eine gute", "ein gutes"],
+          ["Akkusativ", "einen guten", "eine gute", "ein gutes"],
+          ["Dativ", "einem guten", "einer guten", "einem guten"]
+        ]
+      }
+    ],
+    similar: [{ name: "形容词词尾变化（定冠词后）", desc: "定冠词后用弱变化" }],
+    examples: [
+      { de: "Ich habe einen guten Freund.", cn: "我有一个好朋友。" },
+      { de: "Das ist ein neues Buch.", cn: "这是一本新书。" },
+      { de: "Sie trägt ein rotes Kleid.", cn: "她穿着一条红色的裙子。" }
+    ]
+  },
+  {
+    id: "a2-21", level: "A2", category: "形容词",
+    name: "形容词比较级",
+    meaning: "形容词比较级在原级基础上加 -er，部分形容词需变元音 (a/o/u → ä/ö/ü)。",
+    connection: {
+      "规则": "原级 + -er (schnell → schneller)",
+      "变元音": "alt → älter, jung → jünger, groß → größer",
+      "不规则": "gut → besser, viel → mehr, gern → lieber",
+      "als 搭配": "A ist größer als B (A比B大)"
+    },
+    scene: "比较两个事物的属性",
+    pitfalls: "单音节形容词含 a/o/au 通常变元音 (alt→älter, groß→größer)。gut/viel/hoch 等不规则需记忆。以 -el/-er 结尾的比较级省略 e (teuer → teurer)。",
+    tables: [
+      {
+        caption: "形容词比较等级",
+        headers: ["原级", "比较级", "最高级"],
+        rows: [
+          ["schnell", "schneller", "am schnellsten"],
+          ["alt", "älter", "am ältesten"],
+          ["groß", "größer", "am größten"],
+          ["gut", "besser", "am besten"],
+          ["viel", "mehr", "am meisten"]
+        ]
+      }
+    ],
+    similar: [{ name: "形容词最高级", desc: "最高级加 -ste(n)" }],
+    examples: [
+      { de: "Dieses Auto ist schneller als jenes.", cn: "这辆车比那辆快。" },
+      { de: "Er ist älter als ich.", cn: "他比我大。" },
+      { de: "Das Wetter ist besser geworden.", cn: "天气变好了。" }
+    ]
+  },
+  {
+    id: "a2-22", level: "A2", category: "形容词",
+    name: "形容词最高级",
+    meaning: "最高级在原级基础上加 -(e)st，使用 am + 最高级 + -en 或定冠词 + 最高级 + -e 结构。",
+    connection: {
+      "构成": "原级 + -(e)st (schnell → schnellst-)",
+      "变元音": "alt → am ältesten, groß → am größten",
+      "不规则": "gut → am besten, viel → am meisten",
+      "用法1": "am + 最高级 + -en (作状语/表语)",
+      "用法2": "定冠词 + 最高级 + -e (作定语)"
+    },
+    scene: "表示三者或以上的最高程度",
+    pitfalls: "最高级作状语/表语用 am + -sten，作定语用冠词 + -ste + 名词。gut 的最高级 am besten 需单独记忆。",
+    tables: [
+      {
+        caption: "形容词比较等级（补充）",
+        headers: ["原级", "比较级", "最高级"],
+        rows: [
+          ["jung", "jünger", "am jüngsten"],
+          ["gern", "lieber", "am liebsten"],
+          ["hoch", "höher", "am höchsten"]
+        ]
+      }
+    ],
+    similar: [{ name: "形容词比较级", desc: "比较级加 -er" }],
+    examples: [
+      { de: "Er ist der größte Schüler.", cn: "他是最高的学生。" },
+      { de: "Das ist am schönsten.", cn: "那是最美的。" },
+      { de: "Sie ist die beste Studentin.", cn: "她是最好的学生。" }
+    ]
+  },
+
+  /* ========== A2 · 时态巩固 ========== */
+  {
+    id: "a2-23", level: "A2", category: "时态",
+    name: "Präteritum 强弱动词过去时",
+    meaning: "弱动词过去时加 -te，强动词过去时变换词干元音，无固定词尾规则。",
+    connection: {
+      "弱动词": "词干 + -te (machen → machte, lernen → lernte)",
+      "强动词": "变换元音 (gehen → ging, sprechen → sprach, schreiben → schrieb)",
+      "变位词尾": "-/-(e)st/-/-(e)n/-(e)t/-(e)n",
+      "用途": "书面叙述、讲故事；口语中 sein/haben 常用"
+    },
+    scene: "书面语、叙事、童话",
+    pitfalls: "强动词过去时需逐个记忆词干变换。混合动词 (denken → dachte, bringen → brachte) 同时变换元音和加 -te。",
+    tables: [
+      {
+        caption: "Präteritum 过去时变位",
+        headers: ["", "machen", "gehen", "sprechen", "denken"],
+        rows: [
+          ["ich", "machte", "ging", "sprach", "dachte"],
+          ["du", "machtest", "gingst", "sprachst", "dachtest"],
+          ["er/sie/es", "machte", "ging", "sprach", "dachte"],
+          ["wir", "machten", "gingen", "sprachen", "dachten"],
+          ["ihr", "machtet", "gingt", "spracht", "dachtet"],
+          ["sie/Sie", "machten", "gingen", "sprachen", "dachten"]
+        ]
+      }
+    ],
+    similar: [{ name: "现在完成时 Perfekt", desc: "口语中最常用的过去时态" }],
+    examples: [
+      { de: "Er machte die Hausaufgaben.", cn: "他做了作业。" },
+      { de: "Sie ging nach Hause.", cn: "她回家了。" },
+      { de: "Wir sprachen über das Problem.", cn: "我们讨论了这个问题。" }
+    ]
+  },
+  {
+    id: "a2-24", level: "A2", category: "时态",
+    name: "Perfekt 巩固（sein 动词清单）",
+    meaning: "巩固现在完成时，重点掌握用 sein 作助动词的动词：位移动词和状态变化动词。",
+    connection: {
+      "位移动词": "gehen, kommen, fahren, fliegen, reisen, laufen (用 sein)",
+      "状态变化": "aufstehen, einschlafen, aufwachen, sterben (用 sein)",
+      "haben 动词": "大多数及物动词、反身动词 (用 haben)",
+      "特殊情况": "bleiben, sein, werden 也用 sein"
+    },
+    scene: "口语中描述过去事件",
+    pitfalls: "表示'去某地来回'的动词如 schwimmen 可用 haben（强调动作）或 sein（强调位移）。reiten/fahren 同理。",
+    tables: [
+      {
+        caption: "Perfekt 助动词选择规则",
+        headers: ["类型", "助动词", "常见动词"],
+        rows: [
+          ["位移动词", "sein", "gehen, kommen, fahren, fliegen, laufen"],
+          ["状态变化", "sein", "aufstehen, einschlafen, aufwachen, sterben"],
+          ["及物动词", "haben", "machen, sehen, lesen, kaufen"],
+          ["反身动词", "haben", "sich freuen, sich waschen, sich beeilen"],
+          ["特殊", "sein", "bleiben, sein, werden"]
+        ]
+      }
+    ],
+    similar: [{ name: "Präteritum 强弱动词过去时", desc: "书面语过去时" }],
+    examples: [
+      { de: "Ich bin nach Berlin geflogen.", cn: "我飞去了柏林。" },
+      { de: "Er ist um 6 Uhr aufgestanden.", cn: "他六点起床了。" },
+      { de: "Wir haben den Film gesehen.", cn: "我们看了这部电影。" }
+    ]
+   }
+];
+
+/* ================================================================
+   等级数据（A1/A2 可用, B1-C1 为大纲预览）
+================================================================ */
+var LEVELS = [
+  { level: "A1", name: "A1 基础语法", desc: "入门必备语法点", available: true },
+  { level: "A2", name: "A2 初级语法", desc: "初级实用语法", available: true },
+  { level: "B1", name: "B1 中级语法", desc: "中级表达提升", available: false, preview: true, topics: [
+    { group: "时态", items: ["Präteritum 书面过去时（强弱动词）", "Plusquamperfekt 过去完成时（nachdem标志）", "Futur-II 初识（将来完成时）"] },
+    { group: "格与介词", items: ["第二格 Genitiv", "二格介词：wegen, während, trotz, statt", "名词第二格词尾 -s/-es；弱变化名词完整规则"] },
+    { group: "从句", items: ["dass/ob/W-宾语从句巩固", "关系从句 Relativsatz：1/3/4格关系代词；带介词的关系从句", "原因从句 weil", "时间从句：als, wenn, nachdem, bis, bevor", "条件从句 wenn", "让步从句 obwohl", "目的从句 damit"] },
+    { group: "zu-不定式", items: ["um…zu / ohne…zu / statt…zu + Infinitiv", "haben…zu, scheinen…zu（扩展zu+不定式）"] },
+    { group: "被动语态入门", items: ["过程被动态 Präsens-Passiv, Perfekt-Passiv", "带情态动词的被动态"] },
+    { group: "虚拟语气", items: ["Konjunktiv II 现在时入门, würde + Infinitiv"] },
+    { group: "代词与其他", items: ["es 的多种用法：形式主语、占位es、无人称句", "不定代词：man, etwas, nichts, alles, jemand, niemand", "情态小品词入门"] },
+    { group: "形容词", items: ["全套形容词三大家族变格：定冠词后、不定冠词后、零冠词后"] }
+  ]},
+  { level: "B2", name: "B2 中高级语法", desc: "中高级辨析", available: false, preview: true, topics: [
+    { group: "时态", items: ["六大直陈时态熟练运用；Futur-II", "情态动词主观用法：表推测"] },
+    { group: "从句进阶", items: ["第二格关系代词", "时间连词：sobald, seitdem, solange, während", "书面原因从句 da", "结果从句 so…dass", "方式从句 indem, dadurch…dass", "对比从句 während", "比较从句 als/wie"] },
+    { group: "分词与扩展不定式", items: ["第一分词 Partizip I，第二分词 Partizip II 作定语", "扩展不定式结构（长zu-不定式）"] },
+    { group: "被动语态全套", items: ["过程被动态全部时态", "状态被动态 Zustandspassiv：sein + P.II", "被动替代结构：sich lassen + Inf., sein…zu + Inf., man-Satz", "带情态动词的被动态"] },
+    { group: "虚拟语气", items: ["Konjunktiv II 过去时：对过去的非现实假设", "Konjunktiv I 第一虚拟式：间接引语入门"] },
+    { group: "B2独有重点", items: ["功能动词结构 Funktionsverbgefüge", "形容词支配第三格/第二格（reich an, fähig zu）"] }
+  ]},
+  { level: "C1", name: "C1 高级语法", desc: "高级书面表达", available: false, preview: true, topics: [
+    { group: "长定语结构", items: ["分词前置长定语（名词前扩展定语）：der gestern von mir gekaufte Stuhl", "分词从句、关系从句 ↔ 分词定语互相改写"] },
+    { group: "虚拟语气精通", items: ["Konjunktiv-I 完整时态，间接引语全套规则", "Konjunktiv-II 过去时非现实假设熟练运用；虚拟替代形式"] },
+    { group: "被动语态", items: ["所有被动变体、全部被动替代形式、书面语体被动"] },
+    { group: "高阶书面语法", items: ["书面第二格高频使用；形容词+第二格", "动词名词化 Nominalisierung（学术德语核心）", "从句名词化（das + 不定式 / dass-从句转为名词词组）", "破框结构 Ausklammerung", "es 的高级无人称用法", "情态小品词细微语义辨析"] }
+  ]}
+];
+
+/* ================================================================
+   状态管理
+================================================================ */
+var currentView = "overview";
+var currentLevel = "A1";
+var currentFilter = "全部";
+var currentGrammarId = null;
+var currentPreviewLevel = null;
+
+/* ================================================================
+   工具函数
+================================================================ */
+function el(id) { return document.getElementById(id); }
+
+function showView(name) {
+  currentView = name;
+  document.querySelectorAll(".view").forEach(function(v) { v.classList.remove("active"); });
+  var target = el("view" + name.charAt(0).toUpperCase() + name.slice(1));
+  if (target) target.classList.add("active");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function smartBack() {
+  if (currentView === "detail") {
+    showView("catalog");
+  } else if (currentView === "catalog" || currentView === "topics") {
+    showView("overview");
+  } else {
+    history.back();
+  }
+}
+
+function getGrammarById(id) {
+  for (var i = 0; i < GRAMMAR_DATA.length; i++) {
+    if (GRAMMAR_DATA[i].id === id) return GRAMMAR_DATA[i];
+  }
+  return null;
+}
+
+function getLevelData(level) {
+  for (var i = 0; i < LEVELS.length; i++) {
+    if (LEVELS[i].level === level) return LEVELS[i];
+  }
+  return null;
+}
+
+function getGrammarByLevel(level) {
+  return GRAMMAR_DATA.filter(function(g) { return g.level === level; });
+}
+
+function getCategories(level) {
+  var cats = ["全部"];
+  GRAMMAR_DATA.forEach(function(g) {
+    if (g.level === level && cats.indexOf(g.category) === -1) cats.push(g.category);
+  });
+  return cats;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/* ================================================================
+   总览页渲染
+================================================================ */
+function renderOverview() {
+  var grid = el("levelGrid");
+  grid.innerHTML = "";
+  LEVELS.forEach(function(lv) {
+    var card = document.createElement("div");
+    var cls = "level-card";
+    if (lv.available) cls += " available";
+    else if (lv.preview) cls += " preview";
+    else cls += " locked";
+    card.className = cls;
+
+    var count = lv.available ? getGrammarByLevel(lv.level).length + " 条语法" : "";
+    var soon = lv.available ? "" : (lv.preview ? '<span class="lv-soon">大纲预览</span>' : '<span class="lv-soon">即将上线</span>');
+    card.innerHTML =
+      '<span class="lv-badge">' + lv.level + "</span>" +
+      '<div class="lv-name">' + lv.name + "</div>" +
+      '<div class="lv-desc">' + lv.desc + "</div>" +
+      (count ? '<div class="lv-count">' + count + "</div>" : "") +
+      soon;
+
+    if (lv.available) {
+      card.addEventListener("click", function() {
+        currentLevel = lv.level;
+        currentFilter = "全部";
+        showView("catalog");
+        renderCatalog();
+      });
+    } else if (lv.preview) {
+      card.addEventListener("click", function() {
+        currentPreviewLevel = lv.level;
+        showView("topics");
+        renderTopics();
+      });
+    }
+    grid.appendChild(card);
+  });
+}
+
+/* ================================================================
+   目录页渲染
+================================================================ */
+function renderCatalog() {
+  el("bcLevel1").textContent = currentLevel + " 语法";
+  renderFilters();
+  renderGrammarList();
+}
+
+function renderFilters() {
+  var bar = el("filterBar");
+  bar.innerHTML = "";
+  var cats = getCategories(currentLevel);
+  cats.forEach(function(cat) {
+    var tag = document.createElement("button");
+    tag.className = "filter-tag" + (cat === currentFilter ? " active" : "");
+    tag.textContent = cat;
+    tag.addEventListener("click", function() {
+      currentFilter = cat;
+      renderFilters();
+      renderGrammarList();
+    });
+    bar.appendChild(tag);
+  });
+}
+
+function renderGrammarList() {
+  var list = el("grammarList");
+  list.innerHTML = "";
+  var levelData = getGrammarByLevel(currentLevel);
+  var filtered = currentFilter === "全部" ? levelData : levelData.filter(function(g) { return g.category === currentFilter; });
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty">该分类下暂无语法</div>';
+    return;
+  }
+  filtered.forEach(function(g) {
+    var item = document.createElement("div");
+    item.className = "grammar-item";
+    var num = g.id.replace(currentLevel.toLowerCase() + "-", "");
+    item.innerHTML =
+      '<div class="gi-num">' + num + "</div>" +
+      '<div class="gi-body">' +
+        '<div class="gi-name">' + g.name + '<span class="cat-pill">' + g.category + "</span></div>" +
+        '<div class="gi-meaning">' + g.meaning + "</div>" +
+      "</div>";
+    item.addEventListener("click", function() {
+      currentGrammarId = g.id;
+      showView("detail");
+      renderDetail();
+    });
+    list.appendChild(item);
+  });
+}
+
+/* ================================================================
+   详情页渲染
+================================================================ */
+function renderDetail() {
+  var g = getGrammarById(currentGrammarId);
+  if (!g) return;
+  var levelData = getGrammarByLevel(g.level);
+  var idx = -1;
+  for (var i = 0; i < levelData.length; i++) {
+    if (levelData[i].id === currentGrammarId) { idx = i; break; }
+  }
+  var prev = idx > 0 ? levelData[idx - 1] : null;
+  var next = idx < levelData.length - 1 ? levelData[idx + 1] : null;
+
+  var main = el("detailMain");
+
+  /* 表格渲染 */
+  var tablesHTML = "";
+  if (g.tables && g.tables.length > 0) {
+    tablesHTML = '<div class="detail-section"><div class="section-label">变位 / 变格表</div>';
+    g.tables.forEach(function(tbl) {
+      tablesHTML += renderTable(tbl);
+    });
+    tablesHTML += "</div>";
+  }
+
+  /* 易混语法 */
+  var similarHTML = "";
+  if (g.similar && g.similar.length > 0) {
+    similarHTML = '<div class="similar-list">';
+    g.similar.forEach(function(s) {
+      similarHTML += '<div class="similar-row"><div class="sr-name">' + s.name + '</div><div class="sr-desc">' + s.desc + "</div></div>";
+    });
+    similarHTML += "</div>";
+  }
+
+  /* 例句 */
+  var exHTML = '<div class="example-list">';
+  g.examples.forEach(function(ex) {
+    exHTML += '<div class="example-item"><div class="example-de">' + ex.de + '</div><div class="example-cn">' + ex.cn + "</div></div>";
+  });
+  exHTML += "</div>";
+
+  /* 导航 */
+  var navHTML = '<div class="detail-nav">';
+  if (prev) {
+    navHTML += '<button id="navPrev"><span class="nav-label">上一条</span><span class="nav-name">' + prev.name + "</span></button>";
+  } else {
+    navHTML += '<button disabled><span class="nav-label">上一条</span><span class="nav-name">—</span></button>';
+  }
+  if (next) {
+    navHTML += '<button id="navNext"><span class="nav-label">下一条</span><span class="nav-name">' + next.name + "</span></button>";
+  } else {
+    navHTML += '<button disabled><span class="nav-label">下一条</span><span class="nav-name">—</span></button>';
+  }
+  navHTML += "</div>";
+
+  main.innerHTML =
+    '<button class="back-btn" id="backToCatalog">← Zurück zum Katalog</button>' +
+    '<div class="detail-title">' +
+      '<div class="dt-name">' + g.name + "</div>" +
+      '<div class="dt-level">' + g.level + " · " + g.category + "</div>" +
+    "</div>" +
+    '<div class="detail-desc">' + g.meaning + "</div>" +
+    tablesHTML +
+    '<div class="detail-section"><div class="section-label">使用场景</div><div class="detail-desc" style="color:var(--text-soft);">' + g.scene + "</div></div>" +
+    '<div class="detail-section"><div class="section-label">易错点</div><div class="pitfall-box">' + g.pitfalls + "</div></div>" +
+    (similarHTML ? '<div class="detail-section"><div class="section-label">易混语法对比</div>' + similarHTML + "</div>" : "") +
+    '<div class="detail-section"><div class="section-label">例句</div>' + exHTML + "</div>" +
+    navHTML;
+
+  el("backToCatalog").addEventListener("click", function() {
+    showView("catalog");
+    renderCatalog();
+  });
+  if (prev) el("navPrev").addEventListener("click", function() { currentGrammarId = prev.id; renderDetail(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+  if (next) el("navNext").addEventListener("click", function() { currentGrammarId = next.id; renderDetail(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+}
+
+/* 通用表格渲染 */
+function renderTable(tbl) {
+  var html = '<div class="table-wrap">';
+  if (tbl.caption) html += '<div class="table-caption">' + tbl.caption + "</div>";
+  html += '<table class="grammar-table"><thead><tr>';
+  tbl.headers.forEach(function(h) {
+    html += "<th>" + h + "</th>";
+  });
+  html += "</tr></thead><tbody>";
+  tbl.rows.forEach(function(row) {
+    html += "<tr>";
+    row.forEach(function(cell, ci) {
+      if (ci === 0) html += '<th class="row-header">' + cell + "</th>";
+      else html += "<td>" + cell + "</td>";
+    });
+    html += "</tr>";
+  });
+  html += "</tbody></table></div>";
+  return html;
+}
+
+/* ================================================================
+   主题大纲页渲染（B1/B2/C1 预览）
+================================================================ */
+function renderTopics() {
+  var lv = getLevelData(currentPreviewLevel);
+  if (!lv || !lv.topics) return;
+  el("bcLevel2").textContent = lv.level + " 语法概览";
+  var content = el("topicsContent");
+  var html = '<div class="topics-intro">' + lv.name + ' · 内容尚在编写中，以下为语法大纲预览，后续将逐步补充详细解析。</div>';
+  lv.topics.forEach(function(group) {
+    html += '<div class="topics-group"><div class="topics-group-title">' + group.group + '</div><div class="topics-items">';
+    group.items.forEach(function(item) {
+      html += '<div class="topic-item"><span class="ti-dot">▸</span><span>' + item + "</span></div>";
+    });
+    html += "</div></div>";
+  });
+  content.innerHTML = html;
+}
+
+/* ================================================================
+   面包屑导航
+================================================================ */
+el("bcHome1").addEventListener("click", function() { showView("overview"); });
+el("bcHome2").addEventListener("click", function() { showView("overview"); });
+
+/* ================================================================
+   初始化
+================================================================ */
+renderOverview();
+</script>
+</body>
+</html>
