@@ -1,7 +1,9 @@
 import Link from "next/link"
 import { getAllPosts, getAllTags, getAllCategories } from "@/lib/posts"
+import { getAllMoments } from "@/lib/moments"
 import { PostCard } from "@/components/post-card"
 import { Typewriter } from "@/components/typewriter"
+import { HomeWidgets } from "@/components/home-widgets"
 import { siteConfig } from "@/lib/site-config"
 import { ArrowRight, BookOpen, Tag, FolderTree } from "lucide-react"
 
@@ -9,7 +11,11 @@ export default function HomePage() {
   const posts = getAllPosts()
   const tags = getAllTags()
   const categories = getAllCategories()
+  const moments = getAllMoments()
   const recentPosts = posts.slice(0, 4)
+  const lastUpdate = posts[0]?.date
+    ? new Date(posts[0].date).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" })
+    : "—"
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 md:py-20">
@@ -32,7 +38,10 @@ export default function HomePage() {
         </p>
       </section>
 
-      {/* 统计卡片 */}
+      {/* 四宫格小卡片：时钟 · 站点统计 · 日历 · 天气 */}
+      <HomeWidgets postsCount={posts.length} momentsCount={moments.length} lastUpdate={lastUpdate} />
+
+      {/* 快捷入口卡片 */}
       <section className="mb-16 grid grid-cols-3 gap-4">
         {[
           { icon: BookOpen, label: "文章", value: posts.length, href: "/blog" },

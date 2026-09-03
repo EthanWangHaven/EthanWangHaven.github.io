@@ -1,4 +1,5 @@
 import { getAllMoments } from "@/lib/moments"
+import { MomentUpload } from "@/components/moment-upload"
 import { MapPin, Calendar } from "lucide-react"
 
 export const metadata = {
@@ -11,7 +12,10 @@ export default function MomentsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 md:py-16">
-      <h1 className="mb-2 text-2xl font-bold md:text-3xl">Moments</h1>
+      <div className="mb-2 flex items-center justify-between">
+        <h1 className="text-2xl font-bold md:text-3xl">Moments</h1>
+        <MomentUpload />
+      </div>
       <p className="mb-8 text-sm text-[var(--text-light)]">
         记录生活中的美好瞬间
       </p>
