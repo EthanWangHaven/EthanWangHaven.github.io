@@ -151,6 +151,8 @@ export function Sidebar({ onSearchOpen }: SidebarProps) {
         >
           <Search size={20} className="text-[var(--text-light)]" />
         </button>
+        {/* 主题切换 */}
+        <ThemeToggle />
       </nav>
     </>
   )

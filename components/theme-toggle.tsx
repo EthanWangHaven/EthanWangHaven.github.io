@@ -11,14 +11,14 @@ export function ThemeToggle() {
 
   useEffect(() => setMounted(true), [])
 
-  if (!mounted) return <div className="h-11 w-11" />
+  if (!mounted) return <div className="h-10 w-10 md:h-11 md:w-11" />
 
   const isDark = theme === "dark"
 
   return (
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="group flex h-11 w-11 items-center justify-center rounded-full transition-all duration-300 hover:bg-white/[0.15] dark:hover:bg-white/[0.08]"
+      className="group flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 hover:bg-white/[0.15] dark:hover:bg-white/[0.08] md:h-11 md:w-11"
       aria-label="切换主题"
       title={isDark ? "浅色" : "深色"}
     >
