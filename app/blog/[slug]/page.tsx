@@ -2,6 +2,10 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import { getAllPosts, getPostBySlug, getReadingTime } from "@/lib/posts"
 import { MdxRenderer } from "@/components/mdx-renderer"
+import { TableOfContents } from "@/components/table-of-contents"
+import { ReadingProgress } from "@/components/reading-progress"
+import { BackToTop } from "@/components/back-to-top"
+import { extractHeadings } from "@/lib/extract-headings"
 import { ArrowLeft, Calendar, Clock, Tag } from "lucide-react"
 
 export async function generateStaticParams() {
@@ -26,9 +30,14 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   if (!post) notFound()
 
   const readingTime = getReadingTime(post.content)
+  const headings = extractHeadings(post.content)
 
   return (
-    <article className="mx-auto max-w-3xl px-6 py-12 md:py-16">
+    <>
+      <ReadingProgress />
+      <TableOfContents headings={headings} />
+      <BackToTop />
+      <article className="mx-auto ml-[10%] max-w-4xl px-6 py-12 md:py-16">
       {/* 返回按钮 */}
       <Link
         href="/blog"
@@ -103,5 +112,6 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
       {/* MDX 内容 */}
       <MdxRenderer content={post.content} />
     </article>
+    </>
   )
 }

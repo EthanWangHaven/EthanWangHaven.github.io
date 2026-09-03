@@ -44,10 +44,7 @@ export function Sidebar({ onSearchOpen }: SidebarProps) {
   return (
     <>
       {/* 桌面端：胶囊式竖向悬浮毛玻璃侧边栏 */}
-      <motion.aside
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      <aside
         className="fixed left-4 top-1/2 z-40 hidden -translate-y-1/2 flex-col items-center gap-1 rounded-full px-2 py-4 md:flex"
         style={{
           background: "var(--glass-bg)",
@@ -106,13 +103,10 @@ export function Sidebar({ onSearchOpen }: SidebarProps) {
           </button>
           <ThemeToggle />
         </div>
-      </motion.aside>
+      </aside>
 
       {/* 移动端：胶囊式悬浮毛玻璃底部导航 */}
-      <motion.nav
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      <nav
         className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full px-2 py-2 md:hidden"
         style={{
           background: "var(--glass-bg)",
@@ -157,7 +151,7 @@ export function Sidebar({ onSearchOpen }: SidebarProps) {
         >
           <Search size={20} className="text-[var(--text-light)]" />
         </button>
-      </motion.nav>
+      </nav>
     </>
   )
 }

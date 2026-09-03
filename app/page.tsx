@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { getAllPosts, getAllTags, getAllCategories } from "@/lib/posts"
 import { PostCard } from "@/components/post-card"
+import { Typewriter } from "@/components/typewriter"
 import { siteConfig } from "@/lib/site-config"
 import { ArrowRight, BookOpen, Tag, FolderTree } from "lucide-react"
 
@@ -27,7 +28,7 @@ export default function HomePage() {
           {siteConfig.title}
         </h1>
         <p className="text-base text-[var(--text-light)] md:text-lg">
-          {siteConfig.description}
+          <Typewriter text={siteConfig.description} />
         </p>
       </section>
 
