@@ -5,7 +5,11 @@ import type { MomentMeta } from "./types"
 
 const MOMENTS_DIR = path.join(process.cwd(), "content", "moments")
 
+let _momentsCache: MomentMeta[] | null = null
+
 export function getAllMoments(): MomentMeta[] {
+  if (_momentsCache) return _momentsCache
+
   if (!fs.existsSync(MOMENTS_DIR)) return []
 
   const files = fs.readdirSync(MOMENTS_DIR).filter((f) => f.endsWith(".mdx") || f.endsWith(".md"))
@@ -27,7 +31,8 @@ export function getAllMoments(): MomentMeta[] {
     } as MomentMeta
   })
 
-  return moments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  _momentsCache = moments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  return _momentsCache
 }
 
 export function getMomentBySlug(slug: string): MomentMeta | null {

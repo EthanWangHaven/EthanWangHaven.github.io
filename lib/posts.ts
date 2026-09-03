@@ -6,6 +6,8 @@ import { getReadingTime, getWordCount } from "./types"
 
 const BLOG_DIR = path.join(process.cwd(), "content", "blog")
 
+let _postsCache: PostMeta[] | null = null
+
 function generateExcerpt(content: string, maxLen = 100): string {
   const text = content
     .replace(/^#{1,6}\s+/gm, "")
@@ -18,6 +20,8 @@ function generateExcerpt(content: string, maxLen = 100): string {
 }
 
 export function getAllPosts(): PostMeta[] {
+  if (_postsCache) return _postsCache
+
   if (!fs.existsSync(BLOG_DIR)) return []
 
   const files = fs.readdirSync(BLOG_DIR).filter((f) => f.endsWith(".mdx") || f.endsWith(".md"))
@@ -40,9 +44,11 @@ export function getAllPosts(): PostMeta[] {
     } as PostMeta
   })
 
-  return posts
+  _postsCache = posts
     .filter((p) => !p.draft)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  return _postsCache
 }
 
 export function getPostBySlug(slug: string): PostMeta | null {
