@@ -239,13 +239,37 @@ export function MusicPlayer() {
     setIsPlaying(true)
   }, [songs.length])
 
-  const seek = (e: React.MouseEvent<HTMLDivElement>) => {
+  // ── Progress bar drag support ──
+  const seekBarRef = useRef<HTMLDivElement>(null)
+  const [seeking, setSeeking] = useState(false)
+
+  const seekToX = useCallback((clientX: number) => {
     const audio = audioRef.current
-    if (!audio || !duration) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const pct = (e.clientX - rect.left) / rect.width
+    const bar = seekBarRef.current
+    if (!audio || !duration || !bar) return
+    const rect = bar.getBoundingClientRect()
+    const pct = (clientX - rect.left) / rect.width
     audio.currentTime = Math.max(0, Math.min(1, pct)) * duration
-  }
+    setCurrentTime(audio.currentTime)
+  }, [duration])
+
+  const onSeekBarPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setSeeking(true)
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    seekToX(e.clientX)
+  }, [seekToX])
+
+  const onSeekBarPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!seeking) return
+    seekToX(e.clientX)
+  }, [seeking, seekToX])
+
+  const onSeekBarPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!seeking) return
+    ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+    setSeeking(false)
+  }, [seeking])
 
   const cycleLoop = () => setLoop((l) => (l === "none" ? "all" : l === "all" ? "one" : "none"))
 
@@ -295,7 +319,14 @@ export function MusicPlayer() {
 
   const progressBar = () => (
     <div className="w-full">
-      <div className="group relative h-1.5 cursor-pointer rounded-full" style={{ background: "rgba(0,0,0,0.06)" }} onClick={seek}>
+      <div
+        ref={seekBarRef}
+        className="group relative h-1.5 cursor-pointer touch-none rounded-full"
+        style={{ background: "rgba(0,0,0,0.06)" }}
+        onPointerDown={onSeekBarPointerDown}
+        onPointerMove={onSeekBarPointerMove}
+        onPointerUp={onSeekBarPointerUp}
+      >
         <div
           className="absolute left-0 top-0 h-full rounded-full"
           style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%`, background: `linear-gradient(90deg, ${A}, ${AD})` }}
@@ -399,7 +430,12 @@ export function MusicPlayer() {
         }
       `}</style>
 
-      <audio ref={audioRef} src={currentSong.audioUrl} preload="metadata" />
+      <audio
+        ref={audioRef}
+        src={currentSong.audioUrl}
+        preload="metadata"
+        onError={(e) => console.error("[MusicPlayer] Audio error:", e.currentTarget.error, "src:", currentSong.audioUrl)}
+      />
 
       {/* ── Collapsed: draggable floating button ── */}
       {mode === "collapsed" && (
