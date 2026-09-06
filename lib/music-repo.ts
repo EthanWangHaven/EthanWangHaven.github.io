@@ -185,10 +185,12 @@ export async function addSongToRepo(input: AddSongInput): Promise<Song> {
   if (!safeId) throw new Error("歌曲 id 无效")
   const safeExt = (input.ext || "mp3").replace(/[^a-z0-9]/gi, "").slice(0, 5)
   const filename = `${safeId}.${safeExt}`
-  const commitMsg = `add song: ${input.title} - ${input.artist}`
+  // 音源提交与歌单提交分开：音源提交不触发部署（deploy.yml paths-ignore）
+  const audioMsg = `music: upload audio ${safeId}`
+  const playlistMsg = `add song: ${input.title} - ${input.artist}`
 
   // 1. 上传音源
-  await putRepoFile(`public/audio/${filename}`, await blobToBase64(input.audio), commitMsg)
+  await putRepoFile(`public/audio/${filename}`, await blobToBase64(input.audio), audioMsg)
 
   // 2. 追加歌单
   const { songs, sha } = await fetchPlaylistFromRepo()
@@ -203,9 +205,9 @@ export async function addSongToRepo(input: AddSongInput): Promise<Song> {
     lyrics: [],
   }
   const updated = JSON.stringify([...songs, newSong], null, 2) + "\n"
-  await putRepoFile("data/playlist.json", encodeBase64Utf8(updated), commitMsg, sha)
+  await putRepoFile("data/playlist.json", encodeBase64Utf8(updated), playlistMsg, sha)
   // 线上副本：public/ 随静态导出部署，Sisyphus APP 同步功能拉取该端点
-  await putRepoFile("public/data/playlist.json", encodeBase64Utf8(updated), commitMsg)
+  await putRepoFile("public/data/playlist.json", encodeBase64Utf8(updated), playlistMsg)
 
   return newSong
 }

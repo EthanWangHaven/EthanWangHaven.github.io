@@ -2,6 +2,9 @@ name: Build & Deploy Next.js Blog
 on:
   push:
     branches: [main]
+    # 纯音源提交不触发部署，歌单提交时音源已在仓库中
+    paths-ignore:
+      - "public/audio/**"
   workflow_dispatch:
 permissions:
   contents: read
