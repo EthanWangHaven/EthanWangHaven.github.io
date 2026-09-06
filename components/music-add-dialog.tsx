@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { X, Loader2, CheckCircle2, AlertCircle, Upload, Link2, FileAudio, Plus } from "lucide-react"
 import type { Song } from "@/lib/music-config"
-import { resolveNeteaseSong, downloadAudio, addSongToRepo } from "@/lib/music-repo"
+import { resolveNeteaseSong, downloadAudio, addSongToRepo, extractSongId } from "@/lib/music-repo"
 
 /* ============================================================
  * 添加音乐弹窗
@@ -146,7 +146,7 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
         }
         audio = resolved.blob
         ext = resolved.ext
-        id = neteaseId.trim()
+        id = extractSongId(neteaseId)
       } else {
         if (!audioFile) {
           setErrorMsg("请选择音源文件")

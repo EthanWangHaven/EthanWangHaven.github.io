@@ -177,10 +177,14 @@ export interface AddSongInput {
 /** 将新歌提交到仓库：先传音源，再追加歌单，两次提交由 Actions 自动部署 */
 export async function addSongToRepo(input: AddSongInput): Promise<Song> {
   if (!GITHUB_CONFIG.token) {
-    throw new Error("未配置 GitHub Token，请在 lib/github-config.ts 中填写")
+    throw new Error("未配置 GitHub Token，请检查 NEXT_PUBLIC_GH_TOKEN 配置")
   }
 
-  const filename = `${input.id}.${input.ext}`
+  // id 仅保留安全文件名字符，防止链接等输入破坏 API 路径
+  const safeId = input.id.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64)
+  if (!safeId) throw new Error("歌曲 id 无效")
+  const safeExt = (input.ext || "mp3").replace(/[^a-z0-9]/gi, "").slice(0, 5)
+  const filename = `${safeId}.${safeExt}`
   const commitMsg = `add song: ${input.title} - ${input.artist}`
 
   // 1. 上传音源
@@ -188,11 +192,11 @@ export async function addSongToRepo(input: AddSongInput): Promise<Song> {
 
   // 2. 追加歌单
   const { songs, sha } = await fetchPlaylistFromRepo()
-  if (songs.some((s) => s.id === input.id)) {
+  if (songs.some((s) => s.id === safeId)) {
     throw new Error("歌单中已存在相同 id 的歌曲")
   }
   const newSong: Song = {
-    id: input.id,
+    id: safeId,
     title: input.title,
     artist: input.artist,
     audioUrl: `/audio/${filename}`,
