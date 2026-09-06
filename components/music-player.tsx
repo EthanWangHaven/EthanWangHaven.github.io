@@ -4,9 +4,10 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import {
   Play, Pause, SkipBack, SkipForward,
   Volume2, VolumeX, Repeat, Repeat1,
-  Maximize2, Minimize2, X, Music,
+  Maximize2, Minimize2, X, Music, Plus,
 } from "lucide-react"
 import { playlist as defaultPlaylist, type Song } from "@/lib/music-config"
+import { MusicAddDialog } from "@/components/music-add-dialog"
 
 function formatTime(s: number) {
   if (!isFinite(s) || s < 0) return "00:00"
@@ -38,7 +39,7 @@ export function MusicPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null)
   const lyricsRef = useRef<HTMLDivElement>(null)
 
-  const [songs] = useState<Song[]>(defaultPlaylist)
+  const [songs, setSongs] = useState<Song[]>(defaultPlaylist)
   const [mode, setMode] = useState<Mode>("collapsed")
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -48,6 +49,7 @@ export function MusicPlayer() {
   const [muted, setMuted] = useState(false)
   const [loop, setLoop] = useState<"none" | "all" | "one">("none")
   const [activeTab, setActiveTab] = useState<"lyrics" | "playlist">("lyrics")
+  const [showAddDialog, setShowAddDialog] = useState(false)
   const [activeLyricIndex, setActiveLyricIndex] = useState(-1)
 
   // ── Drag state ──
@@ -276,6 +278,11 @@ export function MusicPlayer() {
   const playSongAt = (idx: number) => {
     setCurrentIndex(idx)
     setIsPlaying(true)
+  }
+
+  // 弹窗添加成功：本地同步追加（音源需等 Actions 部署完成后可播放）
+  const handleSongAdded = (song: Song) => {
+    setSongs((prev) => [...prev, song])
   }
 
   const cardStyle = {
@@ -542,6 +549,17 @@ export function MusicPlayer() {
                 >
                   歌单
                 </button>
+                {activeTab === "playlist" && (
+                  <button
+                    onClick={() => setShowAddDialog(true)}
+                    className="ml-auto flex h-8 w-8 items-center justify-center rounded-full border transition-all hover:scale-105"
+                    style={{ borderColor: "var(--glass-border)", color: "var(--m-text-light)" }}
+                    aria-label="添加音乐"
+                    title="添加音乐"
+                  >
+                    <Plus size={16} />
+                  </button>
+                )}
               </div>
 
               <div className="flex-1 px-4 pb-4" style={{ minHeight: "260px" }}>
@@ -551,16 +569,22 @@ export function MusicPlayer() {
                     className="h-[300px] overflow-y-auto rounded-2xl px-4 py-4"
                     style={{ maskImage: "linear-gradient(180deg, transparent 0%, black 15%, black 85%, transparent 100%)" }}
                   >
-                    {currentSong.lyrics.map((line, i) => (
-                      <div
-                        key={i}
-                        data-lyric-idx={i}
-                        className="py-2 text-center text-sm transition-all duration-300"
-                        style={{ color: activeLyricIndex === i ? A : "var(--m-text-muted)", fontWeight: activeLyricIndex === i ? 700 : 400 }}
-                      >
-                        {line.text || "\u00A0"}
+                    {currentSong.lyrics.length === 0 ? (
+                      <div className="flex h-full items-center justify-center text-sm" style={{ color: "var(--m-text-muted)" }}>
+                        暂无歌词
                       </div>
-                    ))}
+                    ) : (
+                      currentSong.lyrics.map((line, i) => (
+                        <div
+                          key={i}
+                          data-lyric-idx={i}
+                          className="py-2 text-center text-sm transition-all duration-300"
+                          style={{ color: activeLyricIndex === i ? "var(--m-text)" : "var(--m-text-muted)", fontWeight: activeLyricIndex === i ? 700 : 400 }}
+                        >
+                          {line.text || "\u00A0"}
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
 
@@ -571,13 +595,13 @@ export function MusicPlayer() {
                         key={song.id}
                         onClick={() => playSongAt(idx)}
                         className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:opacity-90"
-                        style={idx === currentIndex ? { background: AL, color: A } : { color: "var(--m-text)" }}
+                        style={idx === currentIndex ? { background: AL, color: "var(--m-text)" } : { color: "var(--m-text)" }}
                       >
                         <span className="w-6 text-center text-xs tabular-nums" style={{ color: "var(--m-text-muted)" }}>
                           {idx === currentIndex && isPlaying ? (
                             <span className="flex h-3 items-end gap-0.5">
                               {[0, 1].map((b) => (
-                                <span key={b} className="w-0.5 rounded-full" style={{ background: A, animation: `eqBar 0.6s ease-in-out ${b * 0.1}s infinite alternate` }} />
+                                <span key={b} className="w-0.5 rounded-full" style={{ background: "var(--m-text)", animation: `eqBar 0.6s ease-in-out ${b * 0.1}s infinite alternate` }} />
                               ))}
                             </span>
                           ) : (idx + 1)}
@@ -586,7 +610,7 @@ export function MusicPlayer() {
                           <div className="truncate text-sm font-medium">{song.title}</div>
                           <div className="truncate text-xs" style={{ color: "var(--m-text-muted)" }}>{song.artist}</div>
                         </div>
-                        {idx === currentIndex && <Music size={14} className="shrink-0" style={{ color: A }} />}
+                        {idx === currentIndex && <Music size={14} className="shrink-0" style={{ color: "var(--m-text)" }} />}
                       </button>
                     ))}
                   </div>
@@ -596,6 +620,13 @@ export function MusicPlayer() {
           </div>
         </div>
       )}
+
+      {/* ── 添加音乐弹窗 ── */}
+      <MusicAddDialog
+        open={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+        onAdded={handleSongAdded}
+      />
     </>
   )
 }

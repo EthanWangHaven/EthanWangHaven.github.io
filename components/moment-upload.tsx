@@ -2,20 +2,13 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Plus, X, Upload, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
+import { GITHUB_CONFIG, githubApiUrl } from "@/lib/github-config"
 
 /* ============================================================
  * Moment 上传组件
  * 通过 GitHub REST API 直接提交 .mdx 文件和图片到仓库
- * 需要 GitHub Fine-grained Token (contents:write)
+ * Token 等配置见 lib/github-config.ts
  * ============================================================ */
-
-// ── 配置：在下方填写你的 GitHub Token ──
-const GITHUB_CONFIG = {
-  token: "", // 在此填入你的 GitHub Fine-grained Token
-  owner: "EthanWangHaven",
-  repo: "EthanWangHaven.github.io",
-  branch: "main",
-}
 
 type Status = "idle" | "uploading" | "success" | "error"
 
@@ -97,9 +90,7 @@ export function MomentUpload() {
         const imagePath = `public/img/moments/${slug}.${ext}`
         const base64 = await fileToBase64(imageFile)
 
-        const imgRes = await fetch(
-          `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${imagePath}`,
-          {
+        const imgRes = await fetch(githubApiUrl(imagePath), {
             method: "PUT",
             headers: {
               Authorization: `Bearer ${GITHUB_CONFIG.token}`,
@@ -126,22 +117,19 @@ export function MomentUpload() {
 
       const base64Mdx = btoa(unescape(encodeURIComponent(mdxContent)))
 
-      const mdxRes = await fetch(
-        `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${mdxPath}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${GITHUB_CONFIG.token}`,
-            "Content-Type": "application/json",
-            Accept: "application/vnd.github+json",
-          },
-          body: JSON.stringify({
-            message: `add moment: ${title}`,
-            content: base64Mdx,
-            branch: GITHUB_CONFIG.branch,
-          }),
-        }
-      )
+      const mdxRes = await fetch(githubApiUrl(mdxPath), {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${GITHUB_CONFIG.token}`,
+          "Content-Type": "application/json",
+          Accept: "application/vnd.github+json",
+        },
+        body: JSON.stringify({
+          message: `add moment: ${title}`,
+          content: base64Mdx,
+          branch: GITHUB_CONFIG.branch,
+        }),
+      })
 
       if (!mdxRes.ok) {
         const err = await mdxRes.json()
