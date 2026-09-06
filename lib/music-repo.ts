@@ -5,7 +5,7 @@ import type { Song } from "@/lib/music-config"
  * 音乐入库工具：
  * 1. 通过 Meting 公共实例解析网易云歌曲 id（歌名/歌手/音源直链）
  * 2. 下载音源（直连失败时自动尝试公共跨域代理）
- * 3. 通过 GitHub Contents API 提交：音源 → public/audio/，歌单 → data/playlist.json
+ * 3. 通过 GitHub Contents API 提交：音源 → public/audio/，歌单 → data/playlist.json + public/data/（线上副本，供 APP 同步拉取）
  *    提交后由 .github/workflows/deploy.yml 自动构建部署（约 1-2 分钟生效）
  * ============================================================ */
 
@@ -204,6 +204,8 @@ export async function addSongToRepo(input: AddSongInput): Promise<Song> {
   }
   const updated = JSON.stringify([...songs, newSong], null, 2) + "\n"
   await putRepoFile("data/playlist.json", encodeBase64Utf8(updated), commitMsg, sha)
+  // 线上副本：public/ 随静态导出部署，Sisyphus APP 同步功能拉取该端点
+  await putRepoFile("public/data/playlist.json", encodeBase64Utf8(updated), commitMsg)
 
   return newSong
 }
