@@ -197,7 +197,7 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center"
       style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(4px)" }}
-      onClick={requestClose}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) requestClose() }}
     >
       <div
         className="w-[min(440px,90vw)] overflow-hidden rounded-3xl p-6"
@@ -249,7 +249,7 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
                     value={neteaseId}
                     onChange={(e) => handleIdChange(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && phase !== "resolving") handleResolve() }}
-                    placeholder="例如 2707652860"
+                    placeholder="歌曲 id 或完整链接，如 https://music.163.com/song?id=2707652860"
                     disabled={busy}
                     className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm outline-none transition-colors disabled:opacity-60"
                     style={inputStyle}
@@ -305,7 +305,7 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
                 type="text"
                 value={artist}
                 onChange={(e) => setArtist(e.target.value)}
-                placeholder="歌手 / 艺术家"
+                placeholder="歌手"
                 disabled={busy}
                 className="w-full rounded-xl border px-3 py-2 text-sm outline-none transition-colors disabled:opacity-60"
                 style={inputStyle}

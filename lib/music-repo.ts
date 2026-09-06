@@ -19,11 +19,25 @@ export interface ResolvedSong {
   ext: string // 音源扩展名，如 mp3 / flac / m4a
 }
 
+/** 从输入中提取网易云歌曲 id：支持纯数字 id 或完整歌曲链接（含分享链接） */
+export function extractSongId(input: string): string {
+  const raw = input.trim()
+  if (/^\d+$/.test(raw)) return raw
+  if (/song\?id=(\d+)/.test(raw)) return raw.match(/song\?id=(\d+)/)![1]
+  // 常见非歌曲页面，给出针对性提示
+  if (/artist\?id=\d+/.test(raw)) throw new Error("这是歌手主页链接，请打开具体歌曲页面，复制歌曲链接或分享链接后再试")
+  if (/album\?id=\d+/.test(raw)) throw new Error("这是专辑页面链接，请打开具体歌曲页面，复制歌曲链接或分享链接后再试")
+  if (/playlist\?id=\d+/.test(raw)) throw new Error("这是歌单页面链接，请打开具体歌曲页面，复制歌曲链接或分享链接后再试")
+  if (/^https?:\/\//i.test(raw)) throw new Error("无法从该链接中识别歌曲 id，请粘贴歌曲页面链接或直接输入数字 id")
+  throw new Error("请输入数字歌曲 id 或歌曲链接")
+}
+
 /** 解析网易云歌曲 id */
 export async function resolveNeteaseSong(id: string): Promise<ResolvedSong> {
+  const songId = extractSongId(id)
   let res: Response
   try {
-    res = await fetch(`${METING_API}?type=song&id=${encodeURIComponent(id)}`)
+    res = await fetch(`${METING_API}?type=song&id=${encodeURIComponent(songId)}`)
   } catch {
     throw new Error("解析服务连接失败，请稍后重试或改用「上传音源文件」")
   }
