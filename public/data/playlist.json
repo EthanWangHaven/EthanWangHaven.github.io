@@ -5655,5 +5655,25 @@
         "text": "出品：青云LAB"
       }
     ]
+  },
+  {
+    "id": "1399123309",
+    "title": "Miyazaki Mountain",
+    "artist": "Philter",
+    "audioUrl": "/audio/1399123309.mp3",
+    "lyrics": [
+      {
+        "time": 0,
+        "text": "作词 : /"
+      },
+      {
+        "time": 1,
+        "text": "作曲 : Magnus Gangstad Jørgensen"
+      },
+      {
+        "time": 5,
+        "text": "纯音乐，请欣赏"
+      }
+    ]
   }
 ]
