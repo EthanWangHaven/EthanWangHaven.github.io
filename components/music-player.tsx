@@ -38,6 +38,8 @@ const MUSIC = {
 export function MusicPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null)
   const lyricsRef = useRef<HTMLDivElement>(null)
+  // 切歌后是否自动续播（用 ref 而非 isPlaying 状态，避免 pause 事件时序竞争丢播放）
+  const autoPlayRef = useRef(false)
 
   const [songs, setSongs] = useState<Song[]>(defaultPlaylist)
   const [mode, setMode] = useState<Mode>("collapsed")
@@ -85,6 +87,7 @@ export function MusicPlayer() {
         audio.play()
       } else if (loop === "all" || currentIndex < songs.length - 1) {
         // 列表循环绕回首尾；顺序模式播到最后一首才停
+        autoPlayRef.current = true
         setCurrentIndex(loop === "all" ? (currentIndex + 1) % songs.length : currentIndex + 1)
       } else {
         setIsPlaying(false)
@@ -108,11 +111,15 @@ export function MusicPlayer() {
     }
   }, [loop, currentIndex, songs.length])
 
+  // 切歌后：src 属性更新时浏览器会自动加载新资源，无需手动 load()
+  // （手动 load 会额外触发 pause 事件、并可能中断 play promise，导致随机停止）
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
-    audio.load()
-    if (isPlaying) audio.play().catch(() => {})
+    if (autoPlayRef.current) {
+      autoPlayRef.current = false
+      audio.play().catch(() => setIsPlaying(false))
+    }
   }, [currentIndex])
 
   useEffect(() => {
@@ -233,11 +240,13 @@ export function MusicPlayer() {
   }, [isPlaying])
 
   const nextSong = useCallback(() => {
+    autoPlayRef.current = true
     setCurrentIndex((i) => (i + 1) % songs.length)
     setIsPlaying(true)
   }, [songs.length])
 
   const prevSong = useCallback(() => {
+    autoPlayRef.current = true
     setCurrentIndex((i) => (i - 1 + songs.length) % songs.length)
     setIsPlaying(true)
   }, [songs.length])
@@ -277,6 +286,13 @@ export function MusicPlayer() {
   const cycleLoop = () => setLoop((l) => (l === "none" ? "all" : l === "all" ? "one" : "none"))
 
   const playSongAt = (idx: number) => {
+    if (idx === currentIndex) {
+      // 点当前歌曲：直接续播
+      audioRef.current?.play().catch(() => {})
+      setIsPlaying(true)
+      return
+    }
+    autoPlayRef.current = true
     setCurrentIndex(idx)
     setIsPlaying(true)
   }
