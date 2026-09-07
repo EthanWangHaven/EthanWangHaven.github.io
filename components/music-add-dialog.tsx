@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect } from "react"
 import { X, Loader2, CheckCircle2, AlertCircle, Upload, Link2, FileAudio, Plus } from "lucide-react"
-import type { Song } from "@/lib/music-config"
-import { resolveNeteaseSong, downloadAudio, addSongToRepo, extractSongId } from "@/lib/music-repo"
+import type { LyricLine, Song } from "@/lib/music-config"
+import { resolveNeteaseSong, downloadAudio, addSongToRepo, extractSongId, searchLyrics, fetchLyricsById } from "@/lib/music-repo"
 
 /* ============================================================
  * 添加音乐弹窗
@@ -36,6 +36,7 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
   const [phaseText, setPhaseText] = useState("")
   const [notice, setNotice] = useState("")
   const [errorMsg, setErrorMsg] = useState("")
+  const [matchedLyrics, setMatchedLyrics] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 监听主题变化
@@ -63,6 +64,7 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
     setPhaseText("")
     setNotice("")
     setErrorMsg("")
+    setMatchedLyrics(null)
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
@@ -157,12 +159,23 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
         ext = audioFile.name.split(".").pop()?.toLowerCase() || "mp3"
         id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
       }
+
+      // 自动匹配歌词：id 模式直接取该 id 的歌词；上传模式按歌名+歌手检索（失败不阻塞提交）
+      let lyrics: LyricLine[] = []
+      setPhaseText("匹配歌词中...")
+      try {
+        lyrics = mode === "id" ? await fetchLyricsById(id) : await searchLyrics(title.trim(), artist.trim())
+      } catch {}
+      setMatchedLyrics(lyrics.length)
+
+      setPhaseText("提交到 GitHub 中...")
       const song = await addSongToRepo({
         id,
         title: title.trim(),
         artist: artist.trim(),
         audio,
         ext,
+        lyrics,
       })
       setPhase("success")
       onAdded(song)
@@ -227,6 +240,11 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
           <div className="flex flex-col items-center gap-3 py-8">
             <CheckCircle2 size={48} className="text-green-500" />
             <p className="text-sm font-medium">已提交到仓库</p>
+            <p className="text-xs" style={{ color: "var(--m-text-muted)" }}>
+              {matchedLyrics && matchedLyrics > 0
+                ? `已自动匹配 ${matchedLyrics} 行歌词`
+                : "未匹配到歌词，可后续手动补充"}
+            </p>
             <p className="text-xs" style={{ color: "var(--m-text-muted)" }}>
               GitHub Actions 部署完成后即可播放（约 1-2 分钟）
             </p>
