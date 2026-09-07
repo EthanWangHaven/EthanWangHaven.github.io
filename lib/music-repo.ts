@@ -156,15 +156,16 @@ async function lrclibSearch(query: string): Promise<LrclibHit[]> {
 
 /** 在候选中挑选最匹配且带同步歌词的条目（歌名相等 > 包含，歌手匹配加分） */
 function pickBestLyric(hits: LrclibHit[], title: string, artist: string): LrclibHit | undefined {
-  const nt = normalizeName(title)
-  const na = normalizeName(artist)
+  // LRCLIB 华语歌词多为繁体收录，简体/繁体都要参与评分匹配
+  const nts = [normalizeName(title), normalizeName(toTraditional(title))].filter(Boolean)
+  const nas = [normalizeName(artist), normalizeName(toTraditional(artist))].filter(Boolean)
   let best: LrclibHit | undefined
   let bestScore = 0
   for (const hit of hits) {
     if (!hit.syncedLyrics) continue
     const name = normalizeName(hit.trackName ?? "")
-    let score = name === nt ? 2 : name.includes(nt) ? 1 : 0
-    if (score > 0 && na && normalizeName(hit.artistName ?? "").includes(na)) score += 1
+    let score = nts.includes(name) ? 2 : nts.some((t) => name.includes(t)) ? 1 : 0
+    if (score > 0 && nas.length && nas.some((a) => normalizeName(hit.artistName ?? "").includes(a))) score += 1
     if (score > bestScore) {
       best = hit
       bestScore = score
