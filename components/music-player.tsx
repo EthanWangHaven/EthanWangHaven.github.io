@@ -83,8 +83,9 @@ export function MusicPlayer() {
       if (loop === "one") {
         audio.currentTime = 0
         audio.play()
-      } else if (loop === "all") {
-        setCurrentIndex((i) => (i + 1) % songs.length)
+      } else if (loop === "all" || currentIndex < songs.length - 1) {
+        // 列表循环绕回首尾；顺序模式播到最后一首才停
+        setCurrentIndex(loop === "all" ? (currentIndex + 1) % songs.length : currentIndex + 1)
       } else {
         setIsPlaying(false)
       }
@@ -105,7 +106,7 @@ export function MusicPlayer() {
       audio.removeEventListener("play", onPlay)
       audio.removeEventListener("pause", onPause)
     }
-  }, [loop, songs.length])
+  }, [loop, currentIndex, songs.length])
 
   useEffect(() => {
     const audio = audioRef.current
