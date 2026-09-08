@@ -3,7 +3,7 @@
     "id": "2707652860",
     "title": "半句再见",
     "artist": "孙燕姿",
-    "audioUrl": "\/audio\/banjuzaijian.mp3",
+    "audioUrl": "/audio/banjuzaijian.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -167,7 +167,7 @@
     "id": "3403344548",
     "title": "Cry for me",
     "artist": "Michita",
-    "audioUrl": "\/audio\/cry-for-me.mp3",
+    "audioUrl": "/audio/cry-for-me.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -259,7 +259,7 @@
     "id": "1989506149",
     "title": "最好的时光",
     "artist": "安溥",
-    "audioUrl": "\/audio\/best-time.mp3",
+    "audioUrl": "/audio/best-time.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -367,7 +367,7 @@
     "id": "2154520553",
     "title": "Marry Top Barry",
     "artist": "INDEcompany",
-    "audioUrl": "\/audio\/marry-top-barry.mp3",
+    "audioUrl": "/audio/marry-top-barry.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -399,7 +399,7 @@
     "id": "569200210",
     "title": "给你给我",
     "artist": "毛不易",
-    "audioUrl": "\/audio\/give-you-give-me.mp3",
+    "audioUrl": "/audio/give-you-give-me.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -531,7 +531,7 @@
     "id": "2146002926",
     "title": "不要说话",
     "artist": "陈奕迅",
-    "audioUrl": "\/audio\/buyao-shuohua.mp3",
+    "audioUrl": "/audio/buyao-shuohua.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -623,7 +623,7 @@
     "id": "2099014638",
     "title": "在你的身边 (伴奏)",
     "artist": "盛哲",
-    "audioUrl": "\/audio\/ni-shenbian.mp3",
+    "audioUrl": "/audio/ni-shenbian.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -655,7 +655,7 @@
     "id": "432698831",
     "title": "我离孤单几公里",
     "artist": "华晨宇",
-    "audioUrl": "\/audio\/guli.mp3",
+    "audioUrl": "/audio/guli.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -743,7 +743,7 @@
     "id": "2161934816",
     "title": "向阳而生",
     "artist": "华晨宇",
-    "audioUrl": "\/audio\/xiangyang.mp3",
+    "audioUrl": "/audio/xiangyang.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -843,7 +843,7 @@
     "id": "394485",
     "title": "思念是一种病 (live)",
     "artist": "张震岳",
-    "audioUrl": "\/audio\/sinian.mp3",
+    "audioUrl": "/audio/sinian.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -939,7 +939,7 @@
     "id": "483378334",
     "title": "浴室",
     "artist": "deca joins",
-    "audioUrl": "\/audio\/483378334.mp3",
+    "audioUrl": "/audio/483378334.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -1087,11 +1087,11 @@
     "id": "1313588198",
     "title": "Yellow",
     "artist": "Amber Leigh Irish",
-    "audioUrl": "\/audio\/1313588198.mp3",
+    "audioUrl": "/audio/1313588198.mp3",
     "lyrics": [
       {
         "time": 0,
-        "text": "作曲 : Jonathan Mark Buckland\/Guy Rupert Berryman\/William Champion\/Christopher Anthony John Martin"
+        "text": "作曲 : Jonathan Mark Buckland/Guy Rupert Berryman/William Champion/Christopher Anthony John Martin"
       },
       {
         "time": 0,
@@ -1267,7 +1267,7 @@
     "id": "2098103269",
     "title": "奇遇记",
     "artist": "生鱼片",
-    "audioUrl": "\/audio\/2098103269.mp3",
+    "audioUrl": "/audio/2098103269.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -1407,7 +1407,7 @@
     "id": "2717670823",
     "title": "爱情讯息",
     "artist": "汪珂楠",
-    "audioUrl": "\/audio\/2717670823.mp3",
+    "audioUrl": "/audio/2717670823.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -1635,7 +1635,7 @@
       },
       {
         "time": 274.94,
-        "text": "OP : Warner Chappell Music\/Hong Kong Limited Taiwan Branch\/福茂音樂著作權國際股份有限公司"
+        "text": "OP : Warner Chappell Music/Hong Kong Limited Taiwan Branch/福茂音樂著作權國際股份有限公司"
       },
       {
         "time": 275.94,
@@ -1643,7 +1643,7 @@
       },
       {
         "time": 276.94,
-        "text": "版权统筹 : 火蓉\/王翘楚\/叶琪\/朱晓霞"
+        "text": "版权统筹 : 火蓉/王翘楚/叶琪/朱晓霞"
       }
     ]
   },
@@ -1651,7 +1651,7 @@
     "id": "417859220",
     "title": "皆非",
     "artist": "马頔",
-    "audioUrl": "\/audio\/417859220.mp3",
+    "audioUrl": "/audio/417859220.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -1663,7 +1663,7 @@
       },
       {
         "time": 2,
-        "text": "编曲 : 马頔\/OKK乐队"
+        "text": "编曲 : 马頔/OKK乐队"
       },
       {
         "time": 24.09,
@@ -1795,11 +1795,11 @@
     "id": "2629720361",
     "title": "爱错",
     "artist": "刘大拿",
-    "audioUrl": "\/audio\/2629720361.mp3",
+    "audioUrl": "/audio/2629720361.mp3",
     "lyrics": [
       {
         "time": 0,
-        "text": "作词 : 王力宏\/崔惟楷"
+        "text": "作词 : 王力宏/崔惟楷"
       },
       {
         "time": 1,
@@ -1807,7 +1807,7 @@
       },
       {
         "time": 4.47,
-        "text": "作词:王力宏\/崔惟楷"
+        "text": "作词:王力宏/崔惟楷"
       },
       {
         "time": 6.42,
@@ -1915,7 +1915,7 @@
       },
       {
         "time": 177.84,
-        "text": "混音\/母带工程师:何世渝"
+        "text": "混音/母带工程师:何世渝"
       }
     ]
   },
@@ -1923,7 +1923,7 @@
     "id": "mtpxranhxi2q",
     "title": "多远都要在一起",
     "artist": "邓紫棋",
-    "audioUrl": "\/audio\/mtpxranhxi2q.mp3",
+    "audioUrl": "/audio/mtpxranhxi2q.mp3",
     "lyrics": [
       {
         "time": 14.35,
@@ -2095,7 +2095,7 @@
     "id": "mtpxtmlyzv29",
     "title": "唯一",
     "artist": "邓紫棋",
-    "audioUrl": "\/audio\/mtpxtmlyzv29.mp3",
+    "audioUrl": "/audio/mtpxtmlyzv29.mp3",
     "lyrics": [
       {
         "time": 15.07,
@@ -2239,7 +2239,7 @@
     "id": "102193382",
     "title": "达尔文",
     "artist": "蔡健雅",
-    "audioUrl": "\/audio\/102193382.mp3",
+    "audioUrl": "/audio/102193382.mp3",
     "lyrics": [
       {
         "time": 27.81,
@@ -2411,7 +2411,7 @@
     "id": "104882784",
     "title": "失语者",
     "artist": "蔡健雅",
-    "audioUrl": "\/audio\/104882784.mp3",
+    "audioUrl": "/audio/104882784.mp3",
     "lyrics": [
       {
         "time": 14.86,
@@ -2563,7 +2563,7 @@
     "id": "247262095",
     "title": "带我去找夜生活 - 健康版",
     "artist": "告五人",
-    "audioUrl": "\/audio\/247262095.mp3",
+    "audioUrl": "/audio/247262095.mp3",
     "lyrics": [
       {
         "time": 48.83,
@@ -2707,14 +2707,14 @@
     "id": "496054946",
     "title": "恋人",
     "artist": "李荣浩",
-    "audioUrl": "\/audio\/496054946.mp3",
+    "audioUrl": "/audio/496054946.mp3",
     "lyrics": []
   },
   {
     "id": "231911714",
     "title": "曾经是情侣",
     "artist": "梁博",
-    "audioUrl": "\/audio\/231911714.mp3",
+    "audioUrl": "/audio/231911714.mp3",
     "lyrics": [
       {
         "time": 0.21,
@@ -2974,7 +2974,7 @@
     "id": "231594573",
     "title": "出现又离开",
     "artist": "梁博",
-    "audioUrl": "\/audio\/231594573.mp3",
+    "audioUrl": "/audio/231594573.mp3",
     "lyrics": [
       {
         "time": 1.83,
@@ -3158,7 +3158,7 @@
     "id": "233814890",
     "title": "我不知道",
     "artist": "梁博",
-    "audioUrl": "\/audio\/233814890.mp3",
+    "audioUrl": "/audio/233814890.mp3",
     "lyrics": [
       {
         "time": 3.33,
@@ -3426,14 +3426,14 @@
     "id": "206713449",
     "title": "极美",
     "artist": "孙燕姿",
-    "audioUrl": "\/audio\/206713449.mp3",
+    "audioUrl": "/audio/206713449.mp3",
     "lyrics": []
   },
   {
     "id": "5646",
     "title": "开始懂了",
     "artist": "孙燕姿",
-    "audioUrl": "\/audio\/5646.mp3",
+    "audioUrl": "/audio/5646.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -3745,7 +3745,7 @@
     "id": "5211222",
     "title": "天黑黑",
     "artist": "孙燕姿",
-    "audioUrl": "\/audio\/5211222.mp3",
+    "audioUrl": "/audio/5211222.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -4093,7 +4093,7 @@
     "id": "8136",
     "title": "我不难过",
     "artist": "孙燕姿",
-    "audioUrl": "\/audio\/8136.mp3",
+    "audioUrl": "/audio/8136.mp3",
     "lyrics": [
       {
         "time": 30.92,
@@ -4261,7 +4261,7 @@
     "id": "290330693",
     "title": "忘了没有",
     "artist": "王靖雯",
-    "audioUrl": "\/audio\/290330693.mp3",
+    "audioUrl": "/audio/290330693.mp3",
     "lyrics": [
       {
         "time": 20.22,
@@ -4421,7 +4421,7 @@
     "id": "200549978",
     "title": "朵",
     "artist": "赵雷",
-    "audioUrl": "\/audio\/200549978.mp3",
+    "audioUrl": "/audio/200549978.mp3",
     "lyrics": [
       {
         "time": 40.96,
@@ -4569,7 +4569,7 @@
     "id": "102065756",
     "title": "七里香",
     "artist": "周杰伦",
-    "audioUrl": "\/audio\/102065756.mp3",
+    "audioUrl": "/audio/102065756.mp3",
     "lyrics": [
       {
         "time": 27.38,
@@ -4713,7 +4713,7 @@
     "id": "97773",
     "title": "晴天",
     "artist": "周杰伦",
-    "audioUrl": "\/audio\/97773.mp3",
+    "audioUrl": "/audio/97773.mp3",
     "lyrics": [
       {
         "time": 16.52,
@@ -4829,14 +4829,14 @@
     "id": "370870467",
     "title": "夜的尽头",
     "artist": "邓紫棋",
-    "audioUrl": "\/audio\/370870467.mp3",
+    "audioUrl": "/audio/370870467.mp3",
     "lyrics": []
   },
   {
     "id": "1868184523",
     "title": "我们被夹在云层之间",
     "artist": "Vicky宣宣",
-    "audioUrl": "\/audio\/1868184523.mp3",
+    "audioUrl": "/audio/1868184523.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -5008,7 +5008,7 @@
     "id": "1817160410",
     "title": "三十二段留言",
     "artist": "Vicky宣宣",
-    "audioUrl": "\/audio\/1817160410.mp3",
+    "audioUrl": "/audio/1817160410.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -5192,7 +5192,7 @@
     "id": "1914369550",
     "title": "越过狂风暴雨奔向你",
     "artist": "Vicky宣宣",
-    "audioUrl": "\/audio\/1914369550.mp3",
+    "audioUrl": "/audio/1914369550.mp3",
     "lyrics": [
       {
         "time": 0,
@@ -5232,7 +5232,7 @@
       },
       {
         "time": 5.55,
-        "text": "和声编写\/演唱 : Vicky宣宣"
+        "text": "和声编写/演唱 : Vicky宣宣"
       },
       {
         "time": 6.17,
@@ -5240,7 +5240,7 @@
       },
       {
         "time": 7.17,
-        "text": "吉他\/贝斯\/曼陀林：关天天"
+        "text": "吉他/贝斯/曼陀林：关天天"
       },
       {
         "time": 9.17,
@@ -5252,7 +5252,7 @@
       },
       {
         "time": 12.17,
-        "text": "和声编写\/演唱：Vicky宣宣"
+        "text": "和声编写/演唱：Vicky宣宣"
       },
       {
         "time": 14.43,
@@ -5420,11 +5420,11 @@
     "id": "2005246398",
     "title": "一屏之念",
     "artist": "Vicky宣宣",
-    "audioUrl": "\/audio\/2005246398.mp3",
+    "audioUrl": "/audio/2005246398.mp3",
     "lyrics": [
       {
         "time": 10.28,
-        "text": "作词：Vicky宣宣\/荒糖"
+        "text": "作词：Vicky宣宣/荒糖"
       },
       {
         "time": 10.8,
@@ -5640,11 +5640,11 @@
       },
       {
         "time": 218.54,
-        "text": "混音\/母带：寒衫"
+        "text": "混音/母带：寒衫"
       },
       {
         "time": 219.09,
-        "text": "和声\/编写：Vicky宣宣"
+        "text": "和声/编写：Vicky宣宣"
       },
       {
         "time": 219.76,
@@ -5660,11 +5660,11 @@
     "id": "1399123309",
     "title": "Miyazaki Mountain",
     "artist": "Philter",
-    "audioUrl": "\/audio\/1399123309.mp3",
+    "audioUrl": "/audio/1399123309.mp3",
     "lyrics": [
       {
         "time": 0,
-        "text": "作词 : \/"
+        "text": "作词 : /"
       },
       {
         "time": 1,
@@ -5680,22 +5680,22 @@
     "id": "mtqwdtts6f88",
     "title": "我的天空",
     "artist": "南征北战NZBZ",
-    "audioUrl": "\/audio\/mtqwdtts6f88.mp3",
+    "audioUrl": "/audio/mtqwdtts6f88.mp3",
     "lyrics": []
   },
   {
     "id": "1441158031",
     "title": "Runaway Forest",
-    "artist": "Vicky\/Vicky宣宣",
-    "audioUrl": "\/audio\/1441158031.mp3",
+    "artist": "Vicky/Vicky宣宣",
+    "audioUrl": "/audio/1441158031.mp3",
     "lyrics": [
       {
         "time": 0,
-        "text": "作词 : Vicky\/Vicky宣宣"
+        "text": "作词 : Vicky/Vicky宣宣"
       },
       {
         "time": 1,
-        "text": "作曲 : Vicky\/MaggieZou\/Vicky宣宣"
+        "text": "作曲 : Vicky/MaggieZou/Vicky宣宣"
       },
       {
         "time": 2.42,
@@ -5860,6 +5860,146 @@
       {
         "time": 176.93,
         "text": "I’m the one with the shining light (我就是那个闪闪发亮的人)"
+      }
+    ]
+  },
+  {
+    "id": "5237831",
+    "title": "还是会寂寞",
+    "artist": "陈绮贞",
+    "audioUrl": "/audio/5237831.mp3",
+    "lyrics": [
+      {
+        "time": 0,
+        "text": "作词 : 陈绮贞"
+      },
+      {
+        "time": 1,
+        "text": "作曲 : 陈绮贞"
+      },
+      {
+        "time": 2,
+        "text": "编曲 : 王治平"
+      },
+      {
+        "time": 7,
+        "text": "（music）"
+      },
+      {
+        "time": 26,
+        "text": "早已忘了想你的滋味是什么"
+      },
+      {
+        "time": 32,
+        "text": "因为每分每秒都被你占据在心中"
+      },
+      {
+        "time": 38,
+        "text": "你的一举一动牵扯在我生活的隙缝"
+      },
+      {
+        "time": 44,
+        "text": "谁能告诉我离开你的我会有多自由"
+      },
+      {
+        "time": 51,
+        "text": "也曾想过躲进别人温暖的怀中"
+      },
+      {
+        "time": 57,
+        "text": "可是这么一来就一点意义也没有"
+      },
+      {
+        "time": 63,
+        "text": "我的高尚情操一直不断提醒著我"
+      },
+      {
+        "time": 70,
+        "text": "离开你的我不论过多久还是会寂寞"
+      },
+      {
+        "time": 76,
+        "text": "别对我小心翼翼"
+      },
+      {
+        "time": 80,
+        "text": "别让我看轻你"
+      },
+      {
+        "time": 83,
+        "text": "跟著我勇敢的走下去"
+      },
+      {
+        "time": 89,
+        "text": "别劝我回心转意"
+      },
+      {
+        "time": 93,
+        "text": "这不是廉价的爱情"
+      },
+      {
+        "time": 96,
+        "text": "看著我对我说真爱我"
+      },
+      {
+        "time": 107,
+        "text": "也曾想过躲进别人温暖的怀中"
+      },
+      {
+        "time": 113,
+        "text": "可是这么一来就一点意义也没有"
+      },
+      {
+        "time": 120,
+        "text": "我的高尚情操一直不断提醒著我"
+      },
+      {
+        "time": 126,
+        "text": "离开你的我不论过多久还是会寂寞"
+      },
+      {
+        "time": 158,
+        "text": "别对我小心翼翼"
+      },
+      {
+        "time": 162,
+        "text": "别让我看轻你"
+      },
+      {
+        "time": 165,
+        "text": "跟著我勇敢的走下去"
+      },
+      {
+        "time": 171,
+        "text": "别劝我回心转意"
+      },
+      {
+        "time": 174,
+        "text": "这不是廉价的爱情"
+      },
+      {
+        "time": 178,
+        "text": "看著我对我说真爱我"
+      },
+      {
+        "time": 189,
+        "text": "也曾想过躲进别人温暖的怀中"
+      },
+      {
+        "time": 195,
+        "text": "可是这么一来就一点意义也没有"
+      },
+      {
+        "time": 201,
+        "text": "我的高尚情操一直不断提醒著我"
+      },
+      {
+        "time": 208,
+        "text": "离开你的我不论过多久还是会寂寞"
+      },
+      {
+        "time": 231,
+        "text": "（music）"
       }
     ]
   }
