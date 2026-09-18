@@ -20,7 +20,7 @@ const INIT_HTML = "<p><br></p>"
 
 type Para =
   | { type: "text"; text: string }
-  | { type: "img"; uid: string; caption: string }
+  | { type: "img"; uid: string; caption: string; width?: string }
 
 let blockSeq = 0
 const newUid = () => `img-${Date.now().toString(36)}-${blockSeq++}`
@@ -104,12 +104,69 @@ export function BlogEditor() {
     return () => { document.body.style.overflow = prev }
   }, [open])
 
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const selectedImg = useRef<HTMLImageElement | null>(null)
+
+  // 选中图片：显示/隐藏尺寸调整框（相对编辑器容器定位）
+  const showHandles = useCallback((img: HTMLImageElement | null) => {
+    const ov = overlayRef.current
+    const editor = editorRef.current
+    selectedImg.current = img
+    if (!ov || !editor) return
+    if (!img || !img.isConnected) {
+      ov.style.display = "none"
+      return
+    }
+    const er = editor.getBoundingClientRect()
+    const ir = img.getBoundingClientRect()
+    ov.style.display = "block"
+    ov.style.left = `${ir.left - er.left}px`
+    ov.style.top = `${ir.top - er.top}px`
+    ov.style.width = `${ir.width}px`
+    ov.style.height = `${ir.height}px`
+  }, [])
+
+  // 拖动四角手柄等比调整图片宽度（按编辑器内容宽度存百分比，发布后自适应）
+  const onHandleMouseDown = (e: React.MouseEvent) => {
+    const img = selectedImg.current
+    const editor = editorRef.current
+    if (!img || !editor) return
+    e.preventDefault()
+    e.stopPropagation()
+    const handle = (e.currentTarget as HTMLElement).dataset.handle || "se"
+    const startX = e.clientX
+    const startW = img.getBoundingClientRect().width
+    const contentW = editor.clientWidth - 48 // px-6 两侧内边距
+    const invert = handle.includes("w") // 左侧手柄反向
+    const move = (ev: MouseEvent) => {
+      const delta = invert ? -(ev.clientX - startX) : ev.clientX - startX
+      const w = Math.min(contentW, Math.max(60, startW + delta))
+      img.style.width = `${Math.round((w / contentW) * 1000) / 10}%`
+      showHandles(img)
+    }
+    const up = () => {
+      window.removeEventListener("mousemove", move)
+      window.removeEventListener("mouseup", up)
+    }
+    window.addEventListener("mousemove", move)
+    window.addEventListener("mouseup", up)
+  }
+
+  // 点击图片选中 / 点击空白取消选中
+  const handleEditorClick = (e: React.MouseEvent) => {
+    const t = e.target
+    if (t instanceof HTMLImageElement && t.dataset.imgUid) showHandles(t)
+    else showHandles(null)
+  }
+
   const syncEmpty = useCallback(() => {
     const el = editorRef.current
     if (!el) return
     const empty = el.innerText.replace(/\u00a0/g, " ").trim() === "" && !el.querySelector("img")
     el.classList.toggle("editor-empty", empty)
-  }, [])
+    // 选中的图片被删除时隐藏调整框
+    if (selectedImg.current && !selectedImg.current.isConnected) showHandles(null)
+  }, [showHandles])
 
   // 回车生成 <p>（便于序列化）；挂载后同步空内容占位符
   useEffect(() => {
@@ -240,7 +297,7 @@ export function BlogEditor() {
       if (!(node instanceof HTMLElement)) continue
       const img = node.tagName === "IMG" ? node : node.querySelector<HTMLElement>(":scope > img[data-img-uid]")
       if (img && img.dataset.imgUid) {
-        paras.push({ type: "img", uid: img.dataset.imgUid, caption: "" })
+        paras.push({ type: "img", uid: img.dataset.imgUid, caption: "", width: img.style.width || undefined })
         prevImgUid = img.dataset.imgUid
         continue
       }
@@ -307,7 +364,13 @@ export function BlogEditor() {
           const url = imageUrl.get(p.uid)
           if (!url) continue
           const cap = p.caption.trim()
-          parts.push(`![${cap ? escapeText(cap) : "image"}](${url})`)
+          const alt = escapeText((cap || "image").replace(/[[\]]/g, ""))
+          if (p.width) {
+            // 调整过尺寸的图片：输出 JSX img（markdown 语法无法携带尺寸）
+            parts.push(`<p><img src="${url}" alt="${alt.replace(/"/g, "&quot;")}" style={{ width: "${p.width}" }} /></p>`)
+          } else {
+            parts.push(`![${alt}](${url})`)
+          }
           if (cap) parts.push(`*图：${escapeText(cap)}*`)
         }
       }
@@ -485,21 +548,43 @@ export function BlogEditor() {
             </div>
 
             {/* 正文编辑区（Word 式：一个富文本区，图片嵌在文字中间） */}
-            <div
-              ref={editorRef}
-              contentEditable
-              suppressContentEditableWarning
-              role="textbox"
-              aria-multiline="true"
-              aria-label="正文"
-              data-placeholder="写点什么...（图片会插入光标处，回车分段）"
-              className="rich-editor prose max-w-none min-h-[480px] flex-1 overflow-y-auto overscroll-contain border-t px-6 py-5 outline-none"
-              style={{ borderColor: "var(--glass-border)" }}
-              onInput={syncEmpty}
-              onPaste={handlePaste}
-              onDrop={handleDrop}
-              dangerouslySetInnerHTML={initHtml}
-            />
+            <div className="relative min-h-[480px] flex-1 border-t" style={{ borderColor: "var(--glass-border)" }}>
+              <div
+                ref={editorRef}
+                contentEditable
+                suppressContentEditableWarning
+                role="textbox"
+                aria-multiline="true"
+                aria-label="正文"
+                data-placeholder="写点什么...（图片会插入光标处，回车分段）"
+                className="rich-editor prose max-w-none h-full overflow-y-auto overscroll-contain px-6 py-5 outline-none"
+                onInput={syncEmpty}
+                onPaste={handlePaste}
+                onDrop={handleDrop}
+                onClick={handleEditorClick}
+                onScroll={() => { if (selectedImg.current) showHandles(selectedImg.current) }}
+                dangerouslySetInnerHTML={initHtml}
+              />
+              {/* 图片尺寸调整框：点选图片后出现，拖四角调整大小 */}
+              <div ref={overlayRef} className="absolute hidden" style={{ pointerEvents: "none" }}>
+                <div className="absolute inset-0 border-2" style={{ borderColor: "var(--accent)" }} />
+                {(["nw", "ne", "sw", "se"] as const).map((pos) => (
+                  <div
+                    key={pos}
+                    data-handle={pos}
+                    onMouseDown={onHandleMouseDown}
+                    className="absolute h-3.5 w-3.5 rounded-full border-2 bg-white"
+                    style={{
+                      borderColor: "var(--accent)",
+                      pointerEvents: "auto",
+                      cursor: pos === "nw" || pos === "se" ? "nwse-resize" : "nesw-resize",
+                      ...(pos.includes("n") ? { top: -7 } : { bottom: -7 }),
+                      ...(pos.includes("w") ? { left: -7 } : { right: -7 }),
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
 
             {/* 底部状态条 */}
             <div className="shrink-0 border-t px-6 py-3" style={{ borderColor: "var(--glass-border)" }}>
