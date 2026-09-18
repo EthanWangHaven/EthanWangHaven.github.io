@@ -382,8 +382,15 @@ export function BlogEditor() {
   const toolbarBtn = (icon: React.ReactNode, label: string, onClick: () => void) => (
     <button
       onClick={onClick}
-      className="flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors hover:border-[var(--accent)]"
-      style={{ borderColor: "var(--glass-border)", color: "var(--text-light)" }}
+      className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all hover:scale-105"
+      style={{
+        background: "var(--glass-bg)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: "1px solid var(--glass-border)",
+        boxShadow: "var(--shadow)",
+        color: "var(--accent)",
+      }}
     >
       {icon} {label}
     </button>
@@ -418,7 +425,7 @@ export function BlogEditor() {
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-6 pt-5 pb-3">
           <div className="flex items-center gap-2.5">
             <h2 className="text-lg font-bold" style={{ color: "var(--text)" }}>添加博客</h2>
-            {toolbarBtn(<ImageIcon size={13} />, "图片", () => fileInputRef.current?.click())}
+            {toolbarBtn(<ImageIcon size={14} />, "添加图片", () => fileInputRef.current?.click())}
           </div>
           <div className="flex items-center gap-2">
             <button
