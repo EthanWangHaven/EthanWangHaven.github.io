@@ -96,6 +96,14 @@ export function BlogEditor() {
     return () => observer.disconnect()
   }, [])
 
+  // 弹窗打开时锁定背景页面滚动（滚轮只作用于弹窗）
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => { document.body.style.overflow = prev }
+  }, [open])
+
   const syncEmpty = useCallback(() => {
     const el = editorRef.current
     if (!el) return
@@ -398,7 +406,7 @@ export function BlogEditor() {
       `}</style>
 
       <div
-        className="flex max-h-[92vh] w-[min(1520px,94vw)] flex-col overflow-hidden rounded-[var(--radius)]"
+        className="flex max-h-[92vh] w-[min(1368px,94vw)] flex-col overflow-hidden rounded-[var(--radius)]"
         style={{
           background: isDark ? "#242428" : "#ffffff",
           border: "1px solid var(--glass-border)",
@@ -478,7 +486,7 @@ export function BlogEditor() {
               aria-multiline="true"
               aria-label="正文"
               data-placeholder="写点什么...（图片会插入光标处，回车分段）"
-              className="rich-editor prose max-w-none min-h-[480px] flex-1 overflow-y-auto border-t px-6 py-5 outline-none"
+              className="rich-editor prose max-w-none min-h-[480px] flex-1 overflow-y-auto overscroll-contain border-t px-6 py-5 outline-none"
               style={{ borderColor: "var(--glass-border)" }}
               onInput={syncEmpty}
               onPaste={handlePaste}
