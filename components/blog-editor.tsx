@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import {
   X, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle,
-  ArrowUpToLine, Send, Plus, Type,
+  ArrowUpToLine, Send, Plus,
 } from "lucide-react"
 import { GITHUB_CONFIG, githubApiUrl } from "@/lib/github-config"
 
@@ -190,16 +190,6 @@ export function BlogEditor() {
         placeCaretAtEnd(pCap)
       }
     }
-    syncEmpty()
-  }, [syncEmpty])
-
-  // “+ 文本”：光标移到正文末尾并新起一段
-  const addText = useCallback(() => {
-    const editor = editorRef.current
-    if (!editor) return
-    editor.focus()
-    placeCaretAtEnd(editor)
-    document.execCommand("insertParagraph", false)
     syncEmpty()
   }, [syncEmpty])
 
@@ -408,11 +398,9 @@ export function BlogEditor() {
       `}</style>
 
       <div
-        className="flex max-h-[88vh] w-[min(760px,94vw)] flex-col overflow-hidden rounded-[var(--radius)]"
+        className="flex max-h-[92vh] w-[min(1520px,94vw)] flex-col overflow-hidden rounded-[var(--radius)]"
         style={{
-          background: isDark ? "rgba(28,28,38,0.92)" : "rgba(255,255,255,0.92)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
+          background: isDark ? "#242428" : "#ffffff",
           border: "1px solid var(--glass-border)",
           boxShadow: "var(--shadow-hover)",
         }}
@@ -422,7 +410,6 @@ export function BlogEditor() {
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-6 pt-5 pb-3">
           <div className="flex items-center gap-2.5">
             <h2 className="text-lg font-bold" style={{ color: "var(--text)" }}>添加博客</h2>
-            {toolbarBtn(<Type size={13} />, "文本", addText)}
             {toolbarBtn(<ImageIcon size={13} />, "图片", () => fileInputRef.current?.click())}
           </div>
           <div className="flex items-center gap-2">
@@ -491,7 +478,7 @@ export function BlogEditor() {
               aria-multiline="true"
               aria-label="正文"
               data-placeholder="写点什么...（图片会插入光标处，回车分段）"
-              className="rich-editor prose max-w-none min-h-[280px] flex-1 overflow-y-auto border-t px-6 py-5 outline-none"
+              className="rich-editor prose max-w-none min-h-[480px] flex-1 overflow-y-auto border-t px-6 py-5 outline-none"
               style={{ borderColor: "var(--glass-border)" }}
               onInput={syncEmpty}
               onPaste={handlePaste}
