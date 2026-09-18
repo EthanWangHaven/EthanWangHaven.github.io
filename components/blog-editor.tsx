@@ -406,7 +406,7 @@ export function BlogEditor() {
       `}</style>
 
       <div
-        className="flex max-h-[92vh] w-[min(1368px,94vw)] flex-col overflow-hidden rounded-[var(--radius)]"
+        className="flex max-h-[92vh] w-[min(1231px,94vw)] flex-col overflow-hidden rounded-[var(--radius)]"
         style={{
           background: isDark ? "#242428" : "#ffffff",
           border: "1px solid var(--glass-border)",
