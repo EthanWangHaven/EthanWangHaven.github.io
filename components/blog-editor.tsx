@@ -1,26 +1,29 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import {
-  X, Image as ImageIcon, Type, Loader2, CheckCircle2, AlertCircle,
-  ArrowUp, ArrowDown, Trash2, Send, Plus,
+  X, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle,
+  ArrowUpToLine, Send, Plus, Type,
 } from "lucide-react"
 import { GITHUB_CONFIG, githubApiUrl } from "@/lib/github-config"
 
 /* ============================================================
- * 博客编辑器：块式所见即所得
- * - 文本块：.prose 同款字体/字号/行距（1.85），发布时转 markdown 段落
- * - 图片块：默认居中（.prose img 同款圆角/边距），下方可编辑图注
- *   （发布为 *图：xxx*，渲染样式与现有博客图注一致）
- * - 发布：图片 → public/images/，文章 → content/blog/{slug}.mdx
+ * 博客编辑器：Word 式富文本（contenteditable）
+ * - 一整个正文区，.prose 同款字体/字号/行距（1.85），回车即分段
+ * - 图片插入光标处（默认居中，.prose img 同款），下方自动带可编辑图注
+ *   （图注样式复用全局 .prose p:has(>img)+p，发布为 *图：xxx*）
+ * - 粘贴/拖拽图片直接插入正文；粘贴文本仅保留纯文本
+ * - 发布：图片 → public/images/，正文序列化为 markdown → content/blog/{slug}.mdx
  * ============================================================ */
 
-type TextBlock = { id: string; kind: "text"; text: string }
-type ImageBlock = { id: string; kind: "image"; file: File; previewUrl: string; caption: string }
-type Block = TextBlock | ImageBlock
+const INIT_HTML = "<p><br></p>"
+
+type Para =
+  | { type: "text"; text: string }
+  | { type: "img"; uid: string; caption: string }
 
 let blockSeq = 0
-const newId = (kind: string) => `${kind}-${Date.now().toString(36)}-${blockSeq++}`
+const newUid = () => `img-${Date.now().toString(36)}-${blockSeq++}`
 
 const IMAGE_EXT_WHITELIST = new Set(["jpg", "jpeg", "png", "webp", "gif", "bmp", "svg", "avif"])
 
@@ -67,40 +70,9 @@ function localIsoDate(): string {
   return `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}T${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}${tz}`
 }
 
-// ── 自适应高度 textarea（字体行距继承 .prose 容器）──
-function AutoTextarea(props: {
-  value: string
-  onChange: (v: string) => void
-  placeholder?: string
-  autoFocus?: boolean
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null)
-  const resize = useCallback(() => {
-    const el = ref.current
-    if (!el) return
-    el.style.height = "auto"
-    el.style.height = `${el.scrollHeight}px`
-  }, [])
-  useEffect(() => { resize() }, [props.value, resize])
-  return (
-    <textarea
-      ref={ref}
-      value={props.value}
-      onChange={(e) => props.onChange(e.target.value)}
-      onInput={resize}
-      placeholder={props.placeholder}
-      autoFocus={props.autoFocus}
-      rows={1}
-      className="w-full resize-none overflow-hidden border-none bg-transparent p-0 outline-none"
-      style={{ fontFamily: "inherit", fontSize: "1rem", lineHeight: 1.85 }}
-    />
-  )
-}
-
 export function BlogEditor() {
   const [open, setOpen] = useState(false)
   const [isDark, setIsDark] = useState(false)
-  const [blocks, setBlocks] = useState<Block[]>([{ id: newId("text"), kind: "text", text: "" }])
   const [title, setTitle] = useState("")
   const [categories, setCategories] = useState("")
   const [tags, setTags] = useState("")
@@ -108,7 +80,13 @@ export function BlogEditor() {
   const [phase, setPhase] = useState("")
   const [errorMsg, setErrorMsg] = useState("")
   const [publishedSlug, setPublishedSlug] = useState("")
+
+  const editorRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // 待上传图片：uid → { file, 本地预览 URL }
+  const imgFiles = useRef(new Map<string, { file: File; previewUrl: string }>())
+
+  const initHtml = useMemo(() => ({ __html: INIT_HTML }), [])
 
   useEffect(() => {
     const checkDark = () => setIsDark(document.documentElement.classList.contains("dark"))
@@ -118,11 +96,27 @@ export function BlogEditor() {
     return () => observer.disconnect()
   }, [])
 
+  const syncEmpty = useCallback(() => {
+    const el = editorRef.current
+    if (!el) return
+    const empty = el.innerText.replace(/\u00a0/g, " ").trim() === "" && !el.querySelector("img")
+    el.classList.toggle("editor-empty", empty)
+  }, [])
+
+  // 回车生成 <p>（便于序列化）；挂载后同步空内容占位符
+  useEffect(() => {
+    if (!open) return
+    try { document.execCommand("defaultParagraphSeparator", false, "p") } catch {}
+    syncEmpty()
+  }, [open, syncEmpty])
+
   const reset = useCallback(() => {
-    setBlocks((prev) => {
-      prev.forEach((b) => { if (b.kind === "image") URL.revokeObjectURL(b.previewUrl) })
-      return [{ id: newId("text"), kind: "text", text: "" }]
-    })
+    imgFiles.current.forEach((rec) => URL.revokeObjectURL(rec.previewUrl))
+    imgFiles.current.clear()
+    if (editorRef.current) {
+      editorRef.current.innerHTML = INIT_HTML
+      editorRef.current.classList.add("editor-empty")
+    }
     setTitle("")
     setCategories("")
     setTags("")
@@ -138,48 +132,139 @@ export function BlogEditor() {
     reset()
   }
 
-  const updateBlock = (id: string, patch: Partial<Omit<TextBlock, "id" | "kind"> & Omit<ImageBlock, "id" | "kind">>) => {
-    setBlocks((prev) => prev.map((b) => (b.id === id ? ({ ...b, ...patch } as Block) : b)))
+  // 光标移到某元素文本末尾
+  const placeCaretAtEnd = (el: HTMLElement) => {
+    const sel = window.getSelection()
+    if (!sel) return
+    const range = document.createRange()
+    range.selectNodeContents(el)
+    range.collapse(false)
+    sel.removeAllRanges()
+    sel.addRange(range)
   }
 
-  const removeBlock = (id: string) => {
-    setBlocks((prev) => {
-      const b = prev.find((x) => x.id === id)
-      if (b?.kind === "image") URL.revokeObjectURL(b.previewUrl)
-      return prev.filter((x) => x.id !== id)
-    })
+  const selectionInEditor = (): boolean => {
+    const el = editorRef.current
+    const sel = window.getSelection()
+    if (!el || !sel || sel.rangeCount === 0) return false
+    return el.contains(sel.getRangeAt(0).commonAncestorContainer)
   }
 
-  const moveBlock = (id: string, dir: -1 | 1) => {
-    setBlocks((prev) => {
-      const i = prev.findIndex((x) => x.id === id)
-      const j = i + dir
-      if (i < 0 || j < 0 || j >= prev.length) return prev
-      const next = [...prev]
-      ;[next[i], next[j]] = [next[j], next[i]]
-      return next
-    })
+  // 在光标处（无光标则末尾）插入图片 + 图注
+  const insertImages = useCallback((files: File[]) => {
+    const editor = editorRef.current
+    if (!editor || !files.length) return
+    editor.focus()
+
+    for (const file of files) {
+      const uid = newUid()
+      const previewUrl = URL.createObjectURL(file)
+      imgFiles.current.set(uid, { file, previewUrl })
+
+      const pImg = document.createElement("p")
+      const img = document.createElement("img")
+      img.src = previewUrl
+      img.dataset.imgUid = uid
+      img.alt = ""
+      pImg.appendChild(img)
+      const pCap = document.createElement("p")
+      pCap.dataset.caption = "1"
+      pCap.textContent = "图："
+
+      if (selectionInEditor()) {
+        const sel = window.getSelection()!
+        const range = sel.getRangeAt(0)
+        range.deleteContents()
+        // 先插图注再插图片（insertNode 总在 range 起点插入）
+        range.insertNode(pCap)
+        range.insertNode(pImg)
+        // 光标移到图注末尾，方便直接编辑
+        const r2 = document.createRange()
+        r2.setStart(pCap, pCap.childNodes.length)
+        r2.collapse(true)
+        sel.removeAllRanges()
+        sel.addRange(r2)
+      } else {
+        editor.appendChild(pImg)
+        editor.appendChild(pCap)
+        placeCaretAtEnd(pCap)
+      }
+    }
+    syncEmpty()
+  }, [syncEmpty])
+
+  // “+ 文本”：光标移到正文末尾并新起一段
+  const addText = useCallback(() => {
+    const editor = editorRef.current
+    if (!editor) return
+    editor.focus()
+    placeCaretAtEnd(editor)
+    document.execCommand("insertParagraph", false)
+    syncEmpty()
+  }, [syncEmpty])
+
+  // 粘贴：图片走插入流程；富文本只保留纯文本（避免脏标签进正文）
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const cd = e.clipboardData
+    const files: File[] = []
+    for (const item of Array.from(cd.items)) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const f = item.getAsFile()
+        if (f) files.push(f)
+      }
+    }
+    if (files.length) {
+      e.preventDefault()
+      insertImages(files)
+      return
+    }
+    if (cd.types.includes("text/html")) {
+      e.preventDefault()
+      document.execCommand("insertText", false, cd.getData("text/plain"))
+    }
   }
 
-  const addText = () => setBlocks((prev) => [...prev, { id: newId("text"), kind: "text", text: "" }])
+  // 拖拽图片文件插入
+  const handleDrop = (e: React.DragEvent) => {
+    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"))
+    if (!files.length) return
+    e.preventDefault()
+    insertImages(files)
+  }
 
-  const addImages = (files: FileList | null) => {
-    if (!files?.length) return
-    const imgs: ImageBlock[] = Array.from(files).map((f) => ({
-      id: newId("image"),
-      kind: "image" as const,
-      file: f,
-      previewUrl: URL.createObjectURL(f),
-      caption: "",
-    }))
-    setBlocks((prev) => [...prev, ...imgs])
+  // 遍历正文 DOM → 段落列表（图片段 + 图注归属 + 文本段）
+  const collectParas = (): Para[] => {
+    const editor = editorRef.current
+    if (!editor) return []
+    const paras: Para[] = []
+    let prevImgUid: string | null = null
+    for (const node of Array.from(editor.children)) {
+      if (!(node instanceof HTMLElement)) continue
+      const img = node.tagName === "IMG" ? node : node.querySelector<HTMLElement>(":scope > img[data-img-uid]")
+      if (img && img.dataset.imgUid) {
+        paras.push({ type: "img", uid: img.dataset.imgUid, caption: "" })
+        prevImgUid = img.dataset.imgUid
+        continue
+      }
+      const raw = (node.innerText ?? node.textContent ?? "").replace(/\u00a0/g, " ")
+      const lines = raw.split("\n").map((s) => s.trim()).filter(Boolean)
+      if (node.dataset.caption !== undefined && prevImgUid) {
+        const last = paras[paras.length - 1]
+        if (last?.type === "img") last.caption = lines.join(" ")
+        prevImgUid = null
+        continue
+      }
+      prevImgUid = null
+      if (lines.length) paras.push({ type: "text", text: lines.join("\n") })
+    }
+    return paras
   }
 
   // ── 发布 ──
   const handleSubmit = async () => {
     if (!title.trim()) { setErrorMsg("请填写标题"); setStatus("error"); return }
-    const hasContent = blocks.some((b) => (b.kind === "text" && b.text.trim()) || b.kind === "image")
-    if (!hasContent) { setErrorMsg("请输入正文内容"); setStatus("error"); return }
+    const paras = collectParas()
+    if (!paras.length) { setErrorMsg("请输入正文内容"); setStatus("error"); return }
     if (!GITHUB_CONFIG.token) { setErrorMsg("未配置 GitHub Token"); setStatus("error"); return }
 
     setStatus("uploading")
@@ -189,16 +274,16 @@ export function BlogEditor() {
       const slug = await makeSlug(title.trim())
       const imageUrl = new Map<string, string>()
 
-      // 1. 上传图片 → public/images/{slug}-{n}.{ext}
-      const images = blocks.filter((b): b is ImageBlock => b.kind === "image")
+      // 1. 上传正文中的图片（按出现顺序）→ public/images/{slug}-{n}.{ext}
+      const images = paras.filter((p): p is Extract<Para, { type: "img" }> => p.type === "img")
       for (let i = 0; i < images.length; i++) {
-        const img = images[i]
+        const rec = imgFiles.current.get(images[i].uid)
+        if (!rec) continue
         setPhase(`上传图片中（${i + 1}/${images.length}）...`)
-        const rawExt = (img.file.name.split(".").pop() || "jpg").toLowerCase()
+        const rawExt = (rec.file.name.split(".").pop() || "jpg").toLowerCase()
         const ext = IMAGE_EXT_WHITELIST.has(rawExt) ? rawExt : "jpg"
         const name = `${slug}-${i + 1}.${ext}`
-        const path = `public/images/${name}`
-        const res = await fetch(githubApiUrl(path), {
+        const res = await fetch(githubApiUrl(`public/images/${name}`), {
           method: "PUT",
           headers: {
             Authorization: `Bearer ${GITHUB_CONFIG.token}`,
@@ -207,26 +292,24 @@ export function BlogEditor() {
           },
           body: JSON.stringify({
             message: `blog: upload image ${name}`,
-            content: await fileToBase64(img.file),
+            content: await fileToBase64(rec.file),
             branch: GITHUB_CONFIG.branch,
           }),
         })
         if (!res.ok) throw new Error(`图片上传失败: ${(await res.json()).message}`)
-        imageUrl.set(img.id, `/images/${name}`)
+        imageUrl.set(images[i].uid, `/images/${name}`)
       }
 
-      // 2. 组装 markdown 正文（文本块转义 MDX 特殊字符；块内换行为硬换行）
+      // 2. 序列化为 markdown（文本转义 MDX 特殊字符；段内换行为硬换行）
       const parts: string[] = []
-      for (const b of blocks) {
-        if (b.kind === "text") {
-          const t = b.text.replace(/\r/g, "").trim()
-          if (t) parts.push(t.split("\n").map(escapeText).join("  \n"))
+      for (const p of paras) {
+        if (p.type === "text") {
+          parts.push(p.text.split("\n").map(escapeText).join("  \n"))
         } else {
-          const url = imageUrl.get(b.id)
+          const url = imageUrl.get(p.uid)
           if (!url) continue
-          const cap = b.caption.trim()
-          const alt = cap ? escapeText(cap) : "image"
-          parts.push(`![${alt}](${url})`)
+          const cap = p.caption.trim()
+          parts.push(`![${cap ? escapeText(cap) : "image"}](${url})`)
           if (cap) parts.push(`*图：${escapeText(cap)}*`)
         }
       }
@@ -298,19 +381,14 @@ export function BlogEditor() {
     color: "var(--text)",
   }
 
-  const BlockActions = ({ id, index }: { id: string; index: number }) => (
-    <div className="absolute -top-2 right-0 z-10 hidden items-center gap-0.5 rounded-full px-1 py-0.5 group-hover:flex"
-      style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border)", backdropFilter: "blur(8px)" }}>
-      <button onClick={() => moveBlock(id, -1)} disabled={index === 0} className="rounded-full p-1 transition-opacity hover:opacity-70 disabled:opacity-25" style={{ color: "var(--text-muted)" }} aria-label="上移">
-        <ArrowUp size={13} />
-      </button>
-      <button onClick={() => moveBlock(id, 1)} disabled={index === blocks.length - 1} className="rounded-full p-1 transition-opacity hover:opacity-70 disabled:opacity-25" style={{ color: "var(--text-muted)" }} aria-label="下移">
-        <ArrowDown size={13} />
-      </button>
-      <button onClick={() => removeBlock(id)} className="rounded-full p-1 transition-opacity hover:opacity-70" style={{ color: "#e05a5a" }} aria-label="删除">
-        <Trash2 size={13} />
-      </button>
-    </div>
+  const toolbarBtn = (icon: React.ReactNode, label: string, onClick: () => void) => (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors hover:border-[var(--accent)]"
+      style={{ borderColor: "var(--glass-border)", color: "var(--text-light)" }}
+    >
+      {icon} {label}
+    </button>
   )
 
   return (
@@ -319,6 +397,16 @@ export function BlogEditor() {
       style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(4px)" }}
       onClick={close}
     >
+      <style>{`
+        .rich-editor.editor-empty::before {
+          content: attr(data-placeholder);
+          color: var(--text-muted);
+          pointer-events: none;
+          float: left;
+          height: 0;
+        }
+      `}</style>
+
       <div
         className="flex max-h-[88vh] w-[min(760px,94vw)] flex-col overflow-hidden rounded-[var(--radius)]"
         style={{
@@ -330,9 +418,13 @@ export function BlogEditor() {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 头部：标题 + 右上角发布 */}
-        <div className="flex shrink-0 items-center justify-between px-6 pt-5 pb-3">
-          <h2 className="text-lg font-bold" style={{ color: "var(--text)" }}>添加博客</h2>
+        {/* 头部：标题 + 工具栏（左） / 发布 + 关闭（右） */}
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-6 pt-5 pb-3">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-lg font-bold" style={{ color: "var(--text)" }}>添加博客</h2>
+            {toolbarBtn(<Type size={13} />, "文本", addText)}
+            {toolbarBtn(<ImageIcon size={13} />, "图片", () => fileInputRef.current?.click())}
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleSubmit}
@@ -390,65 +482,22 @@ export function BlogEditor() {
               />
             </div>
 
-            {/* 编辑区（.prose 同款排版） */}
-            <div className="prose max-w-none flex-1 overflow-y-auto border-t px-6 py-5" style={{ borderColor: "var(--glass-border)" }}>
-              {blocks.map((b, i) => (
-                <div key={b.id} className="group relative mb-5">
-                  {b.kind === "text" ? (
-                    <>
-                      <BlockActions id={b.id} index={i} />
-                      <AutoTextarea
-                        value={b.text}
-                        onChange={(v) => updateBlock(b.id, { text: v })}
-                        placeholder="写点什么..."
-                        autoFocus={blocks.length > 1 && i === blocks.length - 1 && b.text === ""}
-                      />
-                    </>
-                  ) : (
-                    <div>
-                      <BlockActions id={b.id} index={i} />
-                      {/* 图片默认居中（.prose img 同款） */}
-                      <img src={b.previewUrl} alt={b.caption || b.file.name} className="mx-auto block max-h-[400px] w-auto max-w-full rounded-[var(--radius-sm)]" />
-                      {/* 图注（.prose 图注同款：居中 0.85rem 灰字） */}
-                      <input
-                        type="text"
-                        value={b.caption}
-                        onChange={(e) => updateBlock(b.id, { caption: e.target.value })}
-                        placeholder="图：图片标注（可留空）"
-                        className="mt-1.5 w-full border-none bg-transparent text-center text-[0.85rem] outline-none placeholder:opacity-60"
-                        style={{ fontFamily: "inherit", color: "var(--text-muted)" }}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* 添加块 */}
-              <div className="mt-2 flex items-center gap-2">
-                <button
-                  onClick={addText}
-                  className="flex items-center gap-1.5 rounded-full border border-dashed px-3 py-1.5 text-xs transition-colors hover:border-[var(--accent)]"
-                  style={{ borderColor: "var(--glass-border)", color: "var(--text-muted)" }}
-                >
-                  <Type size={13} /> 文本
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 rounded-full border border-dashed px-3 py-1.5 text-xs transition-colors hover:border-[var(--accent)]"
-                  style={{ borderColor: "var(--glass-border)", color: "var(--text-muted)" }}
-                >
-                  <ImageIcon size={13} /> 图片（默认居中）
-                </button>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => { addImages(e.target.files); e.target.value = "" }}
-                className="hidden"
-              />
-            </div>
+            {/* 正文编辑区（Word 式：一个富文本区，图片嵌在文字中间） */}
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              role="textbox"
+              aria-multiline="true"
+              aria-label="正文"
+              data-placeholder="写点什么...（图片会插入光标处，回车分段）"
+              className="rich-editor prose max-w-none min-h-[280px] flex-1 overflow-y-auto border-t px-6 py-5 outline-none"
+              style={{ borderColor: "var(--glass-border)" }}
+              onInput={syncEmpty}
+              onPaste={handlePaste}
+              onDrop={handleDrop}
+              dangerouslySetInnerHTML={initHtml}
+            />
 
             {/* 底部状态条 */}
             <div className="shrink-0 border-t px-6 py-3" style={{ borderColor: "var(--glass-border)" }}>
@@ -462,13 +511,23 @@ export function BlogEditor() {
                   <Loader2 size={13} className="animate-spin" /> {phase}
                 </div>
               ) : (
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  发布后自动推送到 GitHub，Actions 部署完成后生效
+                <p className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                  <ArrowUpToLine size={13} />
+                  发布后自动推送到 GitHub，Actions 部署完成后生效；图片粘贴/拖拽也可插入
                 </p>
               )}
             </div>
           </>
         )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => { insertImages(Array.from(e.target.files ?? [])); e.target.value = "" }}
+          className="hidden"
+        />
       </div>
     </div>
   )
