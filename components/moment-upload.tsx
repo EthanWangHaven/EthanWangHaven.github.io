@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Plus, X, Upload, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
-import { GITHUB_CONFIG, githubApiUrl } from "@/lib/github-config"
+import { GITHUB_CONFIG, getGithubToken, githubApiUrl } from "@/lib/github-config"
 
 /* ============================================================
  * Moment 上传组件
@@ -69,8 +69,8 @@ export function MomentUpload() {
       setErrorMsg("请填写标题")
       return
     }
-    if (!GITHUB_CONFIG.token) {
-      setErrorMsg("未配置 GitHub Token，请在组件中配置")
+    if (!getGithubToken()) {
+      setErrorMsg("未配置 GitHub Token，请到音乐弹窗的 Token 设置中配置")
       setStatus("error")
       return
     }
@@ -93,7 +93,7 @@ export function MomentUpload() {
         const imgRes = await fetch(githubApiUrl(imagePath), {
             method: "PUT",
             headers: {
-              Authorization: `Bearer ${GITHUB_CONFIG.token}`,
+              Authorization: `Bearer ${getGithubToken()}`,
               "Content-Type": "application/json",
               Accept: "application/vnd.github+json",
             },
@@ -120,7 +120,7 @@ export function MomentUpload() {
       const mdxRes = await fetch(githubApiUrl(mdxPath), {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${GITHUB_CONFIG.token}`,
+          Authorization: `Bearer ${getGithubToken()}`,
           "Content-Type": "application/json",
           Accept: "application/vnd.github+json",
         },

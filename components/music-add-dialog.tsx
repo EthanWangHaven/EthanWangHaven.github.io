@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { X, Loader2, CheckCircle2, AlertCircle, Upload, Link2, FileAudio, Plus } from "lucide-react"
+import { X, Loader2, CheckCircle2, AlertCircle, Upload, Link2, FileAudio, Plus, CircleAlert, ArrowLeft, KeyRound, ShieldCheck, Trash2 } from "lucide-react"
 import type { LyricLine, Song } from "@/lib/music-config"
 import { resolveNeteaseSong, downloadAudio, addSongToRepo, extractSongId, searchLyrics, fetchLyricsById } from "@/lib/music-repo"
+import { getTokenStatus, validateGithubToken, setCustomToken, clearCustomToken, type TokenStatus } from "@/lib/github-config"
 
 /* ============================================================
  * 添加音乐弹窗
@@ -15,6 +16,7 @@ import { resolveNeteaseSong, downloadAudio, addSongToRepo, extractSongId, search
 
 type Mode = "id" | "file"
 type Phase = "idle" | "resolving" | "uploading" | "success"
+type View = "add" | "token"
 
 const MAX_AUDIO_SIZE = 60 * 1024 * 1024
 
@@ -37,6 +39,12 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
   const [notice, setNotice] = useState("")
   const [errorMsg, setErrorMsg] = useState("")
   const [matchedLyrics, setMatchedLyrics] = useState<number | null>(null)
+  const [view, setView] = useState<View>("add")
+  const [tokenInfo, setTokenInfo] = useState<TokenStatus>({ source: "none", masked: "" })
+  const [tokenInput, setTokenInput] = useState("")
+  const [tokenBusy, setTokenBusy] = useState(false)
+  const [tokenMsg, setTokenMsg] = useState("")
+  const [tokenErr, setTokenErr] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 监听主题变化
@@ -50,7 +58,7 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
 
   if (!open) return null
 
-  const busy = phase === "resolving" || phase === "uploading"
+  const busy = phase === "resolving" || phase === "uploading" || tokenBusy
   const modalBg = isDark ? "rgba(28, 28, 38, 0.85)" : "rgba(255, 255, 255, 0.85)"
 
   const reset = () => {
@@ -65,6 +73,10 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
     setNotice("")
     setErrorMsg("")
     setMatchedLyrics(null)
+    setView("add")
+    setTokenInput("")
+    setTokenMsg("")
+    setTokenErr("")
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
@@ -72,6 +84,41 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
     if (busy) return
     onClose()
     reset()
+  }
+
+  const handleSaveToken = async () => {
+    const t = tokenInput.trim()
+    if (!t) {
+      setTokenErr("请先粘贴 GitHub Token")
+      return
+    }
+    setTokenBusy(true)
+    setTokenErr("")
+    setTokenMsg("")
+    try {
+      const info = await validateGithubToken(t)
+      setCustomToken(t)
+      setTokenInfo(getTokenStatus())
+      setTokenInput("")
+      setTokenMsg(info.login ? `校验通过，已保存 @${info.login} 的 Token` : "校验通过，Token 已保存")
+    } catch (e) {
+      setTokenErr(e instanceof Error ? e.message : "校验失败")
+    } finally {
+      setTokenBusy(false)
+    }
+  }
+
+  const handleClearToken = () => {
+    clearCustomToken()
+    const next = getTokenStatus()
+    setTokenInfo(next)
+    setTokenInput("")
+    setTokenErr("")
+    setTokenMsg(
+      next.source === "builtin"
+        ? "已清除自定义 Token，继续使用编译内置 Token"
+        : "已清除自定义 Token，当前没有可用的 Token"
+    )
   }
 
   const handleIdChange = (v: string) => {
@@ -225,7 +272,30 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
       >
         {/* 头部 */}
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold">添加音乐</h2>
+          <div className="flex items-center gap-2">
+            {view === "token" && (
+              <button
+                onClick={() => { if (!tokenBusy) setView("add") }}
+                className="flex h-7 w-7 items-center justify-center rounded-full transition-opacity hover:opacity-70"
+                style={{ color: "var(--m-text-muted)" }}
+                aria-label="返回"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <h2 className="text-lg font-bold">{view === "add" ? "添加音乐" : "Token 设置"}</h2>
+            {view === "add" && (
+              <button
+                onClick={() => { setTokenErr(""); setTokenMsg(""); setTokenInfo(getTokenStatus()); setView("token") }}
+                className="flex h-6 w-6 items-center justify-center rounded-full border transition-all hover:scale-105"
+                style={{ borderColor: "var(--glass-border)", color: "var(--m-text-muted)" }}
+                aria-label="Token 设置"
+                title="GitHub Token 设置"
+              >
+                <CircleAlert size={13} />
+              </button>
+            )}
+          </div>
           <button
             onClick={requestClose}
             className="flex h-8 w-8 items-center justify-center rounded-full transition-opacity hover:opacity-70"
@@ -236,8 +306,92 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
           </button>
         </div>
 
-        {phase === "success" ? (
-          <div className="flex flex-col items-center gap-3 py-8">
+        {view === "token" ? (
+          <div key="token" className="space-y-4">
+            {/* 当前 token 状态 */}
+            <div
+              className="rounded-xl border p-3"
+              style={{
+                borderColor: "var(--glass-border)",
+                background: isDark ? "rgba(40,40,50,0.45)" : "rgba(245,245,250,0.6)",
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <KeyRound size={14} style={{ color: "var(--m-accent)" }} />
+                <span className="text-xs font-medium">
+                  {tokenInfo.source === "custom"
+                    ? "使用自定义 Token"
+                    : tokenInfo.source === "builtin"
+                      ? "未设置自定义 Token，使用编译内置 Token"
+                      : "未配置 Token，上传不可用"}
+                </span>
+              </div>
+              {tokenInfo.source === "custom" && (
+                <p className="mt-1 pl-6 font-mono text-xs" style={{ color: "var(--m-text-muted)" }}>{tokenInfo.masked}</p>
+              )}
+            </div>
+
+            {/* 输入新 token */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--m-text-light)" }}>新的 GitHub Token</label>
+              <input
+                type="password"
+                value={tokenInput}
+                onChange={(e) => { setTokenInput(e.target.value); setTokenErr(""); setTokenMsg("") }}
+                onKeyDown={(e) => { if (e.key === "Enter" && !tokenBusy) handleSaveToken() }}
+                placeholder="ghp_… 或 github_pat_…"
+                disabled={tokenBusy}
+                className="w-full rounded-xl border px-3 py-2 font-mono text-sm outline-none transition-colors disabled:opacity-60"
+                style={inputStyle}
+              />
+              <p className="mt-1.5 text-[0.7rem] leading-relaxed" style={{ color: "var(--m-text-muted)" }}>
+                只保存在当前浏览器，不会提交到仓库。建议用 fine-grained token，仅授权本仓库 Contents: Read and write。
+              </p>
+            </div>
+
+            {tokenMsg && (
+              <div className="flex items-start gap-2 rounded-xl p-3" style={{ background: "rgba(176,149,238,0.1)" }}>
+                <CheckCircle2 size={16} className="mt-0.5 shrink-0" style={{ color: "var(--m-accent)" }} />
+                <span className="text-xs" style={{ color: "var(--m-text-light)" }}>{tokenMsg}</span>
+              </div>
+            )}
+
+            {tokenErr && (
+              <div className="flex items-start gap-2 rounded-xl p-3" style={{ background: "rgba(220,80,80,0.08)" }}>
+                <AlertCircle size={16} className="mt-0.5 shrink-0 text-red-500" />
+                <span className="text-xs text-red-600">{tokenErr}</span>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveToken}
+                disabled={tokenBusy}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all disabled:opacity-60"
+                style={{ background: "var(--m-accent)", color: "white" }}
+              >
+                {tokenBusy ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+                {tokenBusy ? "校验中..." : "校验并保存"}
+              </button>
+              {tokenInfo.source === "custom" && (
+                <button
+                  onClick={handleClearToken}
+                  disabled={tokenBusy}
+                  className="flex shrink-0 items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm transition-colors hover:opacity-80 disabled:opacity-60"
+                  style={{ borderColor: "var(--glass-border)", color: "var(--m-text-light)" }}
+                >
+                  <Trash2 size={14} />
+                  清除
+                </button>
+              )}
+            </div>
+
+            <p className="text-center text-[0.7rem]" style={{ color: "var(--m-text-muted)" }}>
+              Token 过期后在这里粘贴新的即可，无需重新构建部署
+            </p>
+          </div>
+        ) : phase === "success" ? (
+          <div key="success" className="flex flex-col items-center gap-3 py-8">
             <CheckCircle2 size={48} className="text-green-500" />
             <p className="text-sm font-medium">已提交到仓库</p>
             <p className="text-xs" style={{ color: "var(--m-text-muted)" }}>
@@ -250,7 +404,7 @@ export function MusicAddDialog({ open, onClose, onAdded }: MusicAddDialogProps) 
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div key="add" className="space-y-4">
             {/* 模式切换 */}
             <div className="flex gap-2">
               {modePill("id", "音乐 id 解析", <Link2 size={14} />)}

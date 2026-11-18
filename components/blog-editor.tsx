@@ -5,7 +5,7 @@ import {
   X, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle,
   ArrowUpToLine, Send, Plus,
 } from "lucide-react"
-import { GITHUB_CONFIG, githubApiUrl } from "@/lib/github-config"
+import { GITHUB_CONFIG, getGithubToken, githubApiUrl } from "@/lib/github-config"
 
 /* ============================================================
  * 博客编辑器：Word 式富文本（contenteditable）
@@ -320,7 +320,7 @@ export function BlogEditor() {
     if (!title.trim()) { setErrorMsg("请填写标题"); setStatus("error"); return }
     const paras = collectParas()
     if (!paras.length) { setErrorMsg("请输入正文内容"); setStatus("error"); return }
-    if (!GITHUB_CONFIG.token) { setErrorMsg("未配置 GitHub Token"); setStatus("error"); return }
+    if (!getGithubToken()) { setErrorMsg("未配置 GitHub Token，请到音乐弹窗的 Token 设置中配置"); setStatus("error"); return }
 
     setStatus("uploading")
     setErrorMsg("")
@@ -341,7 +341,7 @@ export function BlogEditor() {
         const res = await fetch(githubApiUrl(`public/images/${name}`), {
           method: "PUT",
           headers: {
-            Authorization: `Bearer ${GITHUB_CONFIG.token}`,
+            Authorization: `Bearer ${getGithubToken()}`,
             "Content-Type": "application/json",
             Accept: "application/vnd.github+json",
           },
@@ -394,7 +394,7 @@ export function BlogEditor() {
       const res = await fetch(githubApiUrl(`content/blog/${slug}.mdx`), {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${GITHUB_CONFIG.token}`,
+          Authorization: `Bearer ${getGithubToken()}`,
           "Content-Type": "application/json",
           Accept: "application/vnd.github+json",
         },

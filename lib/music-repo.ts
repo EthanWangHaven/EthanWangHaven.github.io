@@ -1,4 +1,4 @@
-import { GITHUB_CONFIG, githubApiUrl } from "@/lib/github-config"
+import { GITHUB_CONFIG, getGithubToken, githubApiUrl } from "@/lib/github-config"
 import type { LyricLine, Song } from "@/lib/music-config"
 import s2tMapJson from "@/lib/s2t-map.json"
 
@@ -220,7 +220,7 @@ export async function fetchLyricsById(songId: string): Promise<LyricLine[]> {
 
 function authHeaders(): Record<string, string> {
   return {
-    Authorization: `Bearer ${GITHUB_CONFIG.token}`,
+    Authorization: `Bearer ${getGithubToken()}`,
     Accept: "application/vnd.github+json",
   }
 }
@@ -298,8 +298,8 @@ export interface AddSongInput {
 
 /** 将新歌提交到仓库：先传音源，再追加歌单，两次提交由 Actions 自动部署 */
 export async function addSongToRepo(input: AddSongInput): Promise<Song> {
-  if (!GITHUB_CONFIG.token) {
-    throw new Error("未配置 GitHub Token，请检查 NEXT_PUBLIC_GH_TOKEN 配置")
+  if (!getGithubToken()) {
+    throw new Error("未配置 GitHub Token，请点击「添加音乐」标题旁的 ⚠ 按钮设置")
   }
 
   // id 仅保留安全文件名字符，防止链接等输入破坏 API 路径
