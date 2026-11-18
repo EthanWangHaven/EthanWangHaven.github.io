@@ -5,9 +5,11 @@ import {
   Play, Pause, SkipBack, SkipForward,
   Volume2, VolumeX, Repeat, Repeat1,
   Maximize2, Minimize2, X, Music, Plus,
+  ListChecks, Check, Trash2, Loader2,
 } from "lucide-react"
 import { playlist as defaultPlaylist, type Song } from "@/lib/music-config"
 import { MusicAddDialog } from "@/components/music-add-dialog"
+import { removeSongsFromRepo } from "@/lib/music-repo"
 
 function formatTime(s: number) {
   if (!isFinite(s) || s < 0) return "00:00"
@@ -53,6 +55,12 @@ export function MusicPlayer() {
   const [activeTab, setActiveTab] = useState<"lyrics" | "playlist">("lyrics")
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [activeLyricIndex, setActiveLyricIndex] = useState(-1)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [confirmRemove, setConfirmRemove] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const [removeError, setRemoveError] = useState("")
+  const [removeNotice, setRemoveNotice] = useState("")
 
   // ── Drag state ──
   const [pos, setPos] = useState({ x: 0, y: 0 }) // 0,0 = bottom-right
@@ -129,7 +137,7 @@ export function MusicPlayer() {
   }, [volume, muted])
 
   useEffect(() => {
-    const lyrics = currentSong.lyrics
+    const lyrics = currentSong?.lyrics ?? []
     if (!lyrics || lyrics.length === 0) return
     let idx = -1
     for (let i = lyrics.length - 1; i >= 0; i--) {
@@ -300,6 +308,70 @@ export function MusicPlayer() {
   // 弹窗添加成功：本地同步追加（音源需等 Actions 部署完成后可播放）
   const handleSongAdded = (song: Song) => {
     setSongs((prev) => [...prev, song])
+    setRemoveNotice("")
+  }
+
+  // ── 选择 / 移除歌曲 ──
+  const exitSelectMode = () => {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+    setConfirmRemove(false)
+    setRemoveError("")
+  }
+
+  const toggleSelectMode = () => {
+    if (selectMode) {
+      exitSelectMode()
+      return
+    }
+    setSelectMode(true)
+    setSelectedIds(new Set())
+    setConfirmRemove(false)
+    setRemoveError("")
+    setRemoveNotice("")
+  }
+
+  const toggleSelect = (id: string) => {
+    if (removing) return
+    setConfirmRemove(false)
+    setRemoveError("")
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleRemoveSelected = async () => {
+    if (!selectedIds.size || removing) return
+    setRemoving(true)
+    setRemoveError("")
+    try {
+      const result = await removeSongsFromRepo([...selectedIds])
+      const playingId = currentSong?.id
+      const remaining = songs.filter((s) => !selectedIds.has(s.id))
+      setSongs(remaining)
+      if (playingId && selectedIds.has(playingId)) {
+        audioRef.current?.pause()
+        setIsPlaying(false)
+        setCurrentIndex(0)
+      } else if (playingId) {
+        const idx = remaining.findIndex((s) => s.id === playingId)
+        setCurrentIndex(idx < 0 ? 0 : idx)
+      }
+      setRemoveNotice(
+        result.audioFailed > 0
+          ? `已移除 ${result.removed} 首，${result.audioFailed} 个音源删除失败，可稍后重试`
+          : `已移除 ${result.removed} 首，稍后自动部署生效`
+      )
+      exitSelectMode()
+    } catch (e) {
+      setRemoveError(e instanceof Error ? e.message : "移除失败")
+      setConfirmRemove(false)
+    } finally {
+      setRemoving(false)
+    }
   }
 
   const cardStyle = {
@@ -424,6 +496,7 @@ export function MusicPlayer() {
           --m-text: ${MUSIC.text};
           --m-text-light: ${MUSIC.textLight};
           --m-text-muted: ${MUSIC.textMuted};
+          --m-danger: #c94848;
         }
         .dark {
           --m-accent: ${MUSIC.accentD};
@@ -432,6 +505,7 @@ export function MusicPlayer() {
           --m-text: ${MUSIC.textD};
           --m-text-light: ${MUSIC.textLightD};
           --m-text-muted: ${MUSIC.textMutedD};
+          --m-danger: #f0a3a3;
         }
         @keyframes eqBar {
           0% { height: 3px; }
@@ -456,9 +530,9 @@ export function MusicPlayer() {
 
       <audio
         ref={audioRef}
-        src={currentSong.audioUrl}
+        src={currentSong?.audioUrl ?? ""}
         preload="metadata"
-        onError={(e) => console.error("[MusicPlayer] Audio error:", e.currentTarget.error, "src:", currentSong.audioUrl)}
+        onError={(e) => console.error("[MusicPlayer] Audio error:", e.currentTarget.error, "src:", currentSong?.audioUrl)}
       />
 
       {/* ── Collapsed: draggable floating button ── */}
@@ -502,8 +576,8 @@ export function MusicPlayer() {
           <div className="flex items-center gap-3">
             {vinylRecord("h-16 w-16 shrink-0")}
             <div className="flex-1 overflow-hidden">
-              <div className="truncate text-sm font-bold" style={{ color: "var(--m-text)" }}>{currentSong.title}</div>
-              <div className="truncate text-xs" style={{ color: "var(--m-text-light)" }}>{currentSong.artist}</div>
+              <div className="truncate text-sm font-bold" style={{ color: "var(--m-text)" }}>{currentSong?.title ?? "暂无歌曲"}</div>
+              <div className="truncate text-xs" style={{ color: "var(--m-text-light)" }}>{currentSong?.artist ?? "歌单为空"}</div>
             </div>
             <button onClick={() => setMode("expanded")} className="flex h-7 w-7 items-center justify-center rounded-full transition-all hover:opacity-70" style={{ color: "var(--m-text-muted)" }} aria-label="展开大面板">
               <Maximize2 size={15} />
@@ -534,8 +608,8 @@ export function MusicPlayer() {
 
               {vinylRecord("h-36 w-36 md:h-40 md:w-40")}
               <div className="mt-3 text-center">
-                <h2 className="text-base font-bold" style={{ color: "var(--m-text)" }}>{currentSong.title}</h2>
-                <p className="mt-0.5 text-xs" style={{ color: "var(--m-text-light)" }}>{currentSong.artist}</p>
+                <h2 className="text-base font-bold" style={{ color: "var(--m-text)" }}>{currentSong?.title ?? "暂无歌曲"}</h2>
+                <p className="mt-0.5 text-xs" style={{ color: "var(--m-text-light)" }}>{currentSong?.artist ?? "歌单为空"}</p>
               </div>
               <div className="mt-5 w-full">{progressBar()}</div>
               <div className="mt-4">{controlButtons()}</div>
@@ -567,15 +641,26 @@ export function MusicPlayer() {
                   歌单
                 </button>
                 {activeTab === "playlist" && (
-                  <button
-                    onClick={() => setShowAddDialog(true)}
-                    className="ml-auto flex h-8 w-8 items-center justify-center rounded-full border transition-all hover:scale-105"
-                    style={{ borderColor: "var(--glass-border)", color: "var(--m-text-light)" }}
-                    aria-label="添加音乐"
-                    title="添加音乐"
-                  >
-                    <Plus size={16} />
-                  </button>
+                  <>
+                    <button
+                      onClick={toggleSelectMode}
+                      className="ml-auto flex h-8 w-8 items-center justify-center rounded-full border transition-all hover:scale-105"
+                      style={selectMode ? { background: A, borderColor: A, color: "white" } : { borderColor: "var(--glass-border)", color: "var(--m-text-light)" }}
+                      aria-label={selectMode ? "退出选择" : "选择歌曲"}
+                      title={selectMode ? "退出选择" : "选择歌曲"}
+                    >
+                      <ListChecks size={16} />
+                    </button>
+                    <button
+                      onClick={() => setShowAddDialog(true)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border transition-all hover:scale-105"
+                      style={{ borderColor: "var(--glass-border)", color: "var(--m-text-light)" }}
+                      aria-label="添加音乐"
+                      title="添加音乐"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -586,7 +671,7 @@ export function MusicPlayer() {
                     className="h-[300px] overflow-y-auto rounded-2xl px-4 py-4"
                     style={{ maskImage: "linear-gradient(180deg, transparent 0%, black 15%, black 85%, transparent 100%)" }}
                   >
-                    {currentSong.lyrics.length === 0 ? (
+                    {!currentSong || currentSong.lyrics.length === 0 ? (
                       <div className="flex h-full items-center justify-center text-sm" style={{ color: "var(--m-text-muted)" }}>
                         暂无歌词
                       </div>
@@ -606,30 +691,115 @@ export function MusicPlayer() {
                 )}
 
                 {activeTab === "playlist" && (
-                  <div className="h-[300px] space-y-1.5 overflow-y-auto">
-                    {songs.map((song, idx) => (
-                      <button
-                        key={song.id}
-                        onClick={() => playSongAt(idx)}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:opacity-90"
-                        style={idx === currentIndex ? { background: AL, color: "var(--m-text)" } : { color: "var(--m-text)" }}
-                      >
-                        <span className="w-6 text-center text-xs tabular-nums" style={{ color: "var(--m-text-muted)" }}>
-                          {idx === currentIndex && isPlaying ? (
-                            <span className="flex h-3 items-end gap-0.5">
-                              {[0, 1].map((b) => (
-                                <span key={b} className="w-0.5 rounded-full" style={{ background: "var(--m-text)", animation: `eqBar 0.6s ease-in-out ${b * 0.1}s infinite alternate` }} />
-                              ))}
-                            </span>
-                          ) : (idx + 1)}
-                        </span>
-                        <div className="flex-1 overflow-hidden">
-                          <div className="truncate text-sm font-medium">{song.title}</div>
-                          <div className="truncate text-xs" style={{ color: "var(--m-text-muted)" }}>{song.artist}</div>
+                  <div className="flex h-[300px] flex-col">
+                    <div className="flex-1 space-y-1.5 overflow-y-auto">
+                      {songs.length === 0 && (
+                        <div className="flex h-full items-center justify-center text-sm" style={{ color: "var(--m-text-muted)" }}>
+                          歌单为空
                         </div>
-                        {idx === currentIndex && <Music size={14} className="shrink-0" style={{ color: "var(--m-text)" }} />}
-                      </button>
-                    ))}
+                      )}
+                      {songs.map((song, idx) => {
+                        const selected = selectedIds.has(song.id)
+                        return (
+                          <button
+                            key={song.id}
+                            onClick={() => (selectMode ? toggleSelect(song.id) : playSongAt(idx))}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:opacity-90"
+                            style={
+                              selected
+                                ? { background: AL, color: "var(--m-text)", boxShadow: `inset 0 0 0 1px ${A}` }
+                                : idx === currentIndex
+                                  ? { background: AL, color: "var(--m-text)" }
+                                  : { color: "var(--m-text)" }
+                            }
+                          >
+                            {selectMode ? (
+                              <span
+                                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
+                                style={{
+                                  borderColor: selected ? A : "var(--glass-border)",
+                                  background: selected ? A : "transparent",
+                                  color: "white",
+                                }}
+                              >
+                                {selected && <Check size={12} />}
+                              </span>
+                            ) : (
+                              <span className="w-6 text-center text-xs tabular-nums" style={{ color: "var(--m-text-muted)" }}>
+                                {idx === currentIndex && isPlaying ? (
+                                  <span className="flex h-3 items-end gap-0.5">
+                                    {[0, 1].map((b) => (
+                                      <span key={b} className="w-0.5 rounded-full" style={{ background: "var(--m-text)", animation: `eqBar 0.6s ease-in-out ${b * 0.1}s infinite alternate` }} />
+                                    ))}
+                                  </span>
+                                ) : (idx + 1)}
+                              </span>
+                            )}
+                            <div className="flex-1 overflow-hidden">
+                              <div className="truncate text-sm font-medium">{song.title}</div>
+                              <div className="truncate text-xs" style={{ color: "var(--m-text-muted)" }}>{song.artist}</div>
+                            </div>
+                            {!selectMode && idx === currentIndex && <Music size={14} className="shrink-0" style={{ color: "var(--m-text)" }} />}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {removeNotice && (
+                      <p className="mt-2 shrink-0 text-xs" style={{ color: "var(--m-text-muted)" }}>{removeNotice}</p>
+                    )}
+
+                    {selectMode && (
+                      <div className="mt-2 shrink-0 rounded-xl border p-2.5" style={{ borderColor: "var(--glass-border)" }}>
+                        {confirmRemove ? (
+                          <div className="space-y-2">
+                            <p className="text-xs" style={{ color: "var(--m-danger)" }}>将从仓库删除歌单记录和音源，此操作不可恢复</p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleRemoveSelected}
+                                disabled={removing}
+                                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium transition-all disabled:opacity-60"
+                                style={{ background: "#d95858", color: "white" }}
+                              >
+                                {removing ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                                {removing ? "移除中..." : `确认移除 ${selectedIds.size} 首`}
+                              </button>
+                              <button
+                                onClick={() => setConfirmRemove(false)}
+                                disabled={removing}
+                                className="rounded-lg border px-3 py-1.5 text-xs transition-colors hover:opacity-80 disabled:opacity-60"
+                                style={{ borderColor: "var(--glass-border)", color: "var(--m-text-light)" }}
+                              >
+                                取消
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs" style={{ color: "var(--m-text-light)" }}>已选 {selectedIds.size} 首</span>
+                            <div className="ml-auto flex gap-2">
+                              <button
+                                onClick={() => setConfirmRemove(true)}
+                                disabled={!selectedIds.size}
+                                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all disabled:opacity-40"
+                                style={{ background: A, color: "white" }}
+                              >
+                                <Trash2 size={13} />
+                                移除
+                              </button>
+                              <button
+                                onClick={exitSelectMode}
+                                className="rounded-lg border px-3 py-1.5 text-xs transition-colors hover:opacity-80"
+                                style={{ borderColor: "var(--glass-border)", color: "var(--m-text-light)" }}
+                              >
+                                取消
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {removeError && <p className="mt-2 text-[0.7rem]" style={{ color: "var(--m-danger)" }}>{removeError}</p>}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

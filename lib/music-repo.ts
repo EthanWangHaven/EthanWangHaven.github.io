@@ -296,6 +296,53 @@ export interface AddSongInput {
   lyrics?: LyricLine[] // 匹配到的歌词（未匹配则为空）
 }
 
+/** 删除仓库文件（不存在时视为成功） */
+async function deleteRepoFile(path: string, message: string): Promise<boolean> {
+  const file = await getRepoFile(path)
+  if (!file) return true
+  const res = await fetch(githubApiUrl(path), {
+    method: "DELETE",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ message, sha: file.sha, branch: GITHUB_CONFIG.branch }),
+  })
+  return res.ok || res.status === 404
+}
+
+export interface RemoveSongsResult {
+  removed: number
+  audioFailed: number // 音源删除失败的落数量
+}
+
+/** 从仓库移除歌曲：先更新歌单（触发部署），再尽力删除对应音源 */
+export async function removeSongsFromRepo(ids: string[]): Promise<RemoveSongsResult> {
+  if (!getGithubToken()) {
+    throw new Error("未配置 GitHub Token，请点击「添加音乐」标题旁的 ⚠ 按钮设置")
+  }
+  const idSet = new Set(ids)
+  const { songs, sha } = await fetchPlaylistFromRepo()
+  const removed = songs.filter((s) => idSet.has(s.id))
+  if (!removed.length) throw new Error("歌单中未找到要移除的歌曲")
+
+  const remaining = songs.filter((s) => !idSet.has(s.id))
+  const titles = removed.slice(0, 3).map((s) => s.title).join(" / ")
+  const message = `remove songs: ${titles}${removed.length > 3 ? ` (+${removed.length - 3})` : ""}`
+  const updated = JSON.stringify(remaining, null, 2) + "\n"
+
+  await putRepoFile("data/playlist.json", encodeBase64Utf8(updated), message, sha)
+  await putRepoFile("public/data/playlist.json", encodeBase64Utf8(updated), message)
+
+  let audioFailed = 0
+  for (const song of removed) {
+    if (!song.audioUrl?.startsWith("/audio/")) continue
+    try {
+      if (!(await deleteRepoFile(`public${song.audioUrl}`, `music: delete audio ${song.id}`))) audioFailed++
+    } catch {
+      audioFailed++
+    }
+  }
+  return { removed: removed.length, audioFailed }
+}
+
 /** 将新歌提交到仓库：先传音源，再追加歌单，两次提交由 Actions 自动部署 */
 export async function addSongToRepo(input: AddSongInput): Promise<Song> {
   if (!getGithubToken()) {
