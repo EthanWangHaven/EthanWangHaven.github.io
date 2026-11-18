@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 580" role="img" aria-label="路线 A 与路线 B 的输入、输出和工具链对比">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <rect x="24" y="24" width="430" height="512" rx="14" fill="#f8fafc" stroke="#2563eb" stroke-width="1.5"/>
+  <rect x="506" y="24" width="430" height="512" rx="14" fill="#f8fafc" stroke="#7c3aed" stroke-width="1.5"/>
+
+  <text x="48" y="64" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#0f172a">路线 A：传统控制</text>
+  <text x="530" y="64" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#0f172a">路线 B：具身智能</text>
+
+  <line x1="480" y1="48" x2="480" y2="512" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 6"/>
+
+  <!-- 路线 A -->
+  <rect x="56" y="92" width="366" height="58" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="56" y="92" width="4" height="58" fill="#2563eb"/>
+  <text x="76" y="114" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">输入</text>
+  <text x="76" y="135" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#334155">目标位姿、物体模型、工位坐标</text>
+
+  <line x1="239" y1="158" x2="239" y2="170" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="56" y="178" width="366" height="58" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="56" y="178" width="4" height="58" fill="#2563eb"/>
+  <text x="76" y="200" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">模型 / 策略</text>
+  <text x="76" y="221" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#334155">运动学 + 规划 + 控制器；感知可含学习</text>
+
+  <line x1="239" y1="244" x2="239" y2="256" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="56" y="264" width="366" height="58" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="56" y="264" width="4" height="58" fill="#2563eb"/>
+  <text x="76" y="286" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">输出</text>
+  <text x="76" y="307" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#334155">关节轨迹或力矩指令</text>
+
+  <line x1="239" y1="330" x2="239" y2="342" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="56" y="350" width="366" height="58" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="56" y="350" width="4" height="58" fill="#2563eb"/>
+  <text x="76" y="372" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">工具链</text>
+  <text x="76" y="393" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#334155">ROS 2 · MoveIt 2 · Pinocchio · 标定</text>
+
+  <line x1="239" y1="416" x2="239" y2="428" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="56" y="436" width="366" height="58" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="56" y="436" width="4" height="58" fill="#2563eb"/>
+  <text x="76" y="458" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">典型失败模式</text>
+  <text x="76" y="479" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#334155">标定漂移、奇异、碰撞、抓取滑移</text>
+
+  <!-- 路线 B -->
+  <rect x="538" y="92" width="366" height="58" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="538" y="92" width="4" height="58" fill="#7c3aed"/>
+  <text x="558" y="114" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">输入</text>
+  <text x="558" y="135" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#334155">图像、点云、语言指令</text>
+
+  <line x1="721" y1="158" x2="721" y2="170" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="538" y="178" width="366" height="58" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="538" y="178" width="4" height="58" fill="#7c3aed"/>
+  <text x="558" y="200" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">模型 / 策略</text>
+  <text x="558" y="221" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#334155">策略网络：BC、RL 或 VLA</text>
+
+  <line x1="721" y1="244" x2="721" y2="256" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="538" y="264" width="366" height="58" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="538" y="264" width="4" height="58" fill="#7c3aed"/>
+  <text x="558" y="286" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">输出</text>
+  <text x="558" y="307" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#334155">动作序列或末端增量</text>
+
+  <line x1="721" y1="330" x2="721" y2="342" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="538" y="350" width="366" height="58" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="538" y="350" width="4" height="58" fill="#7c3aed"/>
+  <text x="558" y="372" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">工具链</text>
+  <text x="558" y="393" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#334155">LeRobot · MuJoCo · Isaac Sim · PyTorch</text>
+
+  <line x1="721" y1="416" x2="721" y2="428" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="538" y="436" width="366" height="58" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="538" y="436" width="4" height="58" fill="#7c3aed"/>
+  <text x="558" y="458" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">典型失败模式</text>
+  <text x="558" y="479" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#334155">分布偏移、Sim2Real gap、推理延迟</text>
+
+  <text x="24" y="568" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">两者不是替代关系：路线 B 的底层仍需要路线 A 的运动学、规划与安全约束。</text>
+</svg>

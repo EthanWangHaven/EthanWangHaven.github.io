@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" role="img" aria-label="六阶段机械臂学习路径与验收点">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <text x="40" y="30" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#0f172a">六阶段学习路径与验收点</text>
+
+  <!-- 1 -->
+  <circle cx="70" cy="88" r="18" fill="#2563eb"/>
+  <text x="70" y="94" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#ffffff">1</text>
+  <rect x="110" y="56" width="740" height="64" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="132" y="82" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#0f172a">位姿与变换</text>
+  <text x="132" y="104" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">实现齐次变换与四元数插值，能解释万向锁和双覆盖</text>
+
+  <line x1="480" y1="120" x2="480" y2="144" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 2 -->
+  <circle cx="70" cy="184" r="18" fill="#2563eb"/>
+  <text x="70" y="190" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#ffffff">2</text>
+  <rect x="110" y="152" width="740" height="64" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="132" y="178" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#0f172a">运动学与逆运动学</text>
+  <text x="132" y="200" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">给定 URDF 能算 FK；能判断 IK 是否有解、多解与奇异</text>
+
+  <line x1="480" y1="216" x2="480" y2="240" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 3 -->
+  <circle cx="70" cy="280" r="18" fill="#2563eb"/>
+  <text x="70" y="286" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#ffffff">3</text>
+  <rect x="110" y="248" width="740" height="64" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="132" y="274" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#0f172a">动力学与规划</text>
+  <text x="132" y="296" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">推导 2R 动力学；生成连续轨迹；解释 RRT 的概率完备性</text>
+
+  <line x1="480" y1="312" x2="480" y2="336" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 4 -->
+  <circle cx="70" cy="376" r="18" fill="#2563eb"/>
+  <text x="70" y="382" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#ffffff">4</text>
+  <rect x="110" y="344" width="740" height="64" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="132" y="370" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#0f172a">工具链与标定</text>
+  <text x="132" y="392" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">在 MuJoCo 或 ROS 2 中让机械臂动起来；完成一次手眼标定</text>
+
+  <line x1="480" y1="408" x2="480" y2="432" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 5 -->
+  <circle cx="70" cy="472" r="18" fill="#2563eb"/>
+  <text x="70" y="478" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#ffffff">5</text>
+  <rect x="110" y="440" width="740" height="64" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="132" y="466" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#0f172a">路线 A：视觉抓取闭环</text>
+  <text x="132" y="488" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">串起检测、位姿、规划与执行；能定位误差来自标定、规划还是控制</text>
+
+  <line x1="480" y1="504" x2="480" y2="528" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 6 -->
+  <circle cx="70" cy="568" r="18" fill="#2563eb"/>
+  <text x="70" y="574" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#ffffff">6</text>
+  <rect x="110" y="536" width="740" height="64" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="132" y="562" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#0f172a">路线 B：策略训练</text>
+  <text x="132" y="584" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">采集示教并训练 BC；能解释 Sim2Real gap 与域随机化的作用</text>
+</svg>

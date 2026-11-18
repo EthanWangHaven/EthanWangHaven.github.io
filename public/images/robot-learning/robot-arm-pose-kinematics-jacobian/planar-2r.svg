@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" role="img" aria-label="2R 平面臂的两组逆运动学解">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <text x="32" y="40" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#0f172a">2R 平面臂：同一目标点的两组解</text>
+
+  <!-- axes -->
+  <line x1="150" y1="400" x2="620" y2="400" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+  <line x1="150" y1="400" x2="150" y2="120" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+  <text x="626" y="405" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#64748b">x</text>
+  <text x="138" y="114" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#64748b">y</text>
+
+  <!-- solution 1: elbow up (blue) -->
+  <line x1="150" y1="400" x2="339" y2="222" stroke="#2563eb" stroke-width="4"/>
+  <line x1="339" y1="222" x2="560" y2="220" stroke="#2563eb" stroke-width="4"/>
+  <circle cx="150" cy="400" r="8" fill="#2563eb"/>
+  <circle cx="339" cy="222" r="8" fill="#2563eb"/>
+  <circle cx="560" cy="220" r="9" fill="#0f172a"/>
+
+  <!-- solution 2: elbow down (purple) -->
+  <line x1="150" y1="400" x2="409" y2="381" stroke="#7c3aed" stroke-width="4" stroke-dasharray="10 6"/>
+  <line x1="409" y1="381" x2="560" y2="220" stroke="#7c3aed" stroke-width="4" stroke-dasharray="10 6"/>
+  <circle cx="409" cy="381" r="8" fill="#7c3aed"/>
+
+  <!-- angle arcs -->
+  <path d="M 210 400 A 60 60 0 0 0 194 359" fill="none" stroke="#2563eb" stroke-width="2"/>
+  <text x="218" y="376" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" fill="#2563eb">q1</text>
+
+  <path d="M 393.6 170.6 A 75 75 0 0 1 414.0 221.5" fill="none" stroke="#2563eb" stroke-width="2"/>
+  <text x="420" y="190" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" fill="#2563eb">q2</text>
+
+  <!-- labels -->
+  <text x="214" y="300" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" fill="#1e40af">l1</text>
+  <text x="452" y="206" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" fill="#1e40af">l2</text>
+  <text x="572" y="214" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" fill="#0f172a">P(x, y)</text>
+
+  <text x="270" y="192" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#2563eb">解 1：肘上</text>
+  <text x="418" y="372" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#7c3aed">解 2：肘下</text>
+
+  <!-- legend and note -->
+  <rect x="32" y="448" width="736" height="52" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="52" y="480" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">余弦定理给出 q2 的 ± 两组值；选解要结合关节限位、避障、当前位形和轨迹连续性，不能只取第一个解。</text>
+</svg>

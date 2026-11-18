@@ -1,0 +1,445 @@
+---
+date: "2026-11-23T20:00:00+08:00"
+draft: false
+title: 路线 B：具身智能训练——模仿学习、强化学习与 VLA
+categories:
+  - Robot Learning
+tags:
+  - 具身智能
+  - 模仿学习
+  - 强化学习
+  - VLA
+  - Sim2Real
+description: 把操作任务写成策略学习问题，比较模仿学习、强化学习和 VLA 的数据需求、训练信号与失败模式，并给出 Sim2Real 的工程边界。
+---
+
+> 本系列共六篇：
+> [机械臂训练的两条路线与学习顺序](/blog/robot-arm-learning-roadmap) · [位姿、运动学与雅可比](/blog/robot-arm-pose-kinematics-jacobian) · [动力学、力控与轨迹/抓取规划](/blog/robot-arm-dynamics-control-planning)
+> [工具链：ROS 2、MoveIt 2、仿真与视觉标定](/blog/robot-arm-toolchain-simulation-vision) · [路线 A：传统控制下的视觉抓取闭环](/blog/robot-arm-traditional-grasping-pipeline) · 路线 B：具身智能训练——模仿学习、强化学习与 VLA（本篇）
+
+路线 A 靠几何和标定；路线 B 靠数据和策略。这篇把操作任务写成 POMDP，比较三类范式：模仿学习、强化学习、VLA，再回到 Sim2Real。不是教程式实现，而是把数据需求、训练信号、失败模式和工程边界讲清楚。
+
+术语：POMDP（Partially Observable Markov Decision Process）、BC（Behavior Cloning）、DAgger（Dataset Aggregation）、ACT（Action Chunking with Transformers）、VLA（Vision-Language-Action）、Sim2Real、MDP（Markov Decision Process）、PPO（Proximal Policy Optimization）、SAC（Soft Actor-Critic）、TD3（Twin Delayed DDPG）、GAE（Generalized Advantage Estimation）、MSE（Mean Squared Error）、CVAE（Conditional Variational Autoencoder）、DDPM（Denoising Diffusion Probabilistic Model）、DDIM（Denoising Diffusion Implicit Model）、LoRA（Low-Rank Adaptation）、VLM（Vision-Language Model）。
+
+## 一、问题形式化：从 POMDP 到策略
+
+操作任务写成部分可观测马尔可夫决策过程（POMDP）：
+
+$$
+\mathcal{M} = (\mathcal{S}, \mathcal{A}, T, R, \Omega, O, \gamma)
+$$
+
+$O(o \mid s,a)$ 是观测函数，$\Omega$ 是观测空间；状态 $s$ 不可直接观测，策略看历史 $o_{1:t}$，输出动作 $a_t$：
+
+$$
+\pi(a_t \mid o_{1:t})
+$$
+
+观测 $o_t = (I_t, D_t, q_t, \dot q_t, \ell)$。$I_t$ 是图像，$D_t$ 是深度，$q_t,\dot q_t$ 是关节状态，$\ell$ 是语言指令。策略可以是确定性的 $a=\pi(o)$，也可以是随机性的 $\pi(a|o)$。
+$s$ 是真实状态（物体位姿、接触力、关节角），$o$ 是观测。POMDP 的关键是策略看不到 $s$，只能从 $o$ 推断。历史长度、相机数量、是否给深度，都会改变可观测性。
+
+观测空间要定：RGB 分辨率、深度、关节角/速度、末端位姿、语言指令。分辨率越高，检测越准，推理越慢；策略频率 5–30 Hz 时，224×224 是常见折中。
+
+动作空间要先定：关节位置、关节速度、末端增量、力矩。不同动作空间的频率和安全性不同。关节位置控制稳，末端增量直观，力矩控制适合接触但需要动力学模型。动作频率要和控制器匹配，策略 10 Hz、控制 1 kHz 时中间要插值。
+
+数据单位是 episode：一条从初始状态到结束的轨迹，包含观测、动作、奖励、成功标记。模仿学习用专家 episode，强化学习用交互 episode，VLA 用大规模机器人数据和视觉语言数据。评估要按物体/位置/任务划分训练集和测试集，不能按帧随机划分。
+
+评估指标要分开：任务成功率、泛化到新物体/新位置、样本效率、推理延迟、安全性。只看训练损失，无法判断策略能不能用。
+
+| 范式 | 数据 | 训练信号 | 优点与失败模式 |
+|---|---|---|---|
+| 模仿学习 | 专家示教 | 动作监督 | 样本效率高、易调试；分布偏移、泛化差 |
+| 强化学习 | 环境交互 | 奖励 | 可超越示教；样本效率低、奖励作弊 |
+| VLA | 机器人 + 视觉语言 | 动作监督 / 预训练 | 语义泛化、多任务；精度、延迟、数据规模 |
+
+| 条件 | 优先 |
+|---|---|
+| 有示教、任务固定 | BC / ACT |
+| 能交互、奖励可定义 | RL |
+| 多任务、语言指令 | VLA |
+| 精度高、接触多 | BC + 经典控制 |
+| 数据少 | 预训练 + LoRA |
+
+先定观测、动作和频率，再选模型。反过来，先选一个大模型，再找数据，通常会在接口和频率上返工。
+
+一个具体例子：任务是把方块放进盒子。观测是 224×224 RGB 加深度加关节角；动作是末端增量 $\Delta x,\Delta y,\Delta z$ 和夹爪开合；策略 10 Hz，底层控制 1 kHz。这个接口决定了数据采集、模型输入和部署频率。
+
+如果动作是绝对关节位置，策略输出 6 维关节加 1 维夹爪；如果是末端增量，策略输出 3 维位置加 1 维夹爪。动作空间越小，学习越容易，但表达能力和安全性要权衡。
+
+| 接口 | 选项 | 注意 |
+|---|---|---|
+| 观测 | RGB / 深度 / 本体 / 语言 | 分辨率与频率 |
+| 动作 | 关节位置 / 末端增量 / 力矩 | 安全与精度 |
+| 频率 | 策略 5–30 Hz，控制 1 kHz | 插值与延迟 |
+| 数据 | episode、时间戳、成功标记 | 对齐与覆盖 |
+
+评估要定义成功：方块进入盒子、夹爪松开、机器人撤回。成功条件写清楚，否则不同人统计的成功率不可比。
+
+## 二、模仿学习：BC、DAgger、ACT 与 Diffusion Policy
+
+示教采集有几种方式：遥操作（主从臂、VR、手柄）、拖动示教（零力模式）、手持夹爪。采集时要记录时间戳、相机内外参、关节状态和动作；没有时间戳的数据无法对齐。
+
+数据格式通常按 episode 组织：每帧包含观测、动作、语言指令、完成标记。LeRobot 的数据集把图像、状态、动作和任务描述放在同一套索引里，方便训练和回放。
+
+采集细节：相机固定在眼在手外或眼在手上；动作频率固定；每帧记录时间戳；示教时避免遮挡和运动模糊。遥操作适合精细任务，拖动示教适合快速采集，VR 适合大工作空间。数据量：BC 几十到几百条/任务；ACT/Diffusion 几百到几千条；VLA 十万级以上。数据量不够时，先做数据增强和预训练。
+
+数据质量：覆盖不同位置、物体、速度；保留失败样本；动作和观测对齐；语言指令一致。数据量不是唯一指标，覆盖度更重要。示教数据的质量检查：动作连续性、时间戳单调、图像不黑、关节不超限；采集后先跑一遍可视化。数据划分按 episode 划分，不能按帧；验证集要包含不同物体和位置。
+
+采集协议要写清楚：任务描述、物体清单、初始位置范围、相机参数、动作频率、成功条件、失败标记、采集人、日期。缺一项，数据回流时无法复现。每条 episode 开始前重置场景，结束后保存视频；视频用于人工检查数据和失败分类。
+
+行为克隆（Behavior Cloning，BC）把策略学习当成监督学习：给定观测，回归专家动作。损失用 MSE（连续动作）或负对数似然（离散/高斯策略）。
+
+BC 的工程细节：观测归一化、动作归一化、动作 horizon、损失权重。动作归一化不做，网络会被大量纲支配；horizon 太短，策略看不到历史。损失函数也要注意：MSE 对多模态示教不合适，会把两种合理动作平均成中间动作；可以用混合高斯、扩散或动作离散化。
+
+训练细节：batch size 256–1024，学习率 1e-4–1e-3，权重衰减 1e-4；观测用 float32，动作归一化到 [-1,1]；验证集每 epoch 跑一次，早停防过拟合。
+
+![BC 与 DAgger 的状态分布差异](/images/robot-learning/robot-arm-embodied-ai-training/bc-dagger.svg)
+
+*图：BC 只在专家状态上训练，策略误差会把状态推离分布；DAgger 在策略访问的状态上请求专家标签。*
+
+BC 的核心问题是分布偏移（covariate shift）：训练时只见过专家状态，部署时策略的小误差会把状态带到训练分布外，误差累积。离线损失低，只说明拟合了专家数据，不说明闭环能纠正误差。
+
+DAgger（Dataset Aggregation）在策略 rollout 的状态上请求专家标签，把新数据聚合进数据集，反复训练。它需要专家在线，成本高；但能覆盖策略实际访问的状态。
+
+DAgger 的工程细节：只对高不确定状态请求标签；聚合比例要控制，避免新数据淹没旧数据。每一轮都要重新评估，确认新数据真的覆盖了失败状态。
+
+ACT（Action Chunking with Transformers）用 Transformer 一次预测一段动作，配合 CVAE 处理多模态示教，推理时用时间集成平滑。动作分块减少 compounding error，适合精细操作。
+
+ACT 的工程细节：CVAE 编码示教风格，Transformer 解码动作块；时间集成对重叠动作做指数加权平均，减少抖动。动作块长度 K 是超参数：K 太大，策略反应慢；K 太小，compounding error 又回来。
+
+Diffusion Policy 用扩散模型生成动作序列，能表示多模态分布；缺点是推理慢，需要多步去噪。实时性要求高时，用蒸馏、DDIM 或少步采样。DDPM 通常几十到上百步，DDIM 可以几步，蒸馏能压到 1–2 步。
+
+| 方法 | 数据 | 优点 | 缺点 |
+|---|---|---|---|
+| BC | 专家示教 | 简单、快 | 分布偏移 |
+| DAgger | 专家在线 | 覆盖策略状态 | 专家成本高 |
+| ACT | 示教 | 动作分块、平滑 | 数据需求较大 |
+| Diffusion | 示教 | 多模态、稳定 | 推理慢 |
+
+BC 的失败模式：分布偏移、多模态平均、动作延迟、观测噪声。对应手段：DAgger、混合高斯/扩散、时间对齐、数据增强。
+
+```python
+import torch
+from torch import nn
+
+class BCPolicy(nn.Module):
+    def __init__(self, obs_dim, act_dim):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(obs_dim, 256), nn.ReLU(),
+            nn.Linear(256, 256), nn.ReLU(),
+            nn.Linear(256, act_dim),
+        )
+
+    def forward(self, obs):
+        return self.net(obs)
+
+def train_bc(policy, loader, epochs=50, lr=1e-3):
+    opt = torch.optim.Adam(policy.parameters(), lr=lr)
+    loss_fn = nn.MSELoss()
+    for _ in range(epochs):
+        for obs, act in loader:
+            loss = loss_fn(policy(obs), act)
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+```
+
+这段代码是 BC 的骨架，依赖 PyTorch；损失曲线由同结构的 numpy 实现生成，未在本机运行 PyTorch 版本。
+
+![合成示教数据上的 BC 训练损失](/images/robot-learning/robot-arm-embodied-ai-training/bc-loss.png)
+
+*图：合成示教数据上的 BC 训练损失（示例）。损失下降只说明拟合数据，不代表闭环成功；曲线由同结构 numpy MLP 在合成数据上全批量训练生成，示例，非实测。*
+
+模仿学习的评估要闭环：在仿真或真机上跑完整任务，统计成功率和失败分类。离线 MSE 只能筛掉明显坏掉的模型，不能证明策略可用。ACT/Diffusion 的评估除了成功率，还要看动作平滑性和推理延迟；动作抖动会在接触任务里放大。评估要固定评估集和随机种子，报告均值、方差和失败分类；不要用训练时的数据增强评估。动作平滑性用 jerk 或加速度统计，接触任务里比 MSE 更相关。
+
+## 三、强化学习：PPO、SAC、TD3 与奖励设计
+
+强化学习把任务写成 MDP，策略通过与环境交互最大化累计奖励：
+
+$$
+J(\pi) = \mathbb{E}_{\pi}\left[\sum_{t=0}^{T}\gamma^t r_t\right]
+$$
+
+奖励、价值、优势：$R$ 是标量，$V(s)$ 是状态价值，$A(s,a)=Q(s,a)-V(s)$ 是优势。策略梯度用优势加权动作概率。
+
+PPO 是 on-policy 算法，用重要性采样和裁剪限制策略更新幅度；SAC 是 off-policy，最大化奖励加熵，样本效率高；TD3 是 off-policy 确定性策略，用双 critic、延迟更新和目标平滑。
+
+| 算法 | 类型 | 优点 | 缺点 |
+|---|---|---|---|
+| PPO | on-policy | 稳定、易实现 | 样本效率低 |
+| SAC | off-policy | 样本效率高、探索好 | 调参敏感 |
+| TD3 | off-policy | 连续控制稳定 | 探索弱 |
+
+PPO 细节：clip 限制 ratio，GAE 估优势，熵奖励鼓励探索；训练时用多个 epoch 更新同一批数据。SAC 细节：最大熵目标，双 critic 取小，目标网络软更新；适合连续动作和高样本效率。TD3 细节：双 critic、延迟策略更新、目标动作平滑；适合确定性连续控制。
+
+PPO 的 GAE 用 $\lambda$ 控制偏差-方差权衡；clip 常取 0.1–0.3，熵系数 0.01 左右。SAC 的温度参数可以自动调节，目标熵设成动作维度的负数。TD3 的目标平滑加噪声、裁剪，延迟更新每两步一次。
+
+RL 训练流程：环境并行 → rollout → 算优势 → 更新策略/值函数 → 评估 → 调奖励。训练日志记录 return、成功率、KL、熵、值损失；KL 爆炸通常是学习率太大或奖励尺度不对。
+
+环境接口要稳定：`reset()` 返回初始观测，`step(a)` 返回观测、奖励、结束标记和信息；并行环境用固定 seed，保证可复现。动作空间和观测空间要归一化，奖励尺度要统一。
+
+```python
+import torch
+
+def ppo_loss(logp, old_logp, adv, entropy, clip=0.2, ent_coef=0.01):
+    ratio = torch.exp(logp - old_logp)
+    surr1 = ratio * adv
+    surr2 = torch.clamp(ratio, 1.0 - clip, 1.0 + clip) * adv
+    return -(torch.min(surr1, surr2).mean() + ent_coef * entropy.mean())
+```
+
+这是 PPO 的损失结构，不是完整实现。完整 PPO 还需要 GAE、rollout、值函数和梯度裁剪；生产环境推荐 stable-baselines3 或 RLlib。
+
+奖励设计是主要工作。稀疏奖励（成功给 1）难探索；稠密奖励（距离、姿态、接触力）容易引导，但可能被策略“作弊”。势函数塑形（potential-based shaping）能保持最优策略不变；成功奖励加惩罚项要设上限，避免策略学会刷分。
+
+奖励作弊的例子：策略学会原地抖动刷距离奖励、绕路刷时间奖励、利用仿真接触漏洞。奖励函数要能通过人眼检查：看几条 rollout，确认行为符合任务；如果策略在刷分，先改奖励，不要先调算法。
+
+| 奖励 | 优点 | 风险 |
+|---|---|---|
+| 稀疏成功 | 目标明确 | 难探索 |
+| 距离/姿态 | 易引导 | 原地抖动 |
+| 接触力惩罚 | 安全 | 太保守、避开接触 |
+| 时间惩罚 | 快 | 超速、动作过猛 |
+
+奖励函数示例：成功 +1，距离项 $-\min(1,\lVert p-p_{\text{target}}\rVert/d_{\max})$，时间项 -0.01/步，碰撞 -1；加权和控制在 ±2 内，奖励尺度太大，值函数难收敛。
+
+仿真并行是 RL 的常用手段：MuJoCo、Isaac Sim 可以同时跑几百个环境，把样本效率问题摊到 GPU 上。域随机化在训练时改质量、摩擦、光照、相机位姿，提升迁移鲁棒性。向量化环境、GPU 仿真、异步 rollout 能把训练时间从几天降到几小时（量级示意），但调试难度上升。训练不稳定时先查奖励尺度和观测归一化，再查学习率和 batch。
+
+奖励尺度归一化到 [-1, 1] 或 [0, 1]；不同任务奖励尺度不同，不能直接比较。梯度裁剪、学习率衰减、目标网络和观测归一化是常用的稳定手段。
+
+RL 的评估看 return 曲线和闭环成功率，不看单次最高分。训练曲线好、真机成功率低，通常是奖励和真实目标不一致，或者 Sim2Real gap 太大。
+
+RL 评估要固定评估环境和 seed，报告均值、方差和失败分类；训练环境随机化后，评估环境要单独留出，不能和训练环境一样。
+
+RL 训练日志：return、episode 长度、成功率、KL、熵、值损失、梯度范数、显存。KL 突然变大或熵塌缩，先降学习率、加熵系数、检查奖励。
+
+## 四、VLA：视觉语言动作模型
+
+VLA（Vision-Language-Action）把视觉、语言和动作放进一个模型。RT-1 用 Transformer 做多任务策略；RT-2 把视觉语言模型和动作 token 结合；OpenVLA 是开源的 7B 模型；Octo 是轻量扩散策略；π0 用 flow matching 输出连续动作。
+
+RT-1 用大规模机器人数据训练，输出离散动作；RT-2 把 web 知识迁移到机器人，泛化更好但推理更重；OpenVLA 在 Open X-Embodiment 上预训练，支持 LoRA；Octo 参数量小，适合快速部署；π0 强调高频连续控制，用 flow matching 生成动作块。
+
+| 模型 | 规模 / 动作 | 特点 |
+|---|---|---|
+| RT-1 | Transformer / 离散 | 大规模机器人数据 |
+| RT-2 | VLM / 离散 token | web 知识迁移 |
+| OpenVLA | 7B / 离散 token | 开源、LoRA |
+| Octo | 轻量 / 扩散 | 快速部署 |
+| π0 | 3B / flow | 高频连续控制 |
+
+数据规模：RT-1 约 130k episodes；RT-2 混合 web 数据；OpenVLA 在 Open X-Embodiment 上预训练；Octo 用大规模轨迹；π0 用多机器人数据。数据规模决定泛化，但任务数据仍要够。微调数据量：LoRA 几百到几千条 episode；全参几万条（经验值）；数据太少时，先冻结视觉编码器，只调 action head。数据要覆盖任务，不是越多越好。
+
+![VLA 架构](/images/robot-learning/robot-arm-embodied-ai-training/vla-arch.svg)
+
+*图：图像和语言分别编码，进入 LLM 主干，再由 action head 输出离散 token 或连续动作。*
+
+架构通常分四段：视觉编码器、语言 tokenizer、LLM 主干、action head。输出有两种：
+
+- 离散动作 token：把动作离散成 token，用语言模型的方式生成；实现简单，但精度受离散化限制。
+- 连续动作：用扩散、flow matching 或回归头输出连续动作；精度高，推理更慢。
+
+离散和连续不是互斥的：动作分块可以先用离散 token 生成粗动作，再用连续头精修。action head 可以是分类器、回归头、扩散头或 flow matching 头。
+
+训练数据包括机器人示教、仿真数据和视觉语言数据。预训练用大规模视觉语言数据，微调用机器人数据；也可以是 co-fine-tuning，把两者混在一个 batch 里。batch 里要混合多种任务，避免灾难性遗忘。VLA 的数据格式：图像、语言、动作、本体状态；动作归一化到 [-1,1]；语言指令要多样，不能只用一个模板。
+
+微调有全参和 LoRA。全参需要更多显存，LoRA 只训练低秩适配器，适合小数据集和快速迭代。action head 通常要单独训练或解冻，否则预训练模型不会输出动作。全参微调需要更多数据；LoRA 适合小数据集，但可能欠拟合。视觉编码器可以冻结，action head 通常要解冻。
+
+VLA 训练流程：准备数据（图像、语言、动作）→ 选预训练模型 → 冻结/解冻层 → 设置学习率和 batch → 微调 → 仿真评估 → 真机评估。数据格式必须和预训练一致，否则模型学不到动作。
+
+```python
+from peft import LoraConfig, get_peft_model
+
+config = LoraConfig(
+    r=16,
+    lora_alpha=32,
+    lora_dropout=0.05,
+    target_modules=["q_proj", "v_proj"],
+    task_type="CAUSAL_LM",
+)
+model = get_peft_model(base_model, config)
+```
+
+这段代码依赖 peft 和对应的模型结构，未在本机运行。
+
+`target_modules` 随模型结构变化；VLA 微调通常还要解冻 action head。推理频率是硬约束：7B 模型在单卡上可能只有几 Hz，必须用动作分块、量化和缓存把控制频率补上。VLA 的输出还要经过运动学校验、碰撞检查和限速。推理优化包括量化（int8/int4）、编译（TensorRT）、KV cache、动作分块和批处理；延迟测量要分模型前向、后处理、通信，只测前向会低估端到端延迟。7B 模型 5 Hz 时，动作分块至少要覆盖 200 ms。
+
+VLA 的优势是语义泛化：换物体、换指令、换场景，比 BC 稳。劣势是精度、延迟和力控；抓取的最后几毫米仍要靠经典控制和安全约束兜底。VLA 的失败模式：指令理解错、物体定位错、动作不平滑、推理超时。评估要分开语义泛化、物体泛化、位置泛化和精密抓取，不能只报一个总成功率。
+
+| 维度 | 测什么 |
+|---|---|
+| 语义泛化 | 新指令、同义表达 |
+| 物体泛化 | 新物体、新颜色 |
+| 位置泛化 | 新位置、新背景 |
+| 精密抓取 | 毫米级误差 |
+| 延迟 | 端到端推理 |
+
+## 五、Sim2Real：四类 gap 与对应手段
+
+Sim2Real 的差距可以分成四类：
+
+![Sim2Real 的四类差距与对应手段](/images/robot-learning/robot-arm-embodied-ai-training/sim2real.svg)
+
+*图：动力学、视觉、传感、时延四类 gap，以及对应的辨识、随机化、滤波和补偿手段。*
+
+动力学 gap：质量、摩擦、阻尼、执行器延迟。手段是系统辨识、域随机化、力矩补偿。接触任务里摩擦和阻尼最敏感，摩擦系数差 0.1 就可能让抓取从稳定变成滑移。例子：仿真摩擦 0.8、真机 0.4；仿真没有电机延迟，真机 5–20 ms（量级示意，视设备而异）。
+
+视觉 gap：光照、纹理、相机位姿、曝光。手段是渲染随机化、真实图像微调、相机标定。合成数据的材质和反光要接近真机，否则检测器在真机上会漏检。例子：仿真光照均匀、真机有阴影和反光；相机自动曝光会让颜色变化。
+
+传感 gap：噪声、偏置、量化、采样延迟。手段是噪声注入、滤波、传感器标定。力传感器和深度相机的噪声模型要单独建，不能用一个高斯噪声糊过去。例子：力传感器噪声、深度相机边缘误差、编码器量化。
+
+时延 gap：推理、控制、通信、图像传输。手段是动作分块、预测、延迟补偿。策略频率越低，延迟补偿越重要；抓取运动物体时，延迟直接变成位置误差。例子：策略推理 50–200 ms、控制 1 ms、通信 1–10 ms（量级示意）。
+
+```python
+import numpy as np
+
+def sample_domain(rng):
+    return {
+        "mass_scale": rng.uniform(0.8, 1.2),
+        "friction_scale": rng.uniform(0.5, 1.5),
+        "light_intensity": rng.uniform(0.6, 1.4),
+        "camera_pos_noise": rng.normal(0.0, 0.01, size=3),
+    }
+```
+
+这段代码是域随机化采样骨架，未在本机运行。
+
+域随机化的范围要覆盖真机波动，不要随机到不物理的参数。质量、摩擦、延迟要有上下界；随机化太宽，策略会学得很保守，成功率反而下降。系统辨识用激励轨迹、采集力矩和运动、最小二乘拟合；真实微调用少量真机数据。
+
+系统辨识步骤：设计激励轨迹（正弦、chirp、随机）→ 采集力矩/运动 → 最小二乘拟合质量/摩擦/惯量 → 用独立轨迹验证。摩擦模型用库仑 + 粘性 + Stribeck，参数随温度变化。
+
+系统辨识和域随机化互补：辨识给名义参数，随机化覆盖不确定性；先辨识，再随机化，比直接随机化更稳。
+
+| 参数 | 范围（示例） | 说明 |
+|---|---|---|
+| 质量 | 0.8–1.2× | 负载变化 |
+| 摩擦倍率 | 0.5–1.5× | 接触 |
+| 光照 | 0.6–1.4× | 视觉 |
+| 相机位姿 | ±1 cm | 标定误差 |
+
+范围选择：质量 ±20% 覆盖负载变化；摩擦倍率 0.5–1.5× 覆盖材质；光照 0.6–1.4× 覆盖阴影；相机 ±1 cm 覆盖安装误差。范围太窄，迁移不稳；太宽，策略保守。
+
+Sim2Real 不是一次迁移，是持续校准。先在仿真里消最大 gap，再上真机；真机数据回流，继续微调和校准。
+
+验证流程：先在仿真里做参数扰动和视觉扰动，再真机低速空载，再带载。每次只改一个 gap，记录成功率变化；不要同时改动力学、视觉和时延，否则无法归因。
+
+Sim2Real 检查表：动力学参数、视觉条件、传感器噪声、时延、安全边界。每项标注仿真值、真机值、误差和补偿手段。
+
+常见失败：仿真里抓得稳、真机滑；仿真里检测准、真机漏；仿真里响应快、真机抖。先查最大 gap，再改策略；不要用更多数据掩盖物理差异。
+
+## 六、训练闭环与工程检查表
+
+![具身智能训练闭环](/images/robot-learning/robot-arm-embodied-ai-training/training-loop.svg)
+
+*图：采集 → 数据集 → 训练 → 仿真验证 → 域随机化 → 真机部署 → 数据回流；闭环的关键是回流和持续评估。*
+
+| 阶段 | 产出 | 检查 |
+|---|---|---|
+| 采集 | episode、时间戳、语言 | 覆盖度、失败样本 |
+| 数据集 | 训练/验证/测试划分 | 泄漏、动作频率一致 |
+| 训练 | 策略权重、日志 | 损失、梯度、显存 |
+| 仿真验证 | 成功率、鲁棒性 | 留出任务、扰动 |
+| 域随机化 | 随机化参数范围 | 物理合理、上下界 |
+| 真机部署 | 监控、回退 | 安全限速、力上限 |
+| 数据回流 | 失败样本、真机数据 | 回流比例、标注质量 |
+
+数据版本：数据集、模型、配置、评估结果绑定版本号；训练和评估用同一版本；失败样本回流时递增版本。训练日志字段：数据集版本、模型配置、随机种子、损失、成功率、显存、吞吐、评估条件。没有这些，实验无法复现。
+
+数据质量比模型大小重要。示教要覆盖不同位置、不同物体、不同速度；失败样本要保留，不能只留成功轨迹。数据泄漏（同一 episode 同时进训练和测试）会让评估虚高。
+
+计算资源要提前估：BC 小模型单卡可训；VLA 微调需要多卡或 LoRA；RL 需要并行环境和长时间训练。训练日志记录损失、成功率、显存和吞吐，方便复现。BC 小模型单卡几小时；ACT 单卡一天；VLA 7B 全参多卡数天，LoRA 单卡一天；RL 并行环境几小时到几天（量级估计，未实测）。训练前先估显存和吞吐，避免跑到一半 OOM。
+
+评估要分层：训练分布内、新物体、新位置、扰动条件、长时序任务。每层单独统计，不要用一个总成功率掩盖失败。
+
+训练闭环检查表：数据版本、模型版本、配置版本、评估条件、失败分类、回流比例。每次迭代只改一个变量，保留 baseline；没有 baseline，无法判断改进来自模型还是数据。团队分工上，数据采集、训练、仿真、部署、安全至少要分开。
+
+节奏：一周一版数据、一版模型、一版评估；每次只改一个变量。没有节奏，数据和模型会同时变，无法归因。
+
+实验记录模板：日期、数据版本、模型版本、训练配置、评估条件、成功率、失败分类、结论、下一步。每次实验一条，方便回溯。
+
+安全边界：速度上限、力上限、工作空间软限位、碰撞检测、急停。策略输出要经过安全层，不能直接驱动真机；自动重试也要在安全边界内。
+
+## 七、评估协议
+
+- 划分：按物体/位置/任务划分训练、验证、测试，不按帧随机划分。
+- 指标：成功率、失败分类、泛化、样本效率、推理延迟。
+- 次数：每类至少 20–50 次，报告置信区间。
+- 条件：训练分布内、新物体、新位置、光照/背景扰动、长时序。
+- 记录：视频、日志、失败原因；失败样本回流。
+
+评估协议要写进项目文档。没有协议，团队会用不同的口径报成功率。
+
+路线 B 的失败模式：
+
+| 现象 | 可能原因 | 先查 |
+|---|---|---|
+| 训练损失低、闭环失败 | 分布偏移 | 数据覆盖、DAgger |
+| return 高、真机差 | 奖励作弊 / Sim2Real | 奖励、随机化 |
+| VLA 听不懂 | 语言数据少 | 指令多样性 |
+| 动作抖 | 频率 / 动作空间 | 分块、滤波 |
+| 抓取偏 | 精度 / 标定 | 视觉、手眼、TCP |
+| 推理超时 | 模型太大 | 量化、蒸馏、分块 |
+
+## 八、最小项目
+
+1. 选一个固定任务（方块入盒）。
+2. 采集 50–100 条示教，统一频率和时间戳。
+3. 训练 BC，闭环评估，记录失败分类。
+4. 加 DAgger 或换 ACT/Diffusion，比较成功率。
+5. 在 MuJoCo 里做域随机化，观察鲁棒性。
+6. 用 OpenVLA/π0 做 LoRA 微调，比较语义泛化。
+7. 真机部署，限速限力，记录回流数据。
+
+验收：成功率、泛化、延迟、失败分类。每一步都保存数据、模型和评估结果；没有 baseline，比较没有意义。最小项目不要求高成功率，要求流程完整、指标可复现；先跑通，再优化。
+
+## 九、常见误区
+
+- 把 BC 的离线损失当成功率。损失低只说明拟合了示教，闭环仍可能失败。
+- 只采集成功轨迹。失败样本是策略改进和评估的关键。
+- 奖励设计只看成功。策略会学会刷分、绕路或利用仿真漏洞；奖励只是代理指标，定期用人眼检查 rollout。
+- VLA 微调数据太少。几十条示教只能改风格，改不了能力。
+- 忽略推理延迟。策略频率低于控制频率时，必须做动作分块和延迟补偿。
+- 不做留出评估。训练集和测试集混用、评估环境和训练环境相同，成功率都会虚高。
+- 混用动作空间、频率和归一化。训练用关节位置、部署用末端增量，策略一定失效。
+- Sim2Real 不做域随机化。仿真里调好的参数，真机上会变。
+- 把安全交给策略。策略输出必须经过限速、限力、碰撞检查和急停。
+- 只训一次不回流。真机失败样本不回数据集，下一版还会犯同样的错。
+- 只看平均成功率。长尾失败才是现场停机的原因；不做失败分类，就不知道下一步改数据还是改模型。
+- 不做数据版本和失败回放。换一版数据后无法复现，失败视频也没留下。
+- 不做时间对齐。图像、关节、动作时间戳差一帧，策略学到错位映射。
+- 把奖励尺度当小事。奖励太大，值函数不收敛；太小，梯度消失。
+- 不做早停或固定随机种子。过拟合和 RL 方差会让结果不可信。
+- 忽略数据许可和隐私。机器人数据可能包含人脸、工位信息，采集和共享要合规。
+
+## 十、常见问题
+
+问：BC 和 RL 怎么选？有示教先用 BC，能交互且奖励可定义再上 RL。
+
+问：VLA 能不能直接抓取？能，但精度和延迟要测；底层仍要安全层。
+
+问：仿真要多少随机化？覆盖真机波动即可，太宽会学保守。
+
+问：数据要多少？BC 几十到几百条起，VLA 十万级；覆盖度比数量重要。
+
+## 十一、系列收尾
+
+六篇写到这里，路线 A 和路线 B 的边界、工具和训练闭环都过了一遍。下一步是选一个具体平台，把最小 demo 跑通：固定工位用路线 A，开放任务用路线 B，仿真先行，数据回流，再谈规模。回到[总览](/blog/robot-arm-learning-roadmap)可以看六篇的导航。
+
+## 参考
+
+- Pomerleau, *ALVINN: An Autonomous Land Vehicle in a Neural Network*, NeurIPS, 1989.
+- Ross, Gordon & Bagnell, *A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning*, AISTATS, 2011. [arXiv:1011.0686](https://arxiv.org/abs/1011.0686)
+- Zhao et al., *Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware*, RSS, 2023. [arXiv:2304.13705](https://arxiv.org/abs/2304.13705)
+- Chi et al., *Diffusion Policy: Visuomotor Policy Learning via Action Diffusion*, RSS, 2023. [arXiv:2303.04137](https://arxiv.org/abs/2303.04137)
+- Brohan et al., *RT-1: Robotics Transformer for Real-World Control at Scale*, 2022. [arXiv:2212.06817](https://arxiv.org/abs/2212.06817)
+- Brohan et al., *RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control*, 2023. [arXiv:2307.15818](https://arxiv.org/abs/2307.15818)
+- Kim et al., *OpenVLA: An Open-Source Vision-Language-Action Model*, 2024. [arXiv:2406.09246](https://arxiv.org/abs/2406.09246)
+- Ghosh et al., *Octo: An Open-Source Generalist Robot Policy*, 2024. [arXiv:2405.12213](https://arxiv.org/abs/2405.12213)
+- Black et al., *π0: A Vision-Language-Action Flow Model for General Robot Control*, 2024. [arXiv:2410.24164](https://arxiv.org/abs/2410.24164)
+- Schulman et al., *Proximal Policy Optimization Algorithms*, 2017. [arXiv:1707.06347](https://arxiv.org/abs/1707.06347)
+- Haarnoja et al., *Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor*, ICML, 2018. [arXiv:1801.01290](https://arxiv.org/abs/1801.01290)
+- Fujimoto et al., *Addressing Function Approximation Error in Actor-Critic Methods*, ICML, 2018. [arXiv:1802.09477](https://arxiv.org/abs/1802.09477)
+- Tobin et al., *Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World*, IROS, 2017. [arXiv:1703.06907](https://arxiv.org/abs/1703.06907)
+- [LeRobot 文档](https://huggingface.co/docs/lerobot)
+- [MuJoCo 文档](https://mujoco.readthedocs.io/)
+- [Isaac Sim 文档](https://docs.isaacsim.omniverse.nvidia.com/)

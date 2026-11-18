@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 600" role="img" aria-label="欧拉角万向锁示意">
+  <defs>
+    <marker id="arrow-r" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/>
+    </marker>
+    <marker id="arrow-g" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"/>
+    </marker>
+    <marker id="arrow-b" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+
+  <text x="32" y="40" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#0f172a">欧拉角与万向锁</text>
+
+  <!-- left panel -->
+  <rect x="32" y="72" width="380" height="420" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="56" y="108" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#0f172a">三个轴与旋转顺序</text>
+
+  <line x1="220" y1="250" x2="330" y2="250" stroke="#dc2626" stroke-width="3" marker-end="url(#arrow-r)"/>
+  <line x1="220" y1="250" x2="220" y2="150" stroke="#16a34a" stroke-width="3" marker-end="url(#arrow-g)"/>
+  <line x1="220" y1="250" x2="130" y2="310" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow-b)"/>
+
+  <text x="338" y="255" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" fill="#dc2626">x / roll</text>
+  <text x="228" y="144" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" fill="#16a34a">y / pitch</text>
+  <text x="92" y="334" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" fill="#2563eb">z / yaw</text>
+
+  <rect x="56" y="360" width="330" height="44" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="76" y="388" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" fill="#334155">R = Rz(α) · Ry(β) · Rx(γ)</text>
+
+  <text x="56" y="432" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">先绕 z 转 α，再绕新的 y 转 β，最后绕新的 x 转 γ。</text>
+  <text x="56" y="456" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">这是内旋（intrinsic）约定；外旋写法顺序相反。</text>
+
+  <!-- right panel -->
+  <rect x="432" y="72" width="396" height="420" rx="12" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="456" y="108" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#991b1b">β = ±90° 时发生万向锁</text>
+
+  <circle cx="630" cy="230" r="72" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+  <circle cx="630" cy="230" r="46" fill="none" stroke="#dc2626" stroke-width="2.5"/>
+  <line x1="630" y1="230" x2="630" y2="142" stroke="#16a34a" stroke-width="3" marker-end="url(#arrow-g)"/>
+
+  <text x="548" y="330" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">yaw 环与 roll 环的旋转轴重合</text>
+  <text x="548" y="354" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">只剩两个独立自由度，α 与 γ 无法区分</text>
+
+  <rect x="456" y="382" width="348" height="40" rx="8" fill="#ffffff" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="472" y="408" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" fill="#991b1b">det(∂(α,β,γ)/∂R) = 0</text>
+
+  <text x="32" y="548" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">欧拉角本身没有错；错在用它做插值、求逆或微分时忽略奇异。工程上常用四元数或旋转矩阵做插值，欧拉角只用于人机界面。</text>
+</svg>

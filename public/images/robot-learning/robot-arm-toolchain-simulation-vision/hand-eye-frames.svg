@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 540" role="img" aria-label="眼在手上与眼在手外的手眼标定坐标系">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <text x="32" y="40" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#0f172a">手眼标定：两种安装方式</text>
+
+  <!-- left panel -->
+  <rect x="32" y="72" width="420" height="380" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="56" y="108" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="600" fill="#0f172a">眼在手上（eye-in-hand）</text>
+
+  <rect x="70" y="310" width="90" height="48" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="92" y="340" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" fill="#334155">base</text>
+
+  <rect x="210" y="220" width="90" height="48" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="232" y="250" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" fill="#334155">tool</text>
+
+  <rect x="350" y="120" width="100" height="48" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="366" y="150" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" fill="#5b21b6">camera</text>
+
+  <rect x="210" y="380" width="100" height="48" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="226" y="410" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" fill="#334155">target</text>
+
+  <line x1="160" y1="320" x2="204" y2="268" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="118" y="286" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#475569">T(base, tool)</text>
+
+  <line x1="300" y1="220" x2="348" y2="168" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="318" y="190" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#475569">T(tool, camera)</text>
+
+  <line x1="400" y1="168" x2="310" y2="376" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+  <text x="356" y="300" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#6d28d9">T(camera, target)</text>
+
+  <!-- right panel -->
+  <rect x="468" y="72" width="420" height="380" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="492" y="108" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="600" fill="#0f172a">眼在手外（eye-to-hand）</text>
+
+  <rect x="500" y="310" width="90" height="48" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="522" y="340" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" fill="#334155">base</text>
+
+  <rect x="640" y="220" width="90" height="48" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="662" y="250" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" fill="#334155">tool</text>
+
+  <rect x="780" y="120" width="100" height="48" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="796" y="150" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" fill="#5b21b6">camera</text>
+
+  <rect x="640" y="380" width="100" height="48" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="656" y="410" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" fill="#334155">target</text>
+
+  <line x1="590" y1="320" x2="634" y2="268" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="548" y="286" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#475569">T(base, tool)</text>
+
+  <path d="M 545 310 L 545 180 L 780 180 L 780 168" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+  <text x="600" y="172" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#475569">T(base, camera)</text>
+
+  <line x1="830" y1="168" x2="740" y2="376" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+  <text x="786" y="300" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#6d28d9">T(camera, target)</text>
+
+  <rect x="32" y="478" width="856" height="40" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="52" y="503" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" fill="#475569">AX=XB：A 是夹爪运动，B 是标定板在相机系中的运动；eye-in-hand 的 X 是 T_tool_camera，eye-to-hand 的 X 是 T_base_camera。</text>
+</svg>

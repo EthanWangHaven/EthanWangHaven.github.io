@@ -1,0 +1,428 @@
+---
+date: "2026-11-22T20:00:00+08:00"
+draft: false
+title: 路线 A：传统控制下的视觉抓取闭环
+categories:
+  - Robot Learning
+tags:
+  - 机械臂
+  - 视觉抓取
+  - MoveIt 2
+  - 标定
+  - 状态机
+description: 把建模、IK 验证、MoveIt 2 规划、手眼标定、视觉检测、抓取与力控串成闭环，重点写状态机、异常分支和误差链。
+---
+
+> 本系列共六篇：
+> [机械臂训练的两条路线与学习顺序](/blog/robot-arm-learning-roadmap) · [位姿、运动学与雅可比](/blog/robot-arm-pose-kinematics-jacobian) · [动力学、力控与轨迹/抓取规划](/blog/robot-arm-dynamics-control-planning)
+> [工具链：ROS 2、MoveIt 2、仿真与视觉标定](/blog/robot-arm-toolchain-simulation-vision) · 路线 A：传统控制下的视觉抓取闭环（本篇） · [路线 B：具身智能训练——模仿学习、强化学习与 VLA](/blog/robot-arm-embodied-ai-training)
+
+P1 到 P3 讲的是零件。这篇把零件串成路线 A：固定工位、已知物体、可解释的视觉抓取。重点不是规划算法，而是状态机、异常分支和误差链。路线 A 的价值在于失败可定位；如果失败无法归因，再先进的策略也无法稳定运行。
+
+术语：URDF（Unified Robot Description Format）、SRDF（Semantic Robot Description Format）、TCP（Tool Center Point）、IK（Inverse Kinematics）、FK（Forward Kinematics）、ROI（Region of Interest）。
+
+## 一、适用边界
+
+路线 A 适合这些条件：
+
+- 物体已知，位置在工位附近，形状变化小。
+- 工位固定，相机和机械臂的相对位置基本不变。
+- 节拍、精度、可解释性有明确指标。
+- 需要安全认证、故障追溯或人工接管。
+
+不适合的情况：物体种类多、位置随机、任务用语言描述、环境非结构化。这些是路线 B 的边界，不是路线 A 能靠调参解决的。
+
+判断标准不是“哪个更先进”，而是“失败时能不能定位”。能定位到标定、检测、规划、执行或夹爪，路线 A 就合适；失败只能看到“没抓住”，就需要更多数据或更强的感知。
+
+混合方案很常见：用学习做检测和 6D 位姿，用经典规划做运动和安全约束。感知可以学习，运动和接触仍要可解释。
+
+几个典型场景：
+
+| 场景 | 是否适合路线 A | 原因 |
+|---|---|---|
+| 流水线上下料 | 适合 | 物体固定、节拍高 |
+| 固定工位装配 | 适合 | 位置固定、可认证 |
+| 料箱分拣 | 部分适合 | 物体多、堆叠，需要更强感知 |
+| 开放环境语言指令 | 不适合 | 任务开放，走路线 B |
+
+工程指标：节拍、成功率、重复定位、可追溯性、安全。每个指标都要有验收方法，不能只看 demo。节拍按最坏情况算，成功率按连续运行统计，重复定位用同一目标多次测量。
+
+项目阶段：先做单目标静态抓取，再做多目标、动态、异常恢复。不要一开始就做整条产线；先把一次抓取做稳，再扩场景。
+
+路线 A 的典型失败模式：标定漂移、物体摆放超差、夹爪磨损、规划场景没更新、时延导致抓空。每一种都要有监控和回退。
+
+路线 A 的交付物：URDF/SRDF、标定文件、抓取配置、状态机、日志、验收报告。缺一项，后面都难以复现。
+
+## 二、七步流程
+
+### 2.1 流程
+
+| 步骤 | 输入 → 输出 | 常见失败 |
+|---|---|---|
+| 建模 | URDF、SRDF、夹爪 → 规划组、TCP、碰撞体 | 模型与真机不一致 |
+| IK 验证 | 目标位姿、工作空间 → 可达性、多解、奇异 | 目标在可达域外 |
+| 规划 | 规划场景、目标 → 无碰撞轨迹 | 场景旧、限位冲突 |
+| 标定 | 相机、标定板 → 内参、手眼、TCP | 标定误差大 |
+| 检测 | 图像、深度 → 目标位姿 | 遮挡、反光、漏检 |
+| 抓取 | 位姿、夹爪 → 预抓取、抓取、抬起 | 夹偏、滑移 |
+| 力控 | 力/电流、状态 → 接触力、失败处理 | 阈值过松或过紧 |
+
+流程的输入输出契约：每一步都输出明确的数据结构，目标位姿、轨迹、夹爪命令，下一步只依赖这些数据，不读全局状态。这样每一步都能单独测试，失败也能定位到具体接口。
+
+建模：URDF 要和真机一致，尤其是 TCP 和夹爪开度；SRDF 的规划组要包含正确关节，碰撞矩阵要排除相邻 link。TCP 标到夹爪闭合中心，不是法兰中心；夹爪开度、闭合行程和夹持力写进配置。碰撞体用简化几何，精细网格会让规划变慢。
+
+IK 验证：在工作空间里采样网格，记录可达率、多解数量和奇异距离；对每个候选抓取，检查 IK 是否收敛、关节限位内是否有解。不要等执行时才发现 IK 失败。
+
+规划：MoveIt 2 的规划场景要包含机器人、桌面、目标和障碍；规划时间、尝试次数、规划器可配置。规划成功不等于执行成功，轨迹还要过控制器限位和速度检查。固定工位用 RRTConnect 足够；窄通道用 RRTConnect 或 TrajOpt；需要平滑用 TrajOpt。
+
+标定：相机内参、手眼、TCP 是三套参数；内参标相机自身，手眼标相机和机械臂，TCP 标夹爪末端。内参用棋盘格，手眼用标定板，TCP 用四点法或已知点；三套参数都记录日期和残差。任何一套错，抓取都会偏。
+
+检测：2D 检测给框和类别，6D 位姿给 $R,t$；没有 6D 时用框中心加固定姿态，只适合规则摆放。多候选按置信度和抓取质量排序。
+
+抓取：预抓取、抓取、抬起、撤回四段要分开规划；预抓取点沿接近方向后退 5–10 cm，抓取点对齐物体中心，抬起先垂直再撤回。抓取点优先选几何中心和两个平行面，夹爪开度略大于物体宽度；太靠边缘会旋转，太靠里会撞。夹爪闭合后等 100–200 ms（经验值）再抬，抬起的力和电流要监控。骨架只生成前三段位姿，撤回由状态机单独执行。
+
+力控：接触力超过阈值要停，夹爪电流异常要重试。阈值按工件和夹爪定；滑移检测看夹爪电流和物体位姿变化；没有力传感器时用电流估计，但阈值要留余量。
+
+### 2.2 验收与里程碑
+
+每一步的验收可以量化（示例指标，按任务调整）：
+
+| 步骤 | 验收 |
+|---|---|
+| 建模 | FK 与真机对得上，TCP 误差小于 1 mm |
+| IK 验证 | 工作空间采样 90% 可达，奇异占比低 |
+| 规划 | RViz 中轨迹无碰撞，执行不超限 |
+| 标定 | 重投影小于 0.5 px，手眼残差小于 2 mm |
+| 检测 | 固定工位连续 100 次检出率高于 99% |
+| 抓取 | 连续 50 次，报告成功率和置信区间 |
+| 力控 | 接触力不超限，滑移能检出 |
+
+先在 MuJoCo 或 Gazebo 里跑通流程，再上真机。仿真里把相机、夹爪、桌子和目标都建出来；真机调试时先空载、再低速、再带载。每一步都保留日志，失败时能回放到具体状态。
+
+里程碑：M1 仿真里单目标抓取；M2 真机空载；M3 真机带载；M4 连续 50 次；M5 异常分支覆盖。每个里程碑有明确的退出条件。
+
+![传统视觉抓取闭环的系统框图](/images/robot-learning/robot-arm-traditional-grasping-pipeline/system-block.svg)
+
+*图：相机、检测、位姿变换、规划、执行、夹爪和力反馈组成的闭环；每个箭头都是可失败点。*
+
+## 三、状态机与异常分支
+
+### 3.1 状态与转移
+
+抓取是异步流程：检测、规划、执行、夹爪闭合都耗时，失败可能发生在任何一步。状态机把流程拆成明确状态，每个状态有进入条件、退出条件、超时和失败分支。
+
+```python
+from enum import Enum
+
+class State(Enum):
+    IDLE = 0
+    DETECT = 1
+    PLAN = 2
+    APPROACH = 3
+    GRASP = 4
+    LIFT = 5
+    RETREAT = 6
+    FAIL = 7
+
+TRANSITIONS = {
+    State.IDLE:     {State.DETECT, State.FAIL},
+    State.DETECT:   {State.PLAN, State.FAIL},
+    State.PLAN:     {State.APPROACH, State.FAIL},
+    State.APPROACH: {State.GRASP, State.FAIL},
+    State.GRASP:    {State.LIFT, State.FAIL},
+    State.LIFT:     {State.RETREAT, State.FAIL},
+    State.RETREAT:  {State.IDLE, State.FAIL},
+    State.FAIL:     {State.IDLE},
+}
+```
+
+![视觉抓取状态机](/images/robot-learning/robot-arm-traditional-grasping-pipeline/state-machine.svg)
+
+*图：IDLE → DETECT → PLAN → APPROACH → GRASP → LIFT → RETREAT → IDLE；任一状态超时或失败进入 FAIL。*
+
+常见失败分支：
+
+- 没检测到：重拍、换光照、降低置信度阈值，或报“无目标”。
+- 位姿偏差：重新检测，换候选抓取，或微调接近方向。
+- IK 失败：换候选位姿，检查工作空间和关节限位。
+- 规划失败：更新规划场景，换规划器，或先回安全位。
+- 执行失败：检查控制器状态、碰撞、超时。
+- 抓取滑移：加大夹持力、换抓取点、降低加速度。
+- 力超限：立即停止，回退，检查碰撞或夹爪。
+
+失败回 IDLE 前要记录当前目标；否则重试时上下文丢失，只能重新检测。连续失败要升级：换候选、换策略、通知人工，不要原地重试。
+
+### 3.2 失败分类与重试
+
+失败分类表：
+
+| 现象 | 可能原因 | 先查 |
+|---|---|---|
+| 没检测到 | 光照、遮挡、模型 | 图像、置信度、相机 |
+| 位姿偏 | 标定、检测、TF | 手眼残差、时间戳 |
+| IK 失败 | 可达域、限位、奇异 | 目标位姿、关节角 |
+| 规划失败 | 碰撞体、场景、时间 | RViz 场景、规划时间 |
+| 执行失败 | 控制器、碰撞、超时 | 控制器状态、日志 |
+| 滑移 | 夹持力、抓取点 | 夹爪电流、接触力 |
+| 力超限 | 碰撞、阈值、工件 | 力曲线、碰撞体 |
+
+状态机设计原则：状态少而明确；每个状态有超时；失败先分类再处理；日志记录状态、目标、错误码和耗时；重试分级：同一位姿 → 换候选 → 重新检测 → 人工接管。
+
+FAIL 状态的恢复：记录错误码和现场数据，回到安全位，等待人工或自动复位；不要自动清除错误码，否则无法统计。
+
+转移表除了目标状态，还要有守卫和动作：进入 DETECT 前检查相机是否在线；进入 PLAN 前检查目标位姿是否有效；进入 GRASP 前检查夹爪开度。守卫失败直接进 FAIL，不要进入下一状态再失败。
+
+实现方式：简单流程用 enum 加转移表；复杂流程用行为树或状态机库。ROS 2 里用定时器和回调驱动状态转移，转移要加锁，避免回调并发改状态。每个状态记录进入时间，定时器检查超时；超时按失败分类处理，不要卡死。日志记录状态、目标 ID、错误码、耗时和关键位姿，失败时导出回放。
+
+状态机和 ROS 2 action 的关系：轨迹执行可以用 action 客户端，状态机在 feedback 里更新进度，在 result 里判断成功或失败；不要用 service 等长任务。
+
+日志字段：时间、状态、目标 ID、目标位姿、错误码、耗时、关节角、力/电流。回放时按时间排序，复现状态转移；没有位姿和力的日志，只能看到“失败了”，无法定位。
+
+异步回调里不要直接改状态；把事件投递到状态机队列，由单线程处理，避免竞态。状态切换时显式传递数据，不要把全局变量当状态。
+
+## 四、精度链路与时延
+
+### 4.1 误差链
+
+抓取误差不是单一数字。它由相机内参、手眼标定、目标位姿、IK/规划、TCP 和重复定位串联而成。
+
+![视觉抓取的误差链](/images/robot-learning/robot-arm-traditional-grasping-pipeline/error-chain.svg)
+
+*图：误差从相机内参、手眼、目标位姿、IK/规划到 TCP；典型量级仅作示意，实际以设备和标定结果为准。*
+
+系统误差可以标定补偿：相机内参、手眼、TCP 都是系统误差。随机误差只能靠重复测量和筛选：检测框抖动、遮挡、反光、物体摆放偏差。
+
+| 误差源 | 类型 | 处理 |
+|---|---|---|
+| 相机内参 | 系统 | 重标定、检查角点 |
+| 手眼 | 系统 | 多次采集、独立验证 |
+| 目标位姿 | 随机 | 多帧平均、置信度过滤 |
+| TF 时间戳 | 系统/随机 | 同步、缓存 |
+| IK / 规划 | 系统 | 选解、限位检查 |
+| TCP | 系统 | 标定、复核 |
+| 重复定位 | 随机 | 设备指标、降速 |
+
+误差测量：固定目标重复 50 次，记录末端位姿分布；换 5 个目标，记录绝对误差；用标定板或已知点验证手眼。时延测量：在图像、检测、规划、执行各打时间戳，算端到端延迟，不要只测单步。
+
+误差会放大。手眼误差在近距离是毫米级，远距离会放大；目标位姿误差会让预抓取点偏离，夹爪可能撞到物体边缘。例如手眼旋转误差 0.5° 在 0.5 m 处约产生 4 mm 的位置误差（示例）。先测最大项，再决定优化哪一段，不要平均用力。
+
+误差有方向。x、y、z 三个方向的误差可能叠加也可能抵消，不能把标量相加当总误差。抓取时最关心接近方向和夹爪闭合方向的误差。
+
+误差预算示例：手眼 2 mm、目标位姿 3 mm、TCP 0.5 mm，最坏情况按方向叠加可能到 5.5 mm；如果夹爪容差是 5 mm，就必须先压低最大项。实际不是简单相加，但预算能告诉你哪一项不能忽略。
+
+标定顺序：先内参，再手眼，再 TCP。内参错，手眼一定错；TCP 错，抓取点会整体偏。每次只改一套参数，改完重新验证。温度漂移：相机和机械臂热起来后，手眼参数会变；连续运行前先预热，标定在热态下做。
+
+标定后的验证：用独立于标定的位姿测残差；手眼残差小于 2 mm（示例）、重投影小于 0.5 px 才继续。验证不通过，先查角点、时间戳和坐标方向。
+
+### 4.2 时延
+
+时延也要算。曝光、传输、检测、位姿、TF、规划、执行、夹爪闭合，每一步都占时间。优化手段有检测模型量化、ROI 裁剪、异步流水线、规划缓存、轨迹预计算；但优化不能牺牲安全检查和力监控。时延预算要同时看典型值和最坏值；图里是典型值，最坏值按各阶段上限相加。抓取运动物体时，用速度乘以延迟做补偿。
+
+![视觉抓取的时延预算](/images/robot-learning/robot-arm-traditional-grasping-pipeline/timing.svg)
+
+*图：一次抓取的时延预算示意；总时延约 540 ms 是典型值，实际值取决于相机、检测模型、规划器和控制器；夹爪闭合后的稳定、抬起和撤回未计入。*
+
+| 阶段 | 典型耗时（示例） | 优化 |
+|---|---|---|
+| 曝光 + 传输 | 30–60 ms | 降分辨率、ROI 裁剪 |
+| 检测 | 20–80 ms | 量化、GPU、批处理 |
+| 位姿 | 10–50 ms | 轻量模型、缓存 |
+| TF | 1–5 ms | 静态变换缓存 |
+| 规划 | 50–200 ms | 缓存、简化场景 |
+| 执行 | 100–500 ms | 提高速度上限、缩短路径 |
+| 夹爪 | 50–200 ms | 提前闭合、并行 |
+
+精度指标要分清：重复定位是同一目标多次到达的一致性，绝对精度是到达指定坐标的偏差，抓取成功率是任务级指标。三者不是同一个东西，不能用重复定位代替绝对精度。验收时分别测：同一目标 50 次的位置分布、指定坐标的绝对误差、连续运行的成功率。只看一个数字，无法判断是标定问题还是检测问题。
+
+## 五、抓取节点骨架
+
+### 5.1 坐标变换
+
+坐标变换是抓取节点的第一道关。eye-in-hand 时，`T_base_camera = T_base_tool · T_tool_camera`；eye-to-hand 时，`T_base_camera` 是固定值。
+
+```python
+import numpy as np
+
+def camera_point_to_base(T_base_tool, T_tool_camera, p_cam):
+    T_base_camera = T_base_tool @ T_tool_camera
+    p = np.array([p_cam[0], p_cam[1], p_cam[2], 1.0])
+    return (T_base_camera @ p)[:3]
+```
+
+`T_base_tool` 由正运动学或 TF 实时查，`T_tool_camera` 是手眼标定结果；eye-to-hand 时直接用固定的 `T_base_camera`。
+
+### 5.2 节点骨架
+
+下面的节点骨架把 TF2、MoveIt 2 和夹爪序列串起来。参数化规划组、base frame 和 TCP，不硬编码物体和工位。
+
+```python
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Pose, PoseStamped
+from tf2_geometry_msgs import do_transform_pose_stamped
+from tf2_ros import Buffer, TransformListener
+from moveit.planning import MoveItPy
+
+class GraspNode(Node):
+    def __init__(self):
+        super().__init__("grasp_node")
+        self.declare_parameter("planning_group", "arm")
+        self.declare_parameter("base_frame", "base_link")
+        self.declare_parameter("tcp_link", "tcp")
+        self.declare_parameter("approach_offset", 0.10)
+        self.declare_parameter("max_speed", 0.2)   # m/s
+        self.declare_parameter("max_force", 30.0)  # N
+        self.declare_parameter("retries", 3)
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        self.moveit = MoveItPy(node_name="grasp_moveit")
+        self.sub = self.create_subscription(
+            PoseStamped, "/target_pose", self.on_target, 10
+        )
+
+    def on_target(self, msg):
+        try:
+            target = self.to_base(msg)
+        except Exception as exc:
+            self.get_logger().warn(f"TF 变换失败: {exc}")
+            return
+        retries = self.get_parameter("retries").value
+        for pose in self.grasp_poses(target):
+            if not with_retry(lambda: self.plan_and_execute(pose), attempts=retries):
+                self.get_logger().warn("抓取序列中断")
+                return
+
+    def to_base(self, msg):
+        base = self.get_parameter("base_frame").value
+        tf = self.tf_buffer.lookup_transform(
+            base, msg.header.frame_id, rclpy.time.Time()
+        )
+        return do_transform_pose_stamped(msg, tf).pose
+
+    def grasp_poses(self, target):
+        # 预抓取、抓取、抬起三段；RETREAT 在状态机里单独处理
+        offset = self.get_parameter("approach_offset").value
+        poses = []
+        for dz in (offset, 0.0, offset):
+            p = Pose()
+            p.position.x = target.position.x
+            p.position.y = target.position.y
+            p.position.z = target.position.z + dz
+            p.orientation = target.orientation
+            poses.append(p)
+        return poses
+
+    def plan_and_execute(self, pose):
+        group = self.get_parameter("planning_group").value
+        tcp = self.get_parameter("tcp_link").value
+        base = self.get_parameter("base_frame").value
+        stamped = PoseStamped()
+        stamped.header.frame_id = base
+        stamped.header.stamp = self.get_clock().now().to_msg()
+        stamped.pose = pose
+        arm = self.moveit.get_planning_component(group)
+        arm.set_goal_state(pose_stamped_msg=stamped, pose_link=tcp)
+        result = arm.plan()
+        if not result:
+            return False
+        if not self.moveit.execute(result.trajectory, controllers=[]):
+            return False
+        return True
+```
+
+这段代码以 ROS 2 Jazzy 和 MoveIt 2 为基线，未在本机运行。
+
+节点只处理一条路径。真实系统还要：候选抓取、夹爪朝向、碰撞检查、力监控、超时和日志。`do_transform_pose_stamped` 只把给定变换作用到消息上；要按消息时间查，`lookup_transform` 的第三个参数传 `msg.header.stamp`，上面的代码用的是最新变换。`max_speed` 和 `max_force` 由控制器或安全监控节点读取，骨架里只声明，不展开。
+
+线程模型：订阅回调、定时器、MoveIt 执行都在 executor 里跑；单线程 executor 会阻塞，重活要放到多线程 executor 或独立线程。状态机转移用锁保护。MoveIt 2 执行参数有速度、加速度缩放、规划时间和尝试次数；调试时把速度和加速度降到 20%–30%，确认流程后再放开。
+
+重试只用于可恢复错误：
+
+```python
+import time
+
+def with_retry(fn, attempts=3, delay=0.2):
+    for i in range(attempts):
+        if fn():
+            return True
+        if i + 1 < attempts:
+            time.sleep(delay * (2 ** i))
+    return False
+```
+
+规划超时、检测抖动可以重试；碰撞、夹爪故障、力超限不要重试，直接进 FAIL 并记录。重试要有上限和退避，连续失败升级，不要无限循环。`with_retry` 在节点类之后定义；回调运行时模块已加载，调用没问题。
+
+测试顺序：仿真空跑 → 真机空载 → 低速带载 → 正常速度。每一步都设力上限和速度上限；先验证状态机，再验证抓取。
+
+## 六、参数与配置
+
+把物体、工位、夹爪、相机、限位做成配置：物体尺寸和抓取点、工位坐标、夹爪开度和力、相机内参和手眼、速度/加速度/力上限。换物体只改配置，不改代码。
+
+```yaml
+grasp:
+  planning_group: arm
+  base_frame: base_link
+  tcp_link: tool0
+  approach_offset: 0.10
+  max_speed: 0.2    # m/s
+  max_force: 30.0   # N
+  retries: 3
+```
+
+`approach_offset` 是预抓取距离，`max_speed` 和 `max_force` 是安全边界，`retries` 控制重试次数。参数从 YAML 读，节点里声明同名参数；参数变了不用重编代码。
+
+配置要版本化：模型、标定文件、抓取参数、控制器参数放到同一版本号下。复现失败时，先确认版本一致。
+
+## 七、最小 demo 流程
+
+1. RViz 里加载 URDF/SRDF，确认 TF 和规划组。预期：TF 树完整，规划组能选到。
+2. 在仿真里放一个方块，发布目标位姿，跑通 DETECT 到 RETREAT。预期：状态机完整走完，日志无 FAIL。
+3. 换到真机，空载跑同一流程，确认关节方向、限位和 TCP。预期：与仿真一致。
+4. 加相机，做内参和手眼标定，重复方块抓取。预期：固定方块连续 10 次成功。
+5. 加力/电流监控，设上限，记录失败分支。预期：力不超限，滑移能触发 FAIL。
+6. 连续跑 50 次，统计成功率和失败原因。预期：有成功率、节拍和失败分类。
+
+验收指标：成功率、节拍、最大接触力、失败分类占比、平均恢复时间。每个指标连续记录，不要只看一次；没有这些数字，闭环不算完成。
+
+硬件检查：急停、限位、夹爪气管、相机固定、线缆干涉。空载前先手动低速走一遍工作空间，确认没有碰撞和拉扯。
+
+连续运行要考虑环境变化：光照漂移、物体摆放偏差、夹爪磨损、桌面反光。每 100 次复检一次标定和抓取点。
+
+安全边界：速度上限、力上限、工作空间软限位、碰撞检测、急停。调试时先低速、低力，再逐步放开；任何自动重试都要在安全边界内。急停是安全级，软件停止是非安全级，两者不能互相替代。
+
+排查顺序：先看图像和检测，再看 TF 和位姿，再看 IK 和规划，最后看执行和夹爪。顺序反了，会在错误的层调参。
+
+## 八、常见误区
+
+- 只做一次标定。碰撞、换相机、温度变化都会让手眼参数漂移。
+- 把抓取成功率和位姿误差混为一谈。前者是任务级指标，后者是几何指标。
+- 忽略夹爪运动学。夹爪开度、闭合行程和夹持力都会影响抓取。
+- 只测成功案例，不做连续运行。单次 demo 成功不代表稳定；至少跑 50 次并统计失败分类。
+- 把标定残差当抓取误差。残差是几何指标，抓取误差还包含检测、规划和夹爪。
+- 忽略夹爪磨损。指尖磨损会改变 TCP 和夹持力。
+- 不做版本管理。模型、标定文件、配置要版本化，否则复现不了。
+- 不做里程碑验收。每一步都要有退出条件，否则问题会堆到最后。
+- 把异常当正常。失败分支不覆盖，现场第一次出错就停机。
+- 用 service 执行轨迹。长任务不能用同步服务，取消和反馈都没有。
+- 只看平均耗时。最坏耗时决定节拍和超时。
+- 忽略线缆和气管。运动范围一大，线缆会拉扯或缠绕，TCP 和关节负载都会变。
+
+## 九、常见问题
+
+问：先做视觉还是先做规划？先做规划：用固定目标位姿跑通 IK、规划和执行，再加视觉。
+
+问：先仿真还是先真机？先仿真跑通状态机，再真机空载。
+
+问：成功率多少算够？按产线要求，连续运行统计，不看单次 demo。
+
+## 参考
+
+- [MoveIt 2 教程](https://moveit.picknik.ai/)
+- [ROS 2 Jazzy 文档](https://docs.ros.org/en/jazzy/)
+- [OpenCV 文档](https://docs.opencv.org/)
+- Lynch & Park, *Modern Robotics*, Ch.12（抓取与操作）。
+- Bicchi & Kumar, *Robotic Grasping and Contact: A Review*, ICRA, 2000.
+- Miller & Allen, *GraspIt! A Versatile Simulator for Robotic Grasping*, IEEE Robotics & Automation Magazine, 2004.
+- ISO 10218 系列、ISO/TS 15066（工业机器人与协作机器人安全，版次以最新发布为准）。
+
+下一篇：[路线 B：具身智能训练——模仿学习、强化学习与 VLA](/blog/robot-arm-embodied-ai-training)。

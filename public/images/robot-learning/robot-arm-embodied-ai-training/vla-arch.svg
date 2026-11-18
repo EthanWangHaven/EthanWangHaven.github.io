@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 440" role="img" aria-label="视觉语言动作模型架构">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <text x="32" y="40" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#0f172a">VLA：视觉语言动作模型</text>
+
+  <rect x="40" y="96" width="120" height="60" rx="8" fill="#f8fafc" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="60" y="124" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">图像</text>
+  <text x="60" y="144" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#334155">RGB / 深度</text>
+
+  <rect x="40" y="206" width="120" height="60" rx="8" fill="#f8fafc" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="60" y="234" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">语言指令</text>
+  <text x="60" y="254" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#334155">自然语言</text>
+
+  <rect x="200" y="96" width="140" height="60" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="220" y="124" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">视觉编码器</text>
+  <text x="220" y="144" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#334155">ViT / CNN</text>
+
+  <rect x="200" y="206" width="140" height="60" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="220" y="234" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">文本 tokenizer</text>
+  <text x="220" y="254" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#334155">token 化</text>
+
+  <rect x="400" y="130" width="180" height="100" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="420" y="166" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#1e40af">LLM 主干</text>
+  <text x="420" y="190" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#1e40af">图像 + 语言 + 本体状态</text>
+  <text x="420" y="210" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#1e40af">预训练 + 机器人数据</text>
+
+  <rect x="640" y="130" width="160" height="100" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="660" y="166" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#5b21b6">action head</text>
+  <text x="660" y="190" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#5b21b6">离散 / 连续</text>
+  <text x="660" y="210" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#5b21b6">动作分块 / 扩散</text>
+
+  <rect x="840" y="96" width="60" height="60" rx="8" fill="#ffffff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="848" y="120" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" fill="#5b21b6">离散</text>
+  <text x="848" y="138" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" fill="#5b21b6">token</text>
+
+  <rect x="840" y="206" width="60" height="60" rx="8" fill="#ffffff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="846" y="230" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" fill="#5b21b6">连续</text>
+  <text x="846" y="248" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" fill="#5b21b6">动作</text>
+
+  <line x1="160" y1="126" x2="194" y2="126" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="160" y1="236" x2="194" y2="236" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="340" y1="126" x2="394" y2="150" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="340" y1="236" x2="394" y2="210" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="580" y1="180" x2="634" y2="180" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 800 160 L 830 160 L 830 126 L 834 126" fill="none" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 800 200 L 830 200 L 830 236 L 834 236" fill="none" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="32" y="360" width="856" height="80" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="52" y="384" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" fill="#475569">VLA 的通用性和精度是 trade-off：高层语义用大模型，低层抓取和力控仍要经典控制兜底。</text>
+  <text x="52" y="404" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" fill="#475569">推理频率、动作分块和延迟补偿决定它能不能上真机。</text>
+  <text x="52" y="424" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" fill="#475569">离散 token 由 LM head 自回归输出；连续动作由 action head 输出。</text>
+</svg>

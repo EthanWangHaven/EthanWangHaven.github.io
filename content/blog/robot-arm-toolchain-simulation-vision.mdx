@@ -1,0 +1,523 @@
+---
+date: "2026-11-21T20:00:00+08:00"
+draft: false
+title: 工具链：ROS 2、MoveIt 2、仿真与视觉标定
+categories:
+  - Robot Learning
+tags:
+  - ROS 2
+  - MoveIt 2
+  - MuJoCo
+  - Isaac Sim
+  - 手眼标定
+description: 把运动学与规划落到 ROS 2 Jazzy、MoveIt 2、MuJoCo/Isaac Sim 和视觉标定，给出最小示例与选型表。
+---
+
+> 本系列共六篇：
+> [机械臂训练的两条路线与学习顺序](/blog/robot-arm-learning-roadmap) · [位姿、运动学与雅可比](/blog/robot-arm-pose-kinematics-jacobian) · [动力学、力控与轨迹/抓取规划](/blog/robot-arm-dynamics-control-planning)
+> 工具链：ROS 2、MoveIt 2、仿真与视觉标定（本篇） · [路线 A：传统控制下的视觉抓取闭环](/blog/robot-arm-traditional-grasping-pipeline) · [路线 B：具身智能训练——模仿学习、强化学习与 VLA](/blog/robot-arm-embodied-ai-training)
+
+P1 和 P2 的公式要落到软件栈。这篇按数据流走：ROS 2 负责通信，URDF 和 TF2 负责模型与坐标，MoveIt 2 负责规划，ros2_control 负责执行，仿真负责试错，视觉负责把目标位姿送进规划器。每个组件只讲接口和最小示例，不展开源码。
+
+以下代码片段以 ROS 2 Jazzy 为基线，未在本机逐一运行；API 名称按官方文档核对。术语缩写：DDS（Data Distribution Service）、QoS（Quality of Service）、URDF（Unified Robot Description Format）、Xacro（XML Macro）、TF2（Transform Library 2）、SRDF（Semantic Robot Description Format）、OMPL（Open Motion Planning Library）、CHOMP、TrajOpt、MJCF（MuJoCo XML Format）、USD（Universal Scene Description）、SDF（Simulation Description Format）、ICP（Iterative Closest Point）、ADD/ADD-S（Average Distance）、IK（Inverse Kinematics）、PID（Proportional-Integral-Derivative）、TCP（Tool Center Point）。
+
+## 一、ROS 2 的通信模型
+
+### 1.1 四种通信方式
+
+ROS 2 的底层是 DDS，节点之间通过话题、服务、动作和参数通信。四种方式解决四种问题：
+
+| 方式 | 语义 | 典型用途 | 注意点 |
+|---|---|---|---|
+| 话题 | 持续数据流，发布-订阅 | 图像、关节状态、TF | QoS 要匹配 |
+| 服务 | 请求-应答，同步 | IK 求解、标定触发 | 不要阻塞太久 |
+| 动作 | 长任务，可取消，有反馈 | 轨迹执行、导航 | 处理超时和取消 |
+| 参数 | 配置项 | 控制器增益、标定结果 | 运行时修改要通知 |
+
+![ROS 2 节点、话题、服务和动作的通信图](/images/robot-learning/robot-arm-toolchain-simulation-vision/ros2-graph.svg)
+
+*图：一个典型的机械臂系统：相机发布图像，规划节点发布轨迹，控制节点通过动作执行，状态发布节点提供关节状态和 TF。*
+
+QoS 是 ROS 2 里最容易踩的坑。传感器数据通常用 best effort，控制指令用 reliable；发布者和订阅者的 QoS 不兼容时，连接建立不起来；rcl 会打印 incompatible QoS 警告，但节点进程不一定失败。队列深度也要设：图像队列太深会积压旧帧，控制指令队列太深会执行过期目标。
+
+| 数据 | QoS 设置 | 原因 |
+|---|---|---|
+| 图像 | best effort，keep last，depth 1 | 旧帧没有价值 |
+| 关节状态 | reliable，keep last，depth 10 | 短时间丢帧可补 |
+| 控制指令 | reliable，keep last，depth 1 | 只要最新目标 |
+| 地图/参数 | reliable，transient local，depth 1 | 后加入的节点也要拿到 |
+
+### 1.2 QoS 与调试
+
+DDS 的发现机制让节点自动找到彼此，不需要 master。多机通信时要注意 `ROS_DOMAIN_ID` 和网络组播；同一网段里两个项目用同一个 domain，会互相看到对方的话题。节点有生命周期状态：unconfigured、inactive、active、finalized；configure、activate、deactivate、cleanup 是状态转换事件。传感器和控制器常用生命周期节点，启动顺序可控。
+
+话题的队列深度是缓冲区大小：发布比订阅快时，旧消息会被丢弃。图像用 depth=1，关节状态用 depth=10，控制指令按控制周期设。服务调用会阻塞，调用方要设超时；服务端不要做长时间计算，长任务用动作。动作有 goal、feedback、result 三部分；客户端可以取消，服务端要处理取消请求，否则会留下半执行状态。
+
+调试先看连接：`ros2 node list`、`ros2 topic list`、`ros2 topic info -v`、`ros2 topic hz`、`ros2 topic echo`。节点不报错但收不到数据，九成是话题名、QoS 或 frame 的问题。执行器决定回调怎么跑：单线程执行器顺序执行，多线程执行器并发执行；回调组可以控制哪些回调能并行。控制回调不要和规划回调放在同一个互斥组里，否则规划会阻塞控制。
+
+轨迹执行用动作而不是服务，因为执行过程中要能取消、能看进度。参数用于配置，不用于高频数据。
+
+ROS 2 的 launch 文件是 Python。节点可以放到独立进程，也可以组合到同一个进程；组合减少拷贝和延迟，但一个节点崩溃会影响整个进程。原型阶段用独立进程，实时控制阶段再考虑组合。参数用 YAML 加载，运行时修改要通过参数服务；不是所有节点都支持动态参数。remap 可以在 launch 里改话题名，不用改代码。
+
+ROS 2 本身不是实时系统。控制环要放到 ros2_control 或独立实时进程里，不要指望 Python 节点在 1 kHz 下稳定运行。
+
+ROS 2 和 ROS 1 的差异不只是 API：ROS 2 没有 master，靠 DDS 发现；QoS、生命周期、composition 都是新概念。从 ROS 1 迁移时，先改 launch 和 QoS，再改代码。节点命名用命名空间区分：机械臂用 `/arm`，夹爪用 `/gripper`；同名节点会冲突，remap 和 namespace 要提前规划。
+
+DDS 调优：多机通信设 `ROS_DOMAIN_ID`，限制网卡，关掉不需要的发现；大图像可以用共享内存传输（需要 iceoryx/loaned message 支持），减少拷贝。
+
+消息类型决定接口：`sensor_msgs/Image`、`sensor_msgs/JointState`、`geometry_msgs/PoseStamped`、`trajectory_msgs/JointTrajectory`。自定义消息用 `.msg` 文件定义，编译后生成 Python/C++ 类型；跨包使用要加依赖。接口设计先定消息，再写节点；消息改字段，所有订阅者都要重编。参数文件用 YAML，launch 里用 `parameters=[path]` 加载；参数名要和节点声明的一致。launch 里可以覆盖参数：`parameters=[{"use_sim_time": True}, path]`；仿真时把 `use_sim_time` 设为 true，节点才会用 `/clock` 而不是系统时间。
+
+## 二、URDF、Xacro 与 TF2
+
+### 2.1 URDF 与 Xacro
+
+URDF（统一机器人描述格式）用树描述机器人：link 是刚体，joint 连接父子 link。每个 link 通常要有 visual、collision 和 inertial；纯坐标系 frame 可以省略。仿真和动力学需要 inertial，碰撞检测需要 collision，可视化需要 visual。三者可以不一致：visual 用精细网格，collision 用简化几何，inertial 用 CAD 导出的质量、质心和惯量。
+
+```xml
+<link name="link1">
+  <inertial>
+    <origin xyz="0 0 0.15" rpy="0 0 0"/>
+    <mass value="2.0"/>
+    <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.002"/>
+  </inertial>
+  <visual>
+    <geometry><cylinder radius="0.04" length="0.30"/></geometry>
+  </visual>
+  <collision>
+    <geometry><cylinder radius="0.04" length="0.30"/></geometry>
+  </collision>
+</link>
+
+<joint name="joint1" type="revolute">
+  <parent link="base_link"/>
+  <child link="link1"/>
+  <origin xyz="0 0 0.20" rpy="0 0 0"/>
+  <axis xyz="0 0 1"/>
+  <limit lower="-3.14" upper="3.14" effort="100" velocity="2.0"/>
+</joint>
+```
+
+joint 类型有 revolute、continuous、prismatic、fixed、floating、planar。机械臂常用 revolute 和 prismatic；continuous 没有上下限，fixed 用于固定相机或工具。inertial 的 `origin` 是质心在 link 坐标系里的位置，`inertia` 是绕质心的 3×3 惯量张量；只给质量不给惯量，动力学模型不完整。
+
+Xacro 把重复结构写成宏：`<xacro:macro name="arm_link" params="name length">`，再用 `<xacro:arm_link name="link1" length="0.3"/>` 调用。属性用 `<xacro:property name="l1" value="0.3"/>`。Xacro 文件顶层要有 `<robot name="...">` 根节点，否则 `xacro` 命令会报错。
+
+```xml
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="arm">
+  <xacro:property name="l1" value="0.3"/>
+  <xacro:macro name="arm_link" params="name length">
+    <link name="${name}">
+      <visual><geometry><cylinder radius="0.04" length="${length}"/></geometry></visual>
+      <collision><geometry><cylinder radius="0.04" length="${length}"/></geometry></collision>
+    </link>
+  </xacro:macro>
+  <xacro:arm_link name="link1" length="${l1}"/>
+</robot>
+```
+
+`${}` 是 Xacro 的替换语法，宏在加载时展开。改一个属性就能改整条链的尺寸，不用逐个 XML 文件改。Xacro 只做文本展开，不做几何校验；展开后仍要用 FK 和碰撞检查验证。
+
+`origin` 是关节零位变换，`axis` 是转轴，`limit` 是位置、力矩和速度限制。axis 写错，后面所有 FK 和 IK 都错；inertial 缺失，Pinocchio 的质量矩阵会奇异，MuJoCo 会用默认值。
+
+Xacro 是 URDF 的宏语言：属性、宏、include、条件。真实机械臂的 URDF 通常由 Xacro 生成，因为不同配置要复用同一套 link 和 joint。读别人的 Xacro 时先找 `<xacro:property>` 和 `<xacro:macro>`，不要直接看展开后的 XML。
+
+### 2.2 TF2
+
+TF2 维护坐标树。每个 frame 只有一个父节点，边上是一个随时间变化的变换。静态变换（相机安装、工具安装）用 `static_transform_publisher` 或 `StaticTransformBroadcaster`；动态变换（关节）由 `robot_state_publisher` 根据 URDF 和关节状态发布。
+
+![机械臂的 TF 坐标树](/images/robot-learning/robot-arm-toolchain-simulation-vision/tf-tree.svg)
+
+*图：world → base_link → link1 → link2 → tool0；eye-in-hand 时相机挂在 tool0 下，eye-to-hand 时挂在 base_link 下。*
+
+```python
+from launch import LaunchDescription
+from launch.substitutions import Command
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
+
+def generate_launch_description():
+    robot_description = ParameterValue(
+        Command(["xacro ", "urdf/arm.urdf.xacro"]), value_type=str
+    )
+    return LaunchDescription([
+        Node(
+            package="robot_state_publisher",
+            executable="robot_state_publisher",
+            parameters=[{"robot_description": robot_description}],
+        ),
+        Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            arguments=[
+                "--x", "0", "--y", "0", "--z", "0.5",
+                "--yaw", "0", "--pitch", "0", "--roll", "0",
+                "--frame-id", "world", "--child-frame-id", "camera_link",
+            ],
+        ),
+    ])
+```
+
+这段 launch 依赖 ROS 2 Jazzy，未在本机运行。Jazzy 的 `static_transform_publisher` 使用命名参数；旧的位置参数写法已经不推荐。查变换时用 `lookup_transform(target_frame, source_frame, time)`，时间戳对不上会报 extrapolation 错误；先确认两个 frame 在同一棵树上，再确认时间戳在缓存范围内。
+
+TF2 的常用命令：`ros2 run tf2_tools view_frames` 生成坐标树 PDF，`ros2 run tf2_ros tf2_echo base_link tool0` 查两个 frame 的实时变换。frame 命名遵循 REP-105：`map`、`odom`、`base_link`；机械臂内部 frame 用 link 名，末端用 tool0，相机用 camera_link。
+
+时间戳是 TF2 的核心。每个变换带时间戳，查询时给目标时间；给 0 表示最新可用。缓存默认 10 秒，超过范围的查询会报 extrapolation。静态变换的时间戳通常为 0，表示永远有效。
+
+```python
+import rclpy
+from rclpy.node import Node
+from tf2_ros import Buffer, TransformListener
+
+class TfProbe(Node):
+    def __init__(self):
+        super().__init__("tf_probe")
+        self.buffer = Buffer()
+        self.listener = TransformListener(self.buffer, self)
+
+    def lookup(self, target, source):
+        return self.buffer.lookup_transform(target, source, rclpy.time.Time())
+```
+
+`Buffer` 缓存变换，`TransformListener` 订阅 `/tf` 和 `/tf_static` 填充缓存。查询失败会抛异常：找不到 frame 是树的问题，extrapolation 是时间戳的问题。调试时先用 `tf2_echo` 确认两个 frame 能查到，再查代码。
+
+URDF 里的 mesh 路径用 `package://` 或 `file://`；`package://` 需要安装包并在 `ament_index` 里能找到。路径不对，RViz 里模型不显示，但关节和 TF 仍然正常。
+
+关节限位不只是 URDF 的 limit：控制器还有速度、加速度、力矩限制，规划器有时间参数化限制。URDF 的 limit 是最外层保护，控制器限位是第二层，规划器的速度/加速度约束是第三层。三层不一致，会出现规划通过但执行报警。URDF 的 `gazebo` 标签可以加摩擦、阻尼、传感器插件；这些标签在纯 ROS 2 里被忽略，但在 Gazebo 里生效。URDF 的质量单位是 kg、长度 m、惯量 kg·m²；从 CAD 导出时经常是 mm 和 g，导入前要换算。单位错 1000 倍，动力学和仿真都会异常。
+
+URDF 只描述运动学和惯量，不描述规划组、禁用碰撞对和末端执行器。这些信息放在 SRDF 里，MoveIt 2 用 SRDF 配置规划组和碰撞矩阵。
+
+## 三、MoveIt 2 的规划管线
+
+MoveIt 2 把规划拆成几层：规划场景、规划器、轨迹后处理和控制器。规划器在关节空间里找无碰撞路径；后处理做时间参数化和平滑；控制器通过 ros2_control 执行。
+
+![MoveIt 2 规划管线](/images/robot-learning/robot-arm-toolchain-simulation-vision/moveit-pipeline.svg)
+
+*图：目标 → 规划场景 → 规划器 → 轨迹后处理 → 控制器 → 机械臂；碰撞检查作用于规划器。*
+
+MoveIt 2 的 Python API 适合脚本和原型：
+
+```python
+from moveit.planning import MoveItPy
+
+moveit = MoveItPy(node_name="moveit_py_demo")
+arm = moveit.get_planning_component("ur_manipulator")
+arm.set_goal_state(configuration_name="ready")
+plan_result = arm.plan()
+if plan_result:
+    trajectory = plan_result.trajectory
+    moveit.execute(trajectory, controllers=[])
+```
+
+这段代码依赖已配置好的 MoveIt 配置包，未在本机运行。`controllers=[]` 表示使用默认控制器；规划组名字要和 SRDF 里一致。执行前要确认规划场景里有当前机器人和障碍物，否则规划器会在空场景里规划，执行时才撞。
+
+### 3.1 SRDF 与规划场景
+
+SRDF 是 MoveIt 的语义描述：规划组、虚拟关节、禁用碰撞对、末端执行器、被动关节。规划组把若干 joint 组成一条链或一棵树；禁用碰撞矩阵排除永远不碰的 link 对，减少碰撞检查开销。SRDF 和 URDF 分开，是因为同一个 URDF 可以配不同的规划组。
+
+```xml
+<robot name="arm">
+  <group name="arm">
+    <chain base_link="base_link" tip_link="tool0"/>
+  </group>
+  <group name="gripper">
+    <link name="gripper_base"/>
+  </group>
+  <end_effector name="gripper" parent_link="tool0" group="gripper"/>
+  <disable_collisions link1="base_link" link2="link1" reason="Adjacent"/>
+</robot>
+```
+
+`chain` 定义从 base_link 到 tool0 的关节链；`end_effector` 声明夹爪；`disable_collisions` 排除相邻 link，避免规划器把正常接触当成碰撞。改 SRDF 后要重启 `move_group`（或重新加载配置），否则 RViz 里的规划组不会更新。
+
+规划场景由机器人状态、碰撞体和附加物体组成。抓取时把目标物体加进场景，执行前把物体附加到夹爪，抓取后从场景移除。场景不更新，规划器就会在旧环境里规划。
+
+MoveIt 2 的 Python API 里，规划场景通过 `moveit.get_planning_scene_monitor()` 拿；加碰撞体用 `CollisionObject`，附着物体用 `AttachedCollisionObject`。加完要等场景更新，再规划。
+
+规划失败先看：起点或终点是否碰撞、规划组是否包含正确关节、规划时间是否太短、场景里是否有旧障碍。RViz 里把碰撞体显示出来，比看日志快。
+
+MoveIt 配置包结构：`config/` 放 SRDF、关节限位、运动学、控制器；`launch/` 放 `move_group`、RViz、demo；`urdf/` 放机器人模型。用 MoveIt Setup Assistant 生成，再手改 SRDF 和控制器。配置包不要和 URDF 包混在一起；机器人模型独立，MoveIt 配置依赖模型包。`move_group` 是核心节点，RViz 只是客户端；无头运行也可以，用 Python API 或 action 调用。
+
+### 3.2 规划与执行
+
+OMPL 是默认规划器集合：RRTConnect、RRTstar、PRM、BiTRRT、EST。CHOMP 和 TrajOpt 作为插件接入，适合平滑路径和短时规划。IK 插件可选 KDL、TRAC-IK、IKFast；IKFast 只对特定几何有效。
+
+规划请求和响应有适配器：请求适配器做合法性检查、IK、状态验证；响应适配器做时间参数化、平滑、简化。默认管线是 OMPL 加时间参数化；换规划器时，适配器顺序也会影响结果。
+
+MoveIt 2 的 Python API 适合脚本和原型，不适合毫秒级控制环。它内部有规划场景监控、碰撞检查和执行管理，抽象层多；高频控制直接走 ros2_control。
+
+执行通过 `ros2_control` 的 `joint_trajectory_controller`，MoveIt 2 发 action goal，控制器按轨迹插值。执行前要确认控制器已激活、关节名匹配、轨迹点在限位内。RViz 的 MotionPlanning 插件可以手动拖目标、看规划结果和碰撞体，是调试的第一入口。
+
+轨迹执行走 action：goal 里包含 `JointTrajectory`，feedback 是当前状态，result 是成功或失败。MoveIt 2 的 `execute` 封装了 action 客户端；自己写客户端时要处理超时、取消和控制器切换。
+
+## 四、ros2_control 与实时性
+
+ros2_control 把硬件抽象成 hardware interface，把控制算法抽象成 controller。controller manager 以固定频率调用 `read()`、`update()`、`write()`；`joint_state_broadcaster` 发布关节状态，`joint_trajectory_controller` 执行轨迹。
+
+```xml
+<ros2_control name="ArmSystem" type="system">
+  <hardware>
+    <plugin>my_hardware/ArmSystem</plugin>
+  </hardware>
+  <joint name="joint1">
+    <command_interface name="position"/>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+</ros2_control>
+```
+
+`command_interface` 是控制器能写的量，`state_interface` 是能读的量。位置控制给 position，力矩控制给 effort；接口不匹配，控制器加载会失败。硬件插件负责把接口映射到 EtherCAT、CAN 或仿真。
+
+```yaml
+controller_manager:
+  ros__parameters:
+    update_rate: 1000
+joint_state_broadcaster:
+  type: joint_state_broadcaster/JointStateBroadcaster
+joint_trajectory_controller:
+  type: joint_trajectory_controller/JointTrajectoryController
+```
+
+`update_rate` 是控制环频率，单位 Hz；状态广播器和轨迹控制器分别加载。控制器用 `spawner` 启动，启动顺序是先硬件、再 broadcaster、最后轨迹控制器。控制器没激活时，MoveIt 2 的 action goal 会一直等。
+
+典型控制环是 1 kHz。这个频率下，控制线程不能做动态内存分配、不能打日志、不能调用规划服务、不能等网络。实时线程里不要用 `std::vector` 扩容、不要 new/delete、不要打印；日志用实时安全的环形缓冲区。实时线程要配 `SCHED_FIFO`、`mlockall`，系统要打 PREEMPT_RT 补丁；否则一次缺页或调度延迟就会让控制周期抖动。
+
+控制器分两类：状态广播器只读状态，轨迹控制器写命令。控制器切换要在 controller_manager 里管理，不要直接改 topic。
+
+硬件插件实现 `on_init`、`on_configure`、`on_activate`、`read`、`write`、`on_deactivate`。`read` 里不能阻塞，`write` 里不能做协议解析。控制器切换用 `controller_manager` 的 `switch_controller` 服务，旧控制器要优雅停止，避免轨迹跳变。
+
+实时内核检查：`uname -a` 看 PREEMPT_RT，`cyclictest -m -p 80 -n -i 1000` 看最坏延迟。最坏延迟要在控制周期的十分之一以内，否则接触任务会抖。
+
+控制器参数：位置环 PID、速度前馈、重力补偿；`joint_trajectory_controller` 有 `gains`、`constraints`、`allow_partial_joints_goal`。参数放 YAML，不要硬编码。调参顺序：先重力补偿，再位置环 P，再加 D 和前馈；每步只改一个参数，记录阶跃响应。
+
+通信层常见 EtherCAT、CAN、Modbus。EtherCAT 适合多轴同步，CAN 适合低成本驱动器，Modbus 适合慢速设备。不管哪种，控制环里只做周期读写，协议解析和日志放到非实时线程。EtherCAT 配分布式时钟，多轴同步好；CAN 便宜但带宽低；Modbus 简单但慢。
+
+调试实时性时先看抖动，不看平均周期。平均 1 ms 但偶尔 5 ms 的周期，会让接触任务抖一下；用 `cyclictest` 或控制器自带的时间戳统计，先确认最坏延迟。
+
+## 五、仿真平台选型
+
+三个平台解决不同问题：
+
+- **MuJoCo**：接触动力学快、RL 生态好；渲染和传感器模型简单。适合强化学习和接触任务。
+- **Gazebo**：ROS 集成好、传感器插件多；接触稳定性一般。适合 ROS 2 系统集成和传感器仿真。
+- **Isaac Sim**：GPU 并行、渲染真实、USD；重，依赖 NVIDIA GPU。适合大规模 RL、Sim2Real 和合成数据。
+
+MuJoCo 用 MJCF 描述模型，Python 接口直接加载：
+
+```xml
+<mujoco model="arm_demo">
+  <option timestep="0.002"/>
+  <worldbody>
+    <body name="link1" pos="0 0 0.2">
+      <joint name="joint1" type="hinge" axis="0 0 1"/>
+      <geom type="capsule" fromto="0 0 0 0 0 0.3" size="0.04"/>
+    </body>
+  </worldbody>
+  <actuator>
+    <motor joint="joint1" ctrlrange="-10 10"/>
+  </actuator>
+</mujoco>
+```
+
+```python
+import mujoco
+
+model = mujoco.MjModel.from_xml_path("scene.xml")
+data = mujoco.MjData(model)
+for _ in range(1000):
+    data.ctrl[0] = 1.0
+    mujoco.mj_step(model, data)
+print(data.qpos[0])
+```
+
+`timestep` 决定积分精度，接触任务要更小的步长；`solref`、`solimp` 控制接触软硬，调不好会穿透或弹飞。MuJoCo 的接触模型和真实接触仍有差距，Sim2Real 时要标定摩擦和阻尼。
+
+MJCF 的结构：`worldbody` 放刚体和几何，`joint` 定义自由度，`actuator` 定义控制输入，`option` 放求解器和步长。`geom` 的 `friction`、`solref`、`solimp` 决定接触；`body` 的 `mass`、`diaginertia` 决定惯量。MJCF 和 URDF 可以互转，但接触参数和执行器配置不会自动对应。
+
+| 参数 | 作用 | 调大 | 调小 |
+|---|---|---|---|
+| timestep | 积分步长 | 快，易穿透 | 慢，稳 |
+| friction | 摩擦系数 | 抓得稳，易卡 | 易滑 |
+| solref | 接触时间常数/阻尼 | 更软、更慢 | 更硬、易弹 |
+| solimp | 接触阻抗 | 硬 | 软 |
+
+接触求解器有迭代次数和容差；迭代太少，接触会软或穿透；迭代太多，仿真变慢。MuJoCo 的 `iterations`、`tolerance` 在 `option` 里调。
+
+仿真步长和控制器频率要分开：物理步长 2 ms、控制周期 10 ms 时，控制器每 5 步更新一次。步长太大，接触会穿透；步长太小，仿真变慢。
+
+Gazebo 和 ROS 2 Jazzy 搭配 Gazebo Harmonic，用 `ros_gz_bridge` 桥接话题。Gazebo 的优势是传感器插件和 ROS 集成，适合验证整条 ROS 图；接触动力学不如 MuJoCo 适合精细操作。Gazebo 用 SDF 描述世界和模型，传感器以插件形式挂载；相机、深度相机、IMU、力传感器都有插件，适合验证感知链路。启动用 `gz sim world.sdf`；ROS 桥接用 `ros_gz_bridge` 的 `parameter_bridge`，把 Gazebo 话题桥到 ROS 2，方向和类型写错会静默丢消息。
+
+Isaac Sim 基于 USD 和 PhysX，支持 GPU 并行和域随机化。它适合大规模 RL 和合成数据，但启动重、依赖 GPU，调试周期比 MuJoCo 长。先用 MuJoCo 验证算法，再上 Isaac Sim 扩规模，是更常见的顺序。Isaac Sim 的模型用 USD，物理用 PhysX，渲染用 RTX；ROS 2 Bridge 把关节、相机、TF 桥到 ROS 2。域随机化可以改光照、材质、相机位姿、质量、摩擦，适合生成合成数据和训练策略。启动用 `isaac-sim.sh`，在扩展里启用 ROS 2 Bridge；USD 场景里挂 ROS 2 相机和关节状态组件。合成数据要同步 RGB、深度、语义分割和位姿，时间戳对齐。
+
+仿真时间：Gazebo 和 Isaac Sim 可以按真实时间或固定步长跑；训练时用固定步长，评测时用真实时间。仿真时间加速会让控制器以为周期很短，参数要按仿真时间调。
+
+传感器仿真：相机加噪声、深度加 dropout、IMU 加 bias；域随机化改光照、材质、相机位姿。仿真里的传感器越接近真机，Sim2Real 越省事。域随机化的范围要覆盖真机波动，不要随机到不物理的参数；质量、摩擦、延迟要有上下界。MuJoCo 的 `mj_forward` 只算一次前向，`mj_step` 推进时间；RL 环境通常用 `mj_step`，可视化用 `mj_forward`。
+
+Sim2Real 的细节放在 P5，这里只提醒：仿真参数不能直接当真实参数，部署前要重新标定接触、摩擦和执行器延迟。
+
+选型顺序：先问任务需要什么，不要为了“更真实”一开始就上最重的平台。
+
+版本匹配：Ubuntu 24.04 + ROS 2 Jazzy 用 apt；MuJoCo 用 pip；Isaac Sim 用 Omniverse Launcher 或 pip；OpenCV 用 apt 或 pip。ROS 2 的 Python 版本、PyTorch 的 CUDA 版本、Isaac Sim 的驱动版本要匹配。
+
+常见组合：MuJoCo + Pinocchio 做算法验证；ROS 2 + MoveIt 2 + Gazebo 做系统集成；Isaac Sim + LeRobot 做大规模训练。不要在一个项目里同时上三套仿真，维护成本会超过收益。
+
+## 六、视觉：相机模型、标定与 6D 位姿
+
+### 6.1 相机模型与标定
+
+针孔模型把三维点投到像素：
+
+$$
+u = f_x\frac{X}{Z} + c_x, \quad v = f_y\frac{Y}{Z} + c_y
+$$
+
+![针孔相机模型与内参](/images/robot-learning/robot-arm-toolchain-simulation-vision/pinhole-model.svg)
+
+*图：光心 O、图像平面、焦距 f、三维点 P 和像素点 p；内参 K 包含 fx、fy、cx、cy。*
+
+内参用张正友标定法，OpenCV 的 `cv2.calibrateCamera` 输入棋盘格角点和图像尺寸，输出 K、畸变系数和外参。重投影误差是最直接的指标，通常要小于 0.5 像素；误差大时先检查角点顺序和棋盘格尺寸。
+
+```python
+import cv2
+import numpy as np
+
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+ret, K, dist, rvecs, tvecs = cv2.calibrateCamera(
+    object_points, image_points, gray.shape[::-1], None, None
+)
+```
+
+`object_points` 是棋盘格在标定板坐标系里的三维点，`image_points` 是对应像素点；`ret` 是重投影误差。标定板要覆盖画面中心和四角，倾斜角度要多样；只用正对相机的几张图，畸变系数估不准。相机曝光和白平衡要固定，自动曝光会让不同帧的亮度变化，影响检测。标定板要平整，打印后贴在硬板上；弯曲的标定板会让内参误差变大。
+
+外参描述相机在机器人坐标系里的位姿。视觉检测给的是相机系位姿，进规划器前要左乘 `T_base_camera`；eye-in-hand 时 $T_{base,camera}=T_{base,tool}T_{tool,camera}$，随机械臂运动变化，必须通过 TF 实时查。
+
+深度相机给深度图，可以转点云。Open3D 或 PCL 做滤波、分割、配准；点云配准（ICP）适合已知模型的位姿精修。深度图的边缘和反光面误差大，抓取点不要选在深度不连续处。深度图转点云：$z = \text{depth}/\text{scale}$，$x=(u-c_x)z/f_x$，$y=(v-c_y)z/f_y$。
+
+### 6.2 6D 位姿与点云
+
+目标检测用 YOLO 一类模型给 2D 框，6D 位姿用 FoundationPose、MegaPose、PoseCNN、GDR-Net 一类方法。DINO 是视觉 backbone，不是 6D 位姿估计方法；把 DINO 当成位姿方法，是常见的概念混淆。6D 位姿的输出是相机系下的 $R,t$；用 TF 左乘 `T_base_camera` 得到 base 系位姿。检测框和位姿要同步：图像和深度的时间戳差超过一帧，位姿会偏。
+
+| 方法 | 输入 | 特点 |
+|---|---|---|
+| FoundationPose | RGB-D + CAD | 新物体泛化好，需 GPU |
+| MegaPose | RGB + CAD | 多物体、尺度变化 |
+| PoseCNN | RGB | 经典，精度一般 |
+| GDR-Net | RGB | 回归 6D 位姿，速度快 |
+
+6D 位姿评估用 ADD/ADD-S、旋转误差和翻译误差；抓取任务更关心接触点误差，不是整体位姿误差。视觉链路也有延迟：曝光、传输、检测、位姿估计、TF 查询，每一步都占时间。抓取运动物体时，要把延迟补偿进去，否则抓到的位置是过去的；抓取静止物体时，等一帧比外推稳。
+
+相机系点 $p_c$ 到 base 系：$p_b = R_{base,camera}p_c + t_{base,camera}$。像素反投影：$X=(u-c_x)Z/f_x$，$Y=(v-c_y)Z/f_y$，$Z$ 从深度图取；单目没有深度，只能得到射线。多相机要同步：硬件触发或软件时间戳对齐；不同步的图像和深度会导致点云错位。
+
+点云处理：体素下采样 → 平面分割（桌面）→ 聚类（物体）→ 位姿估计。抓取点选在 cluster 的主轴附近，避开边缘和反光。Open3D 的 `segment_plane`、`cluster_dbscan` 可以直接用。点云配准：粗配准用 FPFH + RANSAC，精配准用 ICP；ICP 对初值敏感，先给一个大致位姿。相机内参标定和手眼标定是两件事：先内参，后手眼。
+
+## 七、手眼标定
+
+手眼标定求相机和机械臂之间的固定变换。两种安装方式：
+
+### 7.1 两种安装
+
+- eye-in-hand：相机固定在末端，标定 `T_tool_camera`；相机随机械臂运动。
+- eye-to-hand：相机固定在外部，标定 `T_base_camera`；相机不随机械臂运动。
+
+eye-in-hand 视野随机械臂动，适合大工作空间和近距离观察；eye-to-hand 视野固定，适合固定工位和多物体。eye-in-hand 标定误差会随关节角变化，eye-to-hand 标定误差主要来自相机安装。抓取任务常用 eye-in-hand，分拣线常用 eye-to-hand。
+
+![眼在手上与眼在手外的手眼标定坐标系](/images/robot-learning/robot-arm-toolchain-simulation-vision/hand-eye-frames.svg)
+
+*图：eye-in-hand 标定 tool→camera；eye-to-hand 标定 base→camera。target 是标定板或已知物体。*
+
+### 7.2 方程与求解
+
+标定方程写成 $AX=XB$：$A$ 是夹爪的相对运动，$B$ 是标定板在相机系中的相对运动，$X$ 是待求的相机-夹爪变换。eye-to-hand 的标准写法常是 $AX=ZB$；这里统一写成 $AX=XB$，具体符号以库的文档为准。OpenCV 的 `cv2.calibrateHandEye` 直接解这个方程：
+
+eye-in-hand 时，$X=T_{tool,camera}$；eye-to-hand 时，$X=T_{base,camera}$。$A$、$B$ 由相邻两组位姿的相对运动构造，不同库的输入顺序不同，先看文档再传。OpenCV 的 `calibrateHandEye` 接收 `gripper2base` 和 `target2cam`，内部构造 $A$、$B$。
+
+```python
+import cv2
+import numpy as np
+
+R_cam2grip, t_cam2grip = cv2.calibrateHandEye(
+    R_gripper2base, t_gripper2base,
+    R_target2cam, t_target2cam,
+    method=cv2.CALIB_HAND_EYE_TSAI,
+)
+T_cam2grip = np.eye(4)
+T_cam2grip[:3, :3] = R_cam2grip
+T_cam2grip[:3, 3] = t_cam2grip.ravel()
+```
+
+`T_cam2grip` 就是相机到夹爪的变换，等价于 `T_tool_camera`（tool 与 gripper 同义）。
+
+输入顺序容易错：`R_gripper2base` 是夹爪到基座，`R_target2cam` 是标定板到相机；传反了，结果看起来也像一个变换，但方向错 180°。至少采集 3 组非退化位姿，实际建议 10–20 组，绕多个轴转动，避免所有位姿的旋转轴平行。
+
+采集时让标定板在相机视野里移动，机械臂姿态变化要覆盖多个轴；所有位姿都绕同一个轴转，方程会退化，解不稳定。每组的关节角、末端位姿、标定板位姿要带时间戳，采集时保持静止，避免运动模糊。求解方法有 TSAI、PARK、HORAUD、ANDREFF、DANIILIDIS；TSAI 最常用，精度取决于数据。
+
+每组数据包含 `T_gripper2base` 和 `T_target2cam`；前者由 FK 算，后者由标定板检测算。`calibrateHandEye` 用的是相邻位姿的相对运动，不是绝对位姿。标定板选择：棋盘格容易检测，但只给平面约束；ArUco/ChArUco 抗遮挡更好。标定板尺寸要准，打印后量对角线与标称值对齐。
+
+标定完要验证：把标定板放在几个位置，用相机估计位姿，再和机械臂正运动学算出的位姿比；或者让末端触碰标定板上的已知点。残差在毫米级、重复定位在 1–2 mm（以常见协作臂为例），才算可用。只跑一次标定不验证，等于没标定。
+
+ROS 里可以用 `easy_handeye` 或 `moveit_calibration` 做采集和求解。`kalibr` 主要做多相机和 IMU 标定，不是通用手眼工具；把它当手眼标定器，会卡在配置上。
+
+标定结果的旋转部分要检查正交性，平移部分要检查量级；残差大时先查时间戳和位姿对应关系，再换求解方法。
+
+### 7.3 采集与验证
+
+一次手眼标定的流程：1) 固定标定板和相机；2) 采集 10–20 组关节角和标定板位姿；3) 用 `calibrateHandEye` 求 $X$；4) 用独立数据验证；5) 把 $X$ 写进 TF 或配置文件；6) 每月或碰撞后复标。
+
+学习顺序：先在 RViz 里让模型动起来，再跑 MoveIt 2 的 demo，再做手眼标定，最后接真机。每一步都要有一个可验证的输出：TF 树、规划轨迹、标定残差、抓取成功率。
+
+| 目的 | 命令 |
+|---|---|
+| 看话题 | `ros2 topic list` |
+| 看频率 | `ros2 topic hz /joint_states` |
+| 看 TF | `tf2_echo base_link tool0` |
+| 看坐标树 | `ros2 run tf2_tools view_frames` |
+| 看控制器 | `ros2 control list_controllers` |
+| 看节点 | `ros2 node list` |
+
+## 八、最小工作流
+
+把上面的组件串起来，最小工作流是：
+
+1. 用 Xacro 生成 URDF，`robot_state_publisher` 发布 TF。
+2. 用 `ros2_control` 或 MuJoCo 让关节动起来，确认 TF 和关节状态。
+3. 用 MoveIt 2 在 RViz 里规划一条到 `ready` 的轨迹并执行。
+4. 相机标定加手眼标定，把目标位姿变到 base 系。
+5. 把目标位姿发给 MoveIt 2，执行抓取。
+6. 记录失败分支：IK 失败、规划失败、碰撞、抓取滑移。
+
+调试清单：
+
+| 现象 | 先查 |
+|---|---|
+| 节点收不到数据 | 话题名、QoS、`ROS_DOMAIN_ID` |
+| TF 报 extrapolation | 时间戳、缓存、frame 树 |
+| 规划失败 | 碰撞体、起点/终点、关节限位 |
+| 执行不动 | 控制器状态、关节名、硬件接口 |
+| 抓取偏 | 相机内参、手眼、TCP（工具中心点）、延迟 |
+
+## 九、常见误区
+
+- axis 写错。FK 看起来正常，IK 和规划全错；单关节测试能最快发现。
+- URDF 缺 inertial。Pinocchio 的质量矩阵会奇异，MuJoCo 会用默认值，仿真结果不可信。
+- 把 DINO 当 6D 位姿方法。它是 backbone，不是位姿估计器。
+- 手眼标定输入顺序错。`gripper2base` 和 `target2cam` 传反，结果方向错。
+- 仿真参数直接搬到真机。摩擦、阻尼、接触刚度都要重新标定。
+- 把 ROS 2 当实时系统。控制环要放到 ros2_control 或独立实时进程，Python 节点不适合 1 kHz。
+- 手眼标定只做一次。碰撞、换相机、温度变化后要复标。
+
+## 参考
+
+- [ROS 2 Jazzy 文档](https://docs.ros.org/en/jazzy/)
+- [MoveIt 2 文档](https://moveit.picknik.ai/)
+- [ros2_control 文档](https://control.ros.org/)
+- [MuJoCo 文档](https://mujoco.readthedocs.io/)
+- [Gazebo 文档](https://gazebosim.org/docs)
+- [Isaac Sim 文档](https://docs.isaacsim.omniverse.nvidia.com/)
+- [OpenCV 文档](https://docs.opencv.org/)
+- Zhang, *A Flexible New Technique for Camera Calibration*, IEEE TPAMI, 2000.
+- Tsai & Lenz, *A New Technique for Fully Autonomous and Efficient 3D Robotics Hand/Eye Calibration*, IEEE T-RA, 1989.
+- [FoundationPose](https://github.com/NVlabs/FoundationPose)
+- [MegaPose](https://github.com/megapose6d/megapose6d)
+- [easy_handeye](https://github.com/IFL-CAMP/easy_handeye)
+- [moveit_calibration](https://github.com/moveit/moveit_calibration)
+
+下一篇：[路线 A：传统控制下的视觉抓取闭环](/blog/robot-arm-traditional-grasping-pipeline)。

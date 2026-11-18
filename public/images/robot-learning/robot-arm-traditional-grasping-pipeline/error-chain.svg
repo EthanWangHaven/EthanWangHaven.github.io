@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 420" role="img" aria-label="视觉抓取的误差链">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <text x="32" y="40" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#0f172a">视觉抓取的误差链（典型量级，示意）</text>
+
+  <rect x="32" y="110" width="140" height="80" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="52" y="138" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#1e40af">相机内参</text>
+  <text x="52" y="160" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#1e40af">重投影 0.2–0.5 px</text>
+  <text x="52" y="178" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" fill="#1e40af">可标定</text>
+
+  <rect x="212" y="110" width="140" height="80" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="232" y="138" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#1e40af">手眼标定</text>
+  <text x="232" y="160" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#1e40af">1–3 mm</text>
+  <text x="232" y="178" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" fill="#1e40af">可标定，随距离放大</text>
+
+  <rect x="392" y="110" width="140" height="80" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="412" y="138" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#5b21b6">目标位姿 + TF</text>
+  <text x="412" y="160" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#5b21b6">1–5 mm</text>
+  <text x="412" y="178" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" fill="#5b21b6">随机 / 场景相关</text>
+
+  <rect x="572" y="110" width="140" height="80" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="592" y="138" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#1e40af">IK / 规划</text>
+  <text x="592" y="160" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#1e40af">0.5–2 mm</text>
+  <text x="592" y="178" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" fill="#1e40af">可补偿 / 选解相关</text>
+
+  <rect x="752" y="110" width="70" height="80" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="762" y="138" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="600" fill="#1e40af">TCP</text>
+  <text x="762" y="160" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" fill="#1e40af">0.1–0.5 mm</text>
+  <text x="762" y="178" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#1e40af">可标定</text>
+
+  <rect x="822" y="110" width="70" height="80" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="830" y="138" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="600" fill="#5b21b6">重复定位</text>
+  <text x="830" y="160" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#5b21b6">随机</text>
+
+  <line x1="172" y1="150" x2="206" y2="150" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="352" y1="150" x2="386" y2="150" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="532" y1="150" x2="566" y2="150" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="712" y1="150" x2="746" y2="150" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="212" y="270" width="500" height="70" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="232" y="298" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#0f172a">总抓取误差不是各项简单相加</text>
+  <text x="232" y="320" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" fill="#475569">取决于误差方向、物体尺寸和夹爪容差；先测最大项，再决定优化哪一段。</text>
+
+  <text x="32" y="378" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">蓝色：可以通过标定或参数补偿的系统误差。紫色：随场景变化的随机误差，只能靠重复测量、筛选和容错。</text>
+</svg>

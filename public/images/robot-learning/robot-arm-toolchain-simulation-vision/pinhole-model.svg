@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" role="img" aria-label="针孔相机模型与内参">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <text x="32" y="40" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#0f172a">针孔相机模型：内参、外参与投影</text>
+
+  <!-- image plane -->
+  <line x1="340" y1="110" x2="340" y2="430" stroke="#2563eb" stroke-width="2"/>
+  <rect x="322" y="110" width="36" height="320" fill="#eff6ff" opacity="0.6"/>
+  <text x="268" y="100" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#2563eb">图像平面</text>
+
+  <!-- optical axis -->
+  <line x1="180" y1="300" x2="520" y2="300" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+  <text x="400" y="290" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" fill="#64748b">光轴</text>
+
+  <!-- object point -->
+  <circle cx="460" cy="180" r="6" fill="#dc2626"/>
+  <text x="472" y="174" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" fill="#991b1b">P(X, Y, Z)</text>
+
+  <!-- ray -->
+  <line x1="460" y1="180" x2="180" y2="300" stroke="#dc2626" stroke-width="1.5"/>
+  <circle cx="340" cy="231" r="5" fill="#7c3aed"/>
+  <text x="350" y="226" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#5b21b6">p(u, v)</text>
+
+  <!-- optical center -->
+  <circle cx="180" cy="300" r="7" fill="#0f172a"/>
+  <text x="128" y="324" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#0f172a">光心 O</text>
+
+  <!-- focal length -->
+  <line x1="180" y1="330" x2="340" y2="330" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="250" y="352" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#16a34a">f</text>
+
+  <!-- Z -->
+  <line x1="180" y1="380" x2="460" y2="380" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="310" y="400" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">Z</text>
+
+  <!-- X -->
+  <line x1="486" y1="180" x2="486" y2="300" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="496" y="246" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">Y</text>
+
+  <!-- right panel -->
+  <rect x="548" y="70" width="320" height="360" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="572" y="106" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="600" fill="#0f172a">内参与投影</text>
+
+  <rect x="572" y="126" width="272" height="94" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="588" y="154" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#334155">K = [ fx  0  cx ]</text>
+  <text x="588" y="174" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#334155">    [  0 fy  cy ]</text>
+  <text x="588" y="194" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#334155">    [  0  0   1 ]</text>
+
+  <text x="572" y="254" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#334155">u = fx · X / Z + cx</text>
+  <text x="572" y="278" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#334155">v = fy · Y / Z + cy</text>
+
+  <text x="572" y="316" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" fill="#475569">fx, fy：焦距（像素）</text>
+  <text x="572" y="338" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" fill="#475569">cx, cy：主点（像素）</text>
+  <text x="572" y="360" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" fill="#475569">外参：相机在世界系中的位姿</text>
+  <text x="572" y="382" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" fill="#475569">畸变：k1, k2, p1, p2, k3</text>
+
+  <text x="32" y="470" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">内参描述“相机内部怎么成像”，外参描述“相机在哪个坐标系”；标定误差会随距离放大，深度方向尤其明显。</text>
+</svg>

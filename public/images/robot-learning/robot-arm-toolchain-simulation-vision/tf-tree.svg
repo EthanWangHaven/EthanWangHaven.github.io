@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-label="ROS 机械臂的 TF 坐标树">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-p" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7c3aed"/>
+    </marker>
+  </defs>
+
+  <text x="32" y="40" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#0f172a">TF 坐标树：每个 frame 只有一个父节点</text>
+
+  <rect x="330" y="70" width="130" height="48" rx="8" fill="#f8fafc" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="356" y="101" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" fill="#1e40af">world</text>
+
+  <rect x="330" y="150" width="130" height="48" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="344" y="181" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" fill="#334155">base_link</text>
+
+  <rect x="330" y="230" width="130" height="48" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="352" y="261" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" fill="#334155">link1</text>
+
+  <rect x="330" y="310" width="130" height="48" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="352" y="341" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" fill="#334155">link2</text>
+
+  <rect x="330" y="390" width="130" height="48" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="352" y="421" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" fill="#334155">tool0</text>
+
+  <rect x="590" y="390" width="160" height="48" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="602" y="421" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" fill="#5b21b6">camera_link</text>
+
+  <rect x="590" y="150" width="160" height="48" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="602" y="181" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" fill="#5b21b6">camera_link</text>
+
+  <line x1="395" y1="118" x2="395" y2="144" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="410" y="138" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#475569">static（安装位置）</text>
+
+  <line x1="395" y1="198" x2="395" y2="224" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="410" y="218" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#475569">dynamic（joint1）</text>
+
+  <line x1="395" y1="278" x2="395" y2="304" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="410" y="298" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#475569">dynamic（joint2）</text>
+
+  <line x1="395" y1="358" x2="395" y2="384" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="410" y="378" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#475569">static（工具安装）</text>
+
+  <line x1="460" y1="414" x2="584" y2="414" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arrow-p)"/>
+  <text x="478" y="402" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#6d28d9">eye-in-hand</text>
+
+  <line x1="460" y1="174" x2="584" y2="174" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow-p)"/>
+  <text x="478" y="162" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#6d28d9">eye-to-hand</text>
+
+  <rect x="32" y="470" width="836" height="36" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="52" y="493" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" fill="#475569">同一个 frame 不能挂两个父节点；eye-to-hand 挂 base_link，eye-in-hand 挂 tool0。两种配置不会同时存在。</text>
+</svg>

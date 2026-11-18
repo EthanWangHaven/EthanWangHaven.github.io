@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" role="img" aria-label="阻抗控制的弹簧阻尼质量模型">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-r" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/>
+    </marker>
+  </defs>
+
+  <text x="32" y="40" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#0f172a">阻抗控制：把末端变成弹簧-阻尼-质量系统</text>
+
+  <!-- left panel -->
+  <rect x="32" y="72" width="420" height="300" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- reference line -->
+  <line x1="130" y1="110" x2="130" y2="330" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="104" y="100" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" fill="#2563eb">x_d</text>
+
+  <!-- spring -->
+  <path d="M 130 180 L 150 180 L 160 165 L 175 195 L 190 165 L 205 195 L 220 165 L 235 195 L 245 180 L 260 180"
+        fill="none" stroke="#16a34a" stroke-width="2"/>
+  <text x="172" y="154" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#16a34a">k</text>
+
+  <!-- damper -->
+  <rect x="140" y="228" width="40" height="24" rx="4" fill="#ffffff" stroke="#7c3aed" stroke-width="1.5"/>
+  <line x1="180" y1="240" x2="245" y2="240" stroke="#7c3aed" stroke-width="2"/>
+  <line x1="245" y1="228" x2="245" y2="252" stroke="#7c3aed" stroke-width="2"/>
+  <text x="172" y="276" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#7c3aed">b</text>
+
+  <!-- mass -->
+  <rect x="260" y="160" width="86" height="86" rx="8" fill="#ffffff" stroke="#0f172a" stroke-width="1.5"/>
+  <text x="280" y="200" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#0f172a">m_e</text>
+  <text x="280" y="222" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" fill="#475569">末端</text>
+
+  <!-- external force -->
+  <line x1="352" y1="203" x2="400" y2="203" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-r)"/>
+  <text x="360" y="190" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#dc2626">F_ext</text>
+
+  <!-- displacement -->
+  <line x1="130" y1="316" x2="260" y2="316" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="164" y="336" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">x - x_d</text>
+
+  <!-- right panel -->
+  <rect x="476" y="72" width="392" height="300" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="500" y="108" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="600" fill="#0f172a">平衡方程</text>
+
+  <rect x="500" y="126" width="344" height="48" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="516" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" fill="#334155">m_e ẍ + b ẋ + k (x - x_d) = F_ext</text>
+
+  <text x="500" y="206" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">m_e：虚拟质量，影响响应快慢和超调</text>
+  <text x="500" y="230" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">b：阻尼，抑制振荡</text>
+  <text x="500" y="254" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">k：刚度，决定“顶得多硬”</text>
+  <text x="500" y="278" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">x_d：期望位置；F_ext：环境外力</text>
+
+  <text x="500" y="316" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">k 越大，位置越硬；接触稳定性和传感器延迟决定上限。</text>
+  <text x="500" y="340" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">导纳控制相反：测力后修正位置，适合位置控制接口。</text>
+
+  <text x="32" y="410" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">阻抗控制不直接追踪位置，而是规定“位置偏差 → 接触力”的关系；同一套参数在不同环境刚度下表现不同。</text>
+</svg>

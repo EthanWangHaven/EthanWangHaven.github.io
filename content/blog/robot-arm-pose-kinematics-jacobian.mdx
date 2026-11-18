@@ -1,0 +1,503 @@
+---
+date: "2026-11-19T20:00:00+08:00"
+draft: false
+title: 位姿、运动学与雅可比
+categories:
+  - Robot Learning
+tags:
+  - 机械臂
+  - 运动学
+  - 逆运动学
+  - 雅可比
+  - 四元数
+description: 从齐次变换、旋转表示讲到正逆运动学与雅可比，给出可运行的 numpy 示例与 Pinocchio 用法片段，并说明奇异点和冗余。
+---
+
+> 本系列共六篇：
+> [机械臂训练的两条路线与学习顺序](/blog/robot-arm-learning-roadmap) · 位姿、运动学与雅可比（本篇） · [动力学、力控与轨迹/抓取规划](/blog/robot-arm-dynamics-control-planning)
+> [工具链：ROS 2、MoveIt 2、仿真与视觉标定](/blog/robot-arm-toolchain-simulation-vision) · [路线 A：传统控制下的视觉抓取闭环](/blog/robot-arm-traditional-grasping-pipeline) · [路线 B：具身智能训练——模仿学习、强化学习与 VLA](/blog/robot-arm-embodied-ai-training)
+
+这一篇开始补运动学。先把约定固定下来：变换写成 4×4 齐次矩阵，左乘父变换；角度默认弧度；关节角向量记作 $q$，末端位姿记作 $T$；不特别说明时使用右手系。后面的代码、公式和图都按这套约定。
+
+运动学要回答两个方向的问题：给定关节角算末端位姿，是正运动学（forward kinematics，FK）；给定目标位姿算关节角，是逆运动学（inverse kinematics，IK）。雅可比把两者的一阶关系连起来，也是奇异点、冗余和速度控制的入口。
+
+符号约定：
+
+| 符号 | 含义 |
+|---|---|
+| $q$ | 关节角向量，单位弧度 |
+| $T_{ab}$ | 把 b 系中的点变到 a 系的 4×4 齐次变换 |
+| $R_{ab}$ | $T_{ab}$ 的旋转部分 |
+| $J$ | 几何雅可比，把 $\dot q$ 映射到末端空间速度 |
+| $\mu$ | 可操作度 $\sqrt{\det(JJ^\top)}$ |
+
+## 一、坐标系、位姿与齐次变换
+
+一个坐标系由原点和一组右手正交基组成。位姿是位置加姿态，用特殊欧氏群 $SE(3)$ 的齐次变换表示：
+
+$$
+T = \begin{bmatrix} R & p \\ 0^\top & 1 \end{bmatrix}
+$$
+
+其中 $R \in SO(3)$，$p \in \mathbb{R}^3$。
+
+齐次变换的逆不需要对 $R$ 和 $p$ 分别求逆：
+
+$$
+T^{-1} = \begin{bmatrix} R^\top & -R^\top p \\ 0^\top & 1 \end{bmatrix}
+$$
+
+复合顺序是左乘父变换。若 $T_{ab}$ 表示把 b 系中的点变到 a 系，$T_{bc}$ 表示 c 到 b，则：
+
+$$
+T_{ac} = T_{ab} T_{bc}
+$$
+
+读法是从右往左作用在点上：先把 c 系的点变到 b 系，再变到 a 系。矩阵乘法不满足交换律，顺序写反时结果仍然是一个合法的位姿，只是落在错误的坐标系里，肉眼很难发现。
+
+同一个变换可以读成“把点从 b 变到 a”，也可以读成“把 a 系中的描述变到 b 系”；两种读法差一个逆。写代码时先固定一种读法，注释里写清楚，避免在调用处反复取逆。
+
+齐次变换作用在点上要加 1，作用在方向上要加 0；方向不受平移影响。把方向当点变换，是最常见的隐蔽错误之一。
+
+举一个具体例子。设 world→base 只有平移 $(0,0,0.8)$，base→tool 是 $T_{base,tool}=R_z(90^\circ)T_x(0.5)$，即先绕 z 转 90°、再沿旋转后的 x 轴平移 0.5。按 $T_{world,tool}=T_{world,base}T_{base,tool}$，末端位置是 $(0,0.5,0.8)$；把顺序反过来，位置变成 $(0.5,0,0.8)$。两个结果都合法，只有第一个是 base→tool 的实际位姿。这类错误在 URDF、TF 和手眼标定里都会出现。
+
+![从世界坐标系到末端和相机的变换链](/images/robot-learning/robot-arm-pose-kinematics-jacobian/tf-chain.svg)
+
+*图：从 world 到 tool0 的变换链，以及 tool0 到 camera_link 的分支。每个箭头是一个齐次变换。*
+
+检查顺序是否正确，可以把单位向量代进去，看末端点是否落在预期位置；也可以用数值检查 $T T^{-1} \approx I$。这两个检查比盯着矩阵看有效。
+
+下面的代码实现 SE(3) 的复合、逆、四元数乘法和 SLERP。`inv_T` 用 $R^\top$ 而不是 `np.linalg.inv`，前者只需要转置和一次矩阵向量乘，数值上也更稳。
+
+```python
+import numpy as np
+
+def make_T(R, p):
+    T = np.eye(4)
+    T[:3, :3] = R
+    T[:3, 3] = np.asarray(p, dtype=float)
+    return T
+
+def inv_T(T):
+    R, p = T[:3, :3], T[:3, 3]
+    Ti = np.eye(4)
+    Ti[:3, :3] = R.T
+    Ti[:3, 3] = -R.T @ p
+    return Ti
+
+def quat_mul(qa, qb):
+    wa, xa, ya, za = qa
+    wb, xb, yb, zb = qb
+    return np.array([
+        wa*wb - xa*xb - ya*yb - za*zb,
+        wa*xb + xa*wb + ya*zb - za*yb,
+        wa*yb - xa*zb + ya*wb + za*xb,
+        wa*zb + xa*yb - ya*xb + za*wb,
+    ])
+
+def quat_to_R(quat):
+    quat = np.asarray(quat, dtype=float)
+    quat = quat / np.linalg.norm(quat)
+    w, x, y, z = quat
+    return np.array([
+        [1-2*(y*y+z*z), 2*(x*y-w*z),   2*(x*z+w*y)],
+        [2*(x*y+w*z),   1-2*(x*x+z*z), 2*(y*z-w*x)],
+        [2*(x*z-w*y),   2*(y*z+w*x),   1-2*(x*x+y*y)],
+    ])
+
+def slerp(qa, qb, t):
+    qa = np.asarray(qa, dtype=float); qa /= np.linalg.norm(qa)
+    qb = np.asarray(qb, dtype=float); qb /= np.linalg.norm(qb)
+    d = float(np.dot(qa, qb))
+    if d < 0:
+        qb, d = -qb, -d
+    if d > 0.9995:
+        q = qa + t * (qb - qa)
+        return q / np.linalg.norm(q)
+    theta = np.arccos(d)
+    return (np.sin((1-t)*theta)*qa + np.sin(t*theta)*qb) / np.sin(theta)
+```
+
+验证时至少查三件事：$R^\top R$ 接近单位阵、$\det R$ 接近 1、$T T^{-1}$ 接近单位阵。欧拉角转矩阵、四元数转矩阵、URDF 里的 rpy 都容易出符号错，这三个检查能拦住大部分手写错误。
+
+## 二、旋转表示：矩阵、欧拉角、四元数
+
+旋转只有 3 个自由度，但不同表示用的参数个数不同。参数多于 3 个时一定带约束；参数等于 3 个时一定有奇异点或不连续点。这是选择表示时的基本权衡。
+
+- **旋转矩阵**：9 个参数（3 个自由度）。复合和变换点直接；冗余，需要保持正交。适合计算与存储。
+- **欧拉角**：3 个参数。直观，便于人读；有万向锁，约定多。适合界面显示和调试。
+- **轴角**：3 或 4 个参数。几何意义清楚；0 和 π 附近不连续。适合表示旋转误差和角速度。
+- **四元数**：4 个参数，带单位约束。插值稳定，无万向锁；双覆盖，需要归一化。适合姿态插值和控制器。
+- **SO(3) 指数映射**：3 个参数。适合无约束优化；需要 exp/log。用于优化和数值积分。
+
+旋转矩阵的 9 个元素满足 6 个约束：三列单位正交，且行列式为 1。它的优点是复合和变换点都是矩阵乘法，缺点是优化时结果会离开 SO(3)，需要投影回去。
+
+欧拉角有 12 种约定：6 种 Tait-Bryan（三轴不同）和 6 种 proper Euler（首尾轴相同）。工程里常见的是 ZYX 或 RPY；实际常用的是 ZYX、XYZ、ZYZ。内旋与外旋是同一组旋转的两种读法，写接口时不要只写“Euler angles”，要写清楚轴顺序和内外旋。Tait-Bryan 约定在 $\beta = \pm 90^\circ$ 时出现万向锁；proper Euler 约定的奇异点在 $\beta=0$ 或 $\pi$。
+
+![欧拉角与万向锁](/images/robot-learning/robot-arm-pose-kinematics-jacobian/gimbal-lock.svg)
+
+*图：ZYX 欧拉角在 pitch 为 ±90° 时，yaw 与 roll 的旋转轴重合，欧拉角速度与角速度的映射出现奇异。*
+
+欧拉角适合人机界面和日志输出，不适合插值、求导和 IK 的误差表示。对欧拉角做线性插值，姿态会走出预期轨迹，跨越 ±180° 时还会跳变。URDF 的 roll-pitch-yaw（`rpy`）是绕固定轴 X、Y、Z 依次旋转（外旋），矩阵写成 $R_z(\text{yaw})R_y(\text{pitch})R_x(\text{roll})$。有些库把 rpy 解释成内旋 Z-Y-X，数值等价，语义不同；读文档时要确认。
+
+轴角用单位轴 $u$ 和角度 $\theta$ 表示。$\theta=0$ 时轴没有定义，$\theta=\pi$ 时 $u$ 与 $-u$ 表示同一个旋转。这两个点会让数值优化不舒服，所以轴角常作为中间的旋转误差表示，而不是长期存储的姿态表示。
+
+四元数写成 $\mathbf{q} = [w, x, y, z]$，满足 $w^2+x^2+y^2+z^2=1$。乘法对应旋转复合；$\mathbf{q}$ 与 $-\mathbf{q}$ 表示同一个旋转，这叫双覆盖。球面线性插值（spherical linear interpolation，SLERP）在单位球面上走短弧，代码里先检查点积符号，就是为了避免走长弧。
+
+四元数的符号在数值优化里会跳变：两次迭代得到的 $\mathbf{q}$ 可能从 $\mathbf{q}$ 变成 $-\mathbf{q}$，插值或求导时会看起来不连续。处理办法是每次更新后检查与上一步的点积，必要时取反。另一个常见问题是忘记归一化；乘法、插值、积分之后都要重新归一化，否则 $R$ 不再正交，误差会累积。
+
+用四元数旋转向量：$v' = \mathbf{q}\,v\,\mathbf{q}^*$，其中 $v$ 写成纯四元数 $[0, v_x, v_y, v_z]$。复合顺序与矩阵一致：$\mathbf{q}_{ac} = \mathbf{q}_{ab} \otimes \mathbf{q}_{bc}$。乘法顺序写反，旋转结果不同。
+
+例如两个姿态相差 170°，用欧拉角线性插值会经过一个不自然的中间姿态；用四元数 SLERP，中间姿态沿最短弧均匀变化。差别在动画和抓取接近阶段很明显。
+
+存储姿态时，旋转矩阵占 9 个数、四元数占 4 个；大量样本训练时四元数更省内存，也更适合做插值和归一化。但网络输出四元数要加单位约束或归一化层，否则会漂。
+
+SO(3) 的指数映射把旋转向量 $\theta u$ 变回旋转矩阵：
+
+$$
+\begin{aligned}
+R &= \exp(\theta[u]_\times) \\
+  &= I + s[u]_\times + (1-c)[u]_\times^2
+\end{aligned}
+$$
+
+其中 $s=\sin\theta$，$c=\cos\theta$，$[u]_\times$ 是反对称矩阵。log 是逆映射，旋转角由 $\theta = \arccos((\operatorname{tr}R-1)/2)$ 给出，轴由 $R-R^\top$ 的反对称部分给出；$\theta$ 接近 0 或 $\pi$ 时要单独处理。工程上很少自己写 exp/log，直接用 Pinocchio、Sophus 或 scipy 的实现。李群视角的价值在于：旋转的复合是群乘法，误差和增量在切空间里是向量，优化时不用带正交约束。这一篇不展开推导，够用的结论是：小增量用李代数 so(3) 向量表示，更新时用 exp 映射回 SO(3)。
+
+优化后如果 $R$ 不再正交，可以用 SVD 投影：对 $R = U\Sigma V^\top$ 取 $R \leftarrow UV^\top$。这是 Frobenius 范数下最近的旋转矩阵；如果 $\det(UV^\top)=-1$，把 $U$ 的最后一列取反再乘。
+
+## 三、正运动学
+
+正运动学是链式复合：
+
+$$
+T_{0n} = T_{01}T_{12}\cdots T_{n-1,n}
+$$
+
+其中每个 $T_{i-1,i}$ 都是对应关节角 $q_i$ 的函数。
+
+每个关节变换由关节类型决定。转动关节绕轴转 $q_i$，移动关节沿轴平移 $d_i$。机械臂的 FK 没有近似，只有顺序和符号问题。
+
+Denavit–Hartenberg（DH）参数用四个数描述相邻连杆：$a_{i-1}$、$\alpha_{i-1}$、$d_i$、$\theta_i$。标准 DH 和 modified DH 的区别在于变换顺序和坐标系挂法；混用会让符号全错。平面 2R 的 modified DH 参数（Craig 约定）：
+
+| 关节/连杆 $i$ | $a_{i-1}$ / $\alpha_{i-1}$ | $d_i$ / $\theta_i$ |
+|---|---|---|
+| 1 | 0 / 0 | 0 / $q_1$ |
+| 2 | $l_1$ / 0 | 0 / $q_2$ |
+| 3（工具） | $l_2$ / 0 | 0 / 0 |
+
+modified DH 的变换顺序是 $R_x(\alpha_{i-1})T_x(a_{i-1})R_z(\theta_i)T_z(d_i)$。按这个顺序，$T_{03}=R_z(q_1)T_x(l_1)R_z(q_2)T_x(l_2)$，和上面的 FK 一致。第三行不是关节，是末端固定的工具变换；少了这一行，末端只到第二关节。
+
+当 $\alpha=0$ 时，modified DH 的相邻变换退化为 $T_x(a_{i-1})R_z(\theta_i)T_z(d_i)$：旋转部分是 $R_z(\theta_i)$，平移部分是 $(a_{i-1},\;0,\;d_i)$。标准 DH 的退化形式是 $R_z(\theta_i)T_x(a_{i-1})T_z(d_i)$，平移部分是 $(a_{i-1}\cos\theta_i,\;a_{i-1}\sin\theta_i,\;d_i)$；这就是两种约定不能混用的原因。
+
+标准 DH 的顺序是 $R_z(\theta)T_z(d)T_x(a)R_x(\alpha)$；同样一组数按标准 DH 复合会得到不同结果。看论文或代码时先确认用的是哪一种，混用会让 $a$ 和 $\alpha$ 的索引错位。
+
+统一机器人描述格式（URDF）不要求 DH 约定。每个 joint 用 `origin` 的 `xyz` 和 `rpy` 描述子坐标系在父坐标系里的位姿，用 `axis` 描述转轴，用 `parent` 和 `child` 描述树结构。DH 强制一种坐标系挂法，参数少；URDF 允许任意 frame，适合真实模型、传感器和碰撞体。
+
+用 URDF 做 FK 时，关节变换是 origin 乘关节运动，不能直接把 DH 表抄进去。反过来，从 URDF 反推 DH 也需要额外约定，不是一一对应。
+
+```xml
+<joint name="joint2" type="revolute">
+  <parent link="link1"/>
+  <child link="link2"/>
+  <origin xyz="0.3 0 0" rpy="0 0 0"/>
+  <axis xyz="0 0 1"/>
+  <limit lower="-2.9" upper="2.9" effort="50" velocity="2.0"/>
+</joint>
+```
+
+这个 joint 表示：link2 的原点在 link1 的 x 方向 0.3 米处，绕 link2 的 z 轴转动，限位 ±2.9 弧度。`origin` 是关节零位变换，关节运动再乘上去；如果 `axis` 写成 `1 0 0`，转动轴就变成 x 轴，后面的姿态全变。
+
+URDF 支持 revolute、continuous、prismatic、fixed、floating、planar。机械臂常用 revolute 和 prismatic；continuous 没有上下限，fixed 用于把相机或工具固定到连杆上。FK 时按类型选择变换：revolute 绕 `axis` 转 $q$，prismatic 沿 `axis` 平移 $q$，fixed 只乘 `origin`。
+
+做教学和推导用 DH，参数少、公式清楚；做工程和仿真用 URDF，模型、碰撞、惯性和传感器都在同一棵树里。两者可以互转，但转换工具也会引入约定差异，转完要用 FK 抽查几个位形。
+
+2R 的 FK 可以写成 $T = R_z(q_1)T_x(l_1)R_z(q_2)T_x(l_2)$。展开后旋转部分是 $R_z(q_1+q_2)$，位置是：
+
+$$
+p = \begin{bmatrix}
+l_1\cos q_1 + l_2\cos(q_1+q_2) \\
+l_1\sin q_1 + l_2\sin(q_1+q_2)
+\end{bmatrix}
+$$
+
+代码里的 `c12`、`s12` 就是 $q_1+q_2$ 的余弦和正弦，可以直接和这个展开对照。取 $l_1=1$、$l_2=0.8$、$q_1=30^\circ$、$q_2=45^\circ$，末端位置是 $(1.073, 1.273)$。如果代码算出来是这个数，顺序和符号基本对上了；如果 x、y 互换或符号相反，先查 $q_1+q_2$ 和旋转方向。
+
+对 2R 的位置公式求偏导，可以得到雅可比的解析形式：$\partial x/\partial q_1 = -l_1\sin q_1 - l_2\sin(q_1+q_2)$，$\partial x/\partial q_2 = -l_2\sin(q_1+q_2)$，$\partial y/\partial q_1 = l_1\cos q_1 + l_2\cos(q_1+q_2)$，$\partial y/\partial q_2 = l_2\cos(q_1+q_2)$。这和第五节直接写出的 $J$ 一致；对 6R 手推偏导不现实，几何法更稳。
+
+下面的代码把 2R 的 FK 和解析 IK 放在一起。FK 直接按链式乘法展开，IK 用余弦定理求 $q_2$，再用几何关系求 $q_1$。
+
+```python
+import numpy as np
+
+def fk_2r(q, l1, l2):
+    q1, q2 = q
+    c1, s1 = np.cos(q1), np.sin(q1)
+    c12, s12 = np.cos(q1 + q2), np.sin(q1 + q2)
+    return np.array([
+        [c12, -s12, 0, l1*c1 + l2*c12],
+        [s12,  c12, 0, l1*s1 + l2*s12],
+        [0,    0,   1, 0],
+        [0,    0,   0, 1],
+    ])
+
+def ik_2r(x, y, l1, l2):
+    r2 = x*x + y*y
+    c2 = (r2 - l1*l1 - l2*l2) / (2*l1*l2)
+    if c2 < -1.0 or c2 > 1.0:
+        return []
+    s2 = np.sqrt(max(0.0, 1.0 - c2*c2))
+    sols = []
+    for sign in (1.0, -1.0):
+        q2 = np.arctan2(sign*s2, c2)
+        q1 = np.arctan2(y, x) - np.arctan2(l2*sign*s2, l1 + l2*c2)
+        sols.append((q1, q2))
+    return sols
+```
+
+$q_2$ 由余弦定理给出，$\pm$ 对应肘上和肘下两组解。可达域是 $|l_1-l_2| \le \sqrt{x^2+y^2} \le l_1+l_2$；边界处 $q_2=0$ 或 $\pi$，雅可比奇异。
+
+![2R 平面臂的两组逆运动学解](/images/robot-learning/robot-arm-pose-kinematics-jacobian/planar-2r.svg)
+
+*图：同一目标点 $P$ 对应肘上和肘下两组解。选解要结合关节限位、避障、当前位形和轨迹连续性。*
+
+解析解只对特定几何成立。2R 有闭式解，不代表 6R 有。多数 6R 机械臂没有通用闭式解；有解析解的情形依赖具体的连杆几何，比如 Pieper 条件。
+
+6R 的 FK 可以用同样的链式乘法，但手写 6 个矩阵容易错。工程上用 Pinocchio 或 KDL 从 URDF 直接算 FK 和雅可比：
+
+```python
+import pinocchio as pin
+
+model = pin.buildModelFromUrdf("urdf/ur5.urdf")
+data = model.createData()
+q = pin.neutral(model)
+
+pin.forwardKinematics(model, data, q)
+pin.updateFramePlacements(model, data)
+frame_id = model.getFrameId("tool0")
+oMf = data.oMf[frame_id]
+J = pin.computeFrameJacobian(model, data, q, frame_id, pin.LOCAL_WORLD_ALIGNED)
+```
+
+这段代码依赖 Pinocchio 3.x 和对应的 URDF，未在本机运行。`LOCAL_WORLD_ALIGNED` 表示雅可比按世界系轴表达、原点在末端点上；基座固定且与 world 重合时才等同于基座系。换参考系时结果会变，排查问题时先确认这个参数。
+
+## 四、逆运动学
+
+IK 是求 $q$ 使 $T(q) = T_{\text{target}}$。要回答三个问题：有没有解，有多少解，怎么选。工作空间外没有解；6R 一般有多个解；选解要满足关节限位、避障和轨迹连续性。
+
+| 方法 | 优点 | 缺点 | 适用 |
+|---|---|---|---|
+| 解析解 | 快，能枚举全部解 | 依赖几何，推导复杂 | 2R、球腕 6R |
+| 数值解 | 通用，易实现 | 依赖初值，可能不收敛 | 任意结构 |
+| 优化/学习 | 可加约束 | 需要求解器或数据 | 冗余臂、避障 |
+
+解析解依赖几何。2R 用余弦定理；6R 常见的是 Pieper 条件：三个相邻轴交于一点或平行，可以把位置和姿态解耦。典型工业臂的球腕满足这个条件：先由腕心求前三轴，再由腕部姿态求后三轴。不满足时一般只能数值求解。
+
+球腕解耦的步骤：先由目标位置和腕心偏移求腕心 $p_w = p_{\text{target}} - R_{\text{target}}d_6$；用前三轴解腕心位置；再用 $R_3^\top R_{\text{target}}$ 解腕部三个角。腕心偏移 $d_6$ 是腕心到末端的向量，符号容易错。
+
+目标位姿通常来自视觉或示教：视觉给相机系下的位姿，需要左乘 $T_{base,camera}$；示教给关节角，先用 FK 转成位姿再存。两条路径的误差来源不同，视觉路径多一个标定误差，示教路径多一个编码器误差。
+
+选解的顺序：先过滤关节限位，再按与当前 $q$ 的距离排序，最后做碰撞检查。直接取第一个解，换一个目标点就可能让手臂绕一大圈。
+
+选解的代价可以写成 $c(q) = k_1\lVert q-q_{\text{current}}\rVert^2 + k_2\,\text{limit\_margin}(q) + k_3\,\text{collision}(q)$。权重按任务调；没有碰撞检查时，至少加限位裕度。
+
+对目标 $(1.073,1.273)$，一组解是 $q_1=30^\circ,q_2=45^\circ$，另一组是 $q_1\approx69.7^\circ,q_2=-45^\circ$。两组都到同一个点，肘部位置不同；选哪组取决于限位、避障和当前位形。
+
+数值解把 IK 写成非线性最小二乘。给定初值 $q_0$，迭代：
+
+$$
+e = \begin{bmatrix} p_{\text{target}} - p(q) \\ \mathrm{rotErr}(R_{\text{target}} R(q)^\top) \end{bmatrix}
+$$
+
+$$
+\begin{aligned}
+\Delta q &= J^\top \left(J J^\top + \lambda^2 I\right)^{-1} e \\
+q_{k+1} &= q_k + \Delta q
+\end{aligned}
+$$
+
+旋转误差用轴角，不用欧拉角差。欧拉角差在小角度也不等于旋转向量，跨过 ±180° 还会跳变。阻尼 $\lambda$ 在奇异附近抑制过大的关节速度；$\lambda$ 太大收敛慢，太小会在奇异附近抖。
+
+收敛条件要同时看位置误差、姿态误差和步长。只卡一个范数会在位置和姿态尺度差异大时误判。初值也很关键：数值解只找离初值最近的那个解，换一个初值可能收敛到另一组关节角。
+
+误差权重也要注意。位置用米、姿态用弧度，量纲不同；位置误差 1 cm 和姿态误差 1 rad 在同一个范数里不等价。工程上给位置和姿态分别设阈值，或者按任务精度加权。
+
+伪逆解 $J^+e$ 在奇异附近会给出很大的关节速度；阻尼最小二乘（damped least squares，DLS）用 $(JJ^\top+\lambda^2 I)^{-1}$ 替代，等价于在最小二乘里加阻尼。$\lambda$ 可以固定，也可以按最小奇异值自适应：$\sigma_{\min}$ 小时增大 $\lambda$。
+
+线搜索：每步算完 $dq$ 后，检查误差是否下降；不下降就减半步长。没有线搜索时，初值差或阻尼不当会来回震荡。关节限位：迭代中把 $q$ 夹到 $[q_{\min},q_{\max}]$，或者把超限的关节速度置零；后者会让末端误差变大，但不会把关节推过限位。
+
+```python
+import numpy as np
+
+# damping 对应公式里的 λ
+def numeric_ik(fk, jac, T_target, q0, iters=100, tol=1e-6, damping=1e-3):
+    q = np.asarray(q0, dtype=float).copy()
+    eye6 = np.eye(6)
+    for _ in range(iters):
+        T = fk(q)
+        e = np.zeros(6)
+        e[:3] = T_target[:3, 3] - T[:3, 3]
+        R_err = T_target[:3, :3] @ T[:3, :3].T
+        cos_theta = np.clip((np.trace(R_err) - 1.0) / 2.0, -1.0, 1.0)
+        theta = np.arccos(cos_theta)
+        if theta > 1e-9:
+            axis = np.array([
+                R_err[2, 1] - R_err[1, 2],
+                R_err[0, 2] - R_err[2, 0],
+                R_err[1, 0] - R_err[0, 1],
+            ]) / (2.0 * np.sin(theta))
+            e[3:] = axis * theta
+        if np.linalg.norm(e) < tol:
+            return q, True
+        J = jac(q)
+        dq = J.T @ np.linalg.solve(J @ J.T + damping**2 * eye6, e)
+        q = q + dq
+    return q, False
+```
+
+这段代码只保留主路径：$\theta$ 接近 $\pi$ 时，轴提取的分母 $2\sin\theta$ 趋于 0，需要单独分支。
+
+这个实现只说明迭代结构：没有关节限位，没有线搜索，没有多初值。生产环境用 TRAC-IK 或 MoveIt 2 的 IK 插件；TRAC-IK 会同时跑 KDL 和 SQP、设时间上限，并在找不到精确解时返回近似解；MoveIt 2 的插件可以配置多种子。KDL 本身只是一个求解器，不负责这些外层策略。Pinocchio 的 FK/雅可比快，适合优化和控制；不要用 MoveIt 2 的 IK 插件做毫秒级控制环，它的抽象层太多。
+
+MoveIt 2 可以配置 KDL、TRAC-IK 或 IKFast 插件；IKFast 生成闭式解，速度快，但只对特定几何有效。
+
+目标可以只给位置（3 自由度）或位置加一个轴（5 自由度）。任务维数少于 6 时，$J$ 是 3×n 或 5×n，伪逆仍然适用；不要硬凑成 6×6。
+
+6R 球腕最多有 8 组解：肩部 2 组、肘部 2 组、腕部 2 组。实际可达的解还要过限位和碰撞检查；解析解给出 8 组，不等于 8 组都能用。
+
+目标姿态可以用旋转矩阵、四元数或 ROS 的 Pose 消息传。不同接口的约定不同：有的用 wxyz，有的用 xyzw；传之前确认顺序，否则姿态会完全不对，甚至看起来像绕错了一个轴。
+
+数值 IK 失败时，先区分三种情况：目标在工作空间外、初值落在奇异附近、关节限位挡住的解。第一种要改目标；第二种换初值或加随机种子；第三种要检查限位和选解策略。把失败都归成“IK 不收敛”，后面没法修。
+
+这张图用 2R 的位置误差演示同一迭代结构；上面的 `numeric_ik` 是 6 维位姿版本，不能直接套到 2R。
+
+![2R 数值 IK 误差收敛](/images/robot-learning/robot-arm-pose-kinematics-jacobian/ik-convergence.png)
+
+*图：同一目标下，初值远离奇异时 6 次迭代收敛，初值接近奇异时要 13 次。曲线按文中迭代结构改写生成，是示例，不是实测数据。*
+
+## 五、雅可比、奇异点与冗余
+
+雅可比把关节速度映射到末端空间速度：
+
+$$
+\begin{bmatrix} v \\ \omega \end{bmatrix} = J(q)\,\dot q
+$$
+
+第 $i$ 列的几何意义：转动关节是 $[z_{i-1} \times (p_e - p_{i-1});\; z_{i-1}]$，移动关节是 $[z_{i-1};\; 0]$。$z_{i-1}$ 和 $p_{i-1}$ 是关节 $i$ 的轴和原点在基座系里的表示。这个构造比直接对 FK 求偏导更常用，因为不需要展开三角函数。
+
+平面 2R 的雅可比由两列组成，$J=[J_1\;J_2]$：
+
+$$
+J_1 = \begin{bmatrix}
+-l_1\sin q_1 - l_2\sin(q_1+q_2) \\
+ l_1\cos q_1 + l_2\cos(q_1+q_2)
+\end{bmatrix}
+$$
+
+$$
+J_2 = \begin{bmatrix}
+-l_2\sin(q_1+q_2) \\
+ l_2\cos(q_1+q_2)
+\end{bmatrix}
+$$
+
+行列式 $\det J = l_1 l_2 \sin q_2$。$q_2=0$ 或 $\pi$ 时奇异：手臂完全伸直或折叠，末端在径向无法运动，关节速度再大也推不动。
+
+2R 的 $J$ 可以逐列验证：第一列是绕 base 的 z 轴转 $q_1$ 时末端的切向速度，垂直于从 base 到末端的连线；第二列是绕肘关节转 $q_2$ 时的切向速度，垂直于第二根连杆。对 6R，$J$ 是 6×n；前三行是线速度，后三行是角速度。每一列只依赖当前位形和关节轴，不依赖末端速度。写代码时先算每个关节的原点和轴，再逐列填。
+
+奇异类型：肩奇异（腕心在 base 轴上）、肘奇异（手臂伸直）、腕奇异（两腕轴重合）。不同类型对应不同的逃逸方向；只看 $\mu=0$ 不够，要知道是哪一列退化。
+
+| 类型 | 触发条件 | 退化方向 | 常见处理 |
+|---|---|---|---|
+| 肩奇异 | 腕心在 base 轴上 | 肩部转动 | 改变腕心位置 |
+| 肘奇异 | 手臂完全伸直 | 径向 | 弯曲肘部 |
+| 腕奇异 | 两腕轴重合 | 腕部一个方向 | 改变腕部姿态 |
+
+对一般 $J$ 做奇异值分解（singular value decomposition，SVD）：
+
+$$
+J = U\Sigma V^\top
+$$
+
+奇异值刻画末端在各个方向上的可动性。最小奇异值接近 0 表示接近奇异；条件数 $\sigma_{\max}/\sigma_{\min}$ 越大，数值越不稳。$U$ 的列是末端速度的主方向，$V$ 的列是对应的关节速度方向，奇异值是放大倍数；最小奇异值对应的方向，就是末端几乎动不了的方向。可操作度定义为：
+
+$$
+\mu = \sqrt{\det(JJ^\top)} = \sigma_1\sigma_2\cdots\sigma_m
+$$
+
+$\mu=0$ 时奇异。对非方阵 $J$，不要算 $\det(J)$，要算 $JJ^\top$ 的行列式。工程上常监控最小奇异值或条件数，超过阈值就降速、报警或重新规划；阈值取决于任务精度、关节速度上限和控制周期，没有通用数值。
+
+速度控制里常用 $J^+$，力控制里常用 $J^\top$：末端力 $F$ 映射到关节力矩 $\tau = J^\top F$。两者不是一回事；把 $J^\top$ 当逆用，量纲和数值都不对。
+
+伪逆在奇异附近不稳定，DLS 是工程默认。DLS 的代价是末端精度下降；在接触任务里，这个误差可能比关节速度失控更可接受。任务空间控制里，$J$ 把期望末端速度变成关节速度；如果 $J$ 接近奇异，期望速度会被放大成不可执行的关节速度。实际控制器会限幅、滤波，或者直接用 DLS。
+
+奇异的物理直觉：在某个方向上，关节运动合成不出末端运动；反过来，末端受到的外力会在关节上产生很大的力矩。速度侧和力侧是同一个雅可比的两面。
+
+零空间的数值实现：对 $J$ 做 SVD，取零奇异值对应的右奇异向量作为零空间基；6×7 且满行秩时，第 7 个奇异值为 0，零空间是一维。把期望的关节速度投影掉 $J$ 行空间分量，就得到零空间运动。
+
+验证雅可比最直接的方法：对每个关节加一个小扰动 $\delta$，用 FK 算末端位姿变化，除以 $\delta$，和解析列比较。位置部分误差应在 $10^{-6}$ 量级；姿态部分要先转成轴角再比。
+
+冗余机械臂的关节数大于任务维数，$J$ 是 6×n，零空间非平凡。速度通解是：
+
+$$
+\dot q = J^+ v + (I - J^+ J) z
+$$
+
+第二项不改变末端速度，可以用来避障、避限位、保持姿态。冗余不等于安全：零空间运动仍受关节限位和碰撞约束。
+
+一个具体用法：7 自由度臂抓取时，末端位姿保持不变，用零空间把肘部往远离奇异和障碍的方向挪。零空间向量 $z$ 的选择决定优化目标，常见的是关节限位裕度、可操作度和避障距离。没有目标函数时，$z=0$ 就是最小范数解。
+
+```python
+def manipulability(J):
+    return float(np.sqrt(max(0.0, np.linalg.det(J @ J.T))))
+
+def scan_manipulability(jac, q_path):
+    return [manipulability(jac(q)) for q in q_path]
+```
+
+![2R 平面臂可操作度随 q2 变化](/images/robot-learning/robot-arm-pose-kinematics-jacobian/manipulability.png)
+
+*图：2R 平面臂的可操作度在 $q_2=0$ 和 $\pm\pi$ 处为 0，对应完全伸直和完全折叠。曲线按文中公式生成，是示例。*
+
+## 六、常见误区与检查清单
+
+| 检查项 | 怎么查 | 常见错误 |
+|---|---|---|
+| 旋转矩阵 | $R^\top R \approx I$，$\det R \approx 1$ | 用欧拉角直接拼矩阵，顺序错 |
+| 四元数 | $\lVert q \rVert \approx 1$ | 忘记归一化，插值走长弧 |
+| 变换顺序 | $T T^{-1} \approx I$，代单位向量 | 左乘和右乘混用 |
+| 角度单位 | 全部用弧度 | 度和弧度混用 |
+| DH 与 URDF | 从 URDF 重算 FK | 把 DH 表直接套到 URDF |
+| IK | 多初值、限位、收敛 | 只取第一个解，忽略限位 |
+| 雅可比 | 与数值差分对比 | 公式符号错，参考系不一致 |
+| 奇异 | 监控 $\mu$ 或条件数 | 失败后才回头查 |
+
+几条容易踩的坑：
+
+- 把雅可比当成常数矩阵。它随 $q$ 变化，只在当前位形附近有效。
+- 用 $\det(J)$ 判断非方阵的奇异性。$J$ 不是方阵时行列式没有定义，应该用 $JJ^\top$ 或 SVD。
+- 混淆几何雅可比和解析雅可比。前者映射到空间速度，后者映射到姿态参数的导数；做速度控制时用前者，做姿态优化时注意后者。
+- 奇异点只降速不处理。降速能让运动变慢，但末端在奇异方向上仍然没有可动性；需要改变路径或利用冗余。
+- 单位混用。位置用米、角度用弧度，混用后误差会被放大到无法解释。
+- 把 URDF 的 `rpy` 当成内旋。URDF 用固定轴外旋，和内旋 Z-Y-X 的矩阵等价，但语义不同；改轴顺序时容易错。
+- 把 world、base_link、odom 当成同一个坐标系。抓取位姿通常在 base 系，规划器可能在 world 系；TF 查错 frame，结果会整体偏一个固定变换。
+
+调试顺序：先查单位和坐标系数目，再查单关节变换，再查整链 FK，最后查 IK 和雅可比。单关节对不上时不要继续往上叠，否则错误会被后续变换掩盖。一个实用做法是给每个关节单独建测试：只动一个关节，看末端轨迹是不是绕该轴的圆弧。
+
+单位检查表：长度米、角度弧度、时间秒、速度 m/s、角速度 rad/s、力矩 N·m。URDF 的长度单位是米，角度是弧度；有些计算机辅助设计（CAD）软件导出用毫米，导入后整体大 1000 倍。
+
+学习建议：这部分不需要背公式，需要能独立写出 2R 的 FK、IK、J，并用数值差分验证。6R 的公式交给库，但要知道库返回的雅可比在哪个参考系、作用在哪个点上。
+
+自测题：给定 $T_{ab}$ 和 $T_{bc}$，写出 $T_{ac}$；2R 在 $q_2=0$ 时哪一列退化；为什么四元数插值前要检查点积符号；用数值差分验证一个雅可比列。
+
+## 参考
+
+- Lynch & Park, *Modern Robotics*, Ch.3–6（SE(3)、正运动学、速度与雅可比、逆运动学）。
+- Craig, *Introduction to Robotics*, Ch.2–4（变换、运动学、雅可比）。
+- Shoemake, *Animating Rotation with Quaternion Curves*, SIGGRAPH 1985. [DOI](https://doi.org/10.1145/325334.325242)
+- Pieper, *The Kinematics of Manipulators Under Computer Control*, PhD thesis, Stanford, 1968.
+- Wampler, *Manipulator Inverse Kinematic Solutions Based on Vector Formulations and Damped Least Squares Methods*, IEEE TSMC, 1986.
+- Yoshikawa, *Manipulability of Robotic Mechanisms*, IJRR, 1985. [DOI](https://doi.org/10.1177/027836498500400201)
+- [TRAC-IK](https://github.com/traclabs/trac_ik)
+- [Pinocchio](https://github.com/stack-of-tasks/pinocchio)
+
+下一篇：[动力学、力控与轨迹/抓取规划](/blog/robot-arm-dynamics-control-planning)。
